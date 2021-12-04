@@ -1,9 +1,8 @@
 jobs:
-- name: foo
-  command: bash -c "echo foo"
-  cron: "* * * * *"
-  at_completion:
-    trigger:
-    - bar
-- name: bar
-  command: echo bar
+  foo:
+    command: "/bin/echo foo"
+    cron: "* * * * *"
+    triggers:
+      - bar
+  bar:
+    command: echo bar
