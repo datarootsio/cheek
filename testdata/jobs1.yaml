@@ -1,8 +1,11 @@
 jobs:
   foo:
-    command: "/bin/echo foo"
+    command: date
     cron: "* * * * *"
     triggers:
       - bar
   bar:
-    command: echo bar
+    command:
+      - /bin/bash
+      - -c
+      - "sleep 2; echo bar"

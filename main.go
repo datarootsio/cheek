@@ -3,10 +3,10 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"strings"
 	"time"
 
 	"gopkg.in/yaml.v3"
@@ -43,14 +43,32 @@ func (s *Schedule) Run() {
 }
 
 type JobSpec struct {
-	Cron           string   `yaml:"cron"`
-	Command        string   `yaml:"command"`
-	Triggers       []string `yaml:"triggers"`
+	Cron           string      `yaml:"cron,omitempty"`
+	Command        StringArray `yaml:"command"`
+	Triggers       []string    `yaml:"triggers"`
 	name           string
 	globalSchedule *Schedule
 	runs           []time.Time
 	statuses       []int
 	logTails       []string
+}
+
+type StringArray []string
+
+func (a *StringArray) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var multi []string
+	err := unmarshal(&multi)
+	if err != nil {
+		var single string
+		err := unmarshal(&single)
+		if err != nil {
+			return err
+		}
+		*a = []string{single}
+	} else {
+		*a = multi
+	}
+	return nil
 }
 
 func readSpecs(fn string) (Schedule, error) {
@@ -112,18 +130,23 @@ func (j *JobSpec) ExecCommand(trigger string) {
 	j.runs = append(j.runs, time.Now())
 	j.logTails = append(j.logTails, "")
 
-	cmdString := parseCommand(j.Command)
-	var args []string
-	if len(cmdString) > 1 {
-		args = cmdString[1:]
-	}
-	cmd := exec.Command(cmdString[0], args...)
+	cmd := exec.Command(j.Command[0], j.Command[1:]...)
 
-	pipe, _ := cmd.StdoutPipe()
-	if err := cmd.Start(); err != nil {
-		// handle error
+	outPipe, _ := cmd.StdoutPipe()
+	errPipe, _ := cmd.StderrPipe()
+
+	err := cmd.Start()
+	if err != nil {
+		exitCode := -1
+		j.statuses = append(j.statuses, exitCode)
+		j.logTails[len(j.logTails)-1] = err.Error()
+		fmt.Println(err)
+		log.Warn().Str("job", j.name).Msgf("Job unable to start")
+
 	}
-	reader := bufio.NewReader(pipe)
+
+	merged := io.MultiReader(outPipe, errPipe)
+	reader := bufio.NewReader(merged)
 	line, err := reader.ReadString('\n')
 	for err == nil {
 		// output to stdout
@@ -136,7 +159,9 @@ func (j *JobSpec) ExecCommand(trigger string) {
 	if err := cmd.Wait(); err != nil {
 		if exitError, ok := err.(*exec.ExitError); ok {
 			j.statuses = append(j.statuses, exitError.ExitCode())
+			log.Warn().Str("job", j.name).Msgf("Exit code %v", exitError.ExitCode())
 		}
+
 		return
 	}
 
@@ -150,10 +175,6 @@ func (j *JobSpec) ExecCommand(trigger string) {
 
 	}
 
-}
-
-func parseCommand(command string) []string {
-	return strings.Fields(command)
 }
 
 func main() {
