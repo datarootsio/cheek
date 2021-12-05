@@ -20,6 +20,28 @@ type Schedule struct {
 	Jobs map[string]*JobSpec `yaml:"jobs"`
 }
 
+func (s *Schedule) Run() {
+	gronx := gronx.New()
+	ticker := time.NewTicker(time.Second)
+
+	for range ticker.C {
+		for _, j := range s.Jobs {
+			if j.Cron == "" {
+				continue
+			}
+			due, _ := gronx.IsDue(j.Cron)
+			// spew.Dump(999, due, j.Cron, j.name, j)
+
+			if due {
+				go func(j *JobSpec) {
+					j.ExecCommand("cron")
+				}(j)
+			}
+		}
+	}
+
+}
+
 type JobSpec struct {
 	Cron           string   `yaml:"cron"`
 	Command        string   `yaml:"command"`
@@ -58,7 +80,6 @@ func LoadSchedule(fn string) (Schedule, error) {
 	}
 
 	// run validations
-
 	for k, v := range s.Jobs {
 		// validate cron string
 		if v.Cron != "" {
@@ -78,14 +99,15 @@ func LoadSchedule(fn string) (Schedule, error) {
 		// set name for easy access
 		v.name = k
 		v.globalSchedule = &s
-		// s.Jobs[k] = v
 	}
 
 	return s, nil
 }
 
 func (j *JobSpec) ExecCommand(trigger string) {
-	log.Info().Str("Job", j.name).Str("Trigger", trigger).Msgf("Job triggered by.")
+	log.Info().Str("job", j.name).Str("trigger", trigger).Msgf("Job triggered")
+	// spew.Dump(j)
+	// os.Exit(1)
 	// register new run
 	j.runs = append(j.runs, time.Now())
 	j.logTails = append(j.logTails, "")
@@ -122,62 +144,16 @@ func (j *JobSpec) ExecCommand(trigger string) {
 	// trigger jobs that should run on succesful completion
 	for _, tn := range j.Triggers {
 		tj := j.globalSchedule.Jobs[tn]
-		go func() {
-			tj.ExecCommand(tn)
-		}()
+		go func(jobName string) {
+			tj.ExecCommand(fmt.Sprintf("job[%s]", jobName))
+		}(tn)
 
 	}
 
-}
-
-func (j *JobSpec) Schedule() {
-
-	if j.Cron == "" {
-		log.Info().Str("Job", j.name).Msg("No cron string specified, will wait to be actively triggered.")
-		return
-	}
-
-	gronx := gronx.New()
-
-	if !gronx.IsValid(j.Cron) {
-		log.Fatal().Str("Job", j.name).Msg("Cron string not valid.")
-	}
-
-	ticker := time.NewTicker(time.Second)
-
-	go func() {
-		for range ticker.C {
-			due, _ := gronx.IsDue(j.Cron)
-
-			if due {
-				j.ExecCommand("cron")
-			}
-		}
-	}()
 }
 
 func parseCommand(command string) []string {
 	return strings.Fields(command)
-}
-
-func initSchedule(scheduleFn string) {
-
-	js, err := LoadSchedule(scheduleFn)
-	if err != nil {
-		log.Error().Err(err).Msg("")
-		os.Exit(1)
-	}
-	numberJobs := len(js.Jobs)
-	i := 0
-	for _, job := range js.Jobs {
-		log.Info().Msgf("Initializing (%v/%v) job: %s", i, numberJobs, job.name)
-		job.Schedule()
-		i = i + 1
-	}
-
-	for {
-	}
-
 }
 
 func main() {
@@ -186,6 +162,19 @@ func main() {
 	if len(argsWithoutProg) != 1 {
 		panic("Please pass a schedule file as first argument.")
 	}
-	initSchedule(argsWithoutProg[0])
+
+	js, err := LoadSchedule(argsWithoutProg[0])
+	if err != nil {
+		log.Error().Err(err).Msg("")
+		os.Exit(1)
+	}
+	numberJobs := len(js.Jobs)
+	i := 0
+	for _, job := range js.Jobs {
+		log.Info().Msgf("Initializing (%v/%v) job: %s", i, numberJobs, job.name)
+		i = i + 1
+	}
+
+	js.Run()
 
 }
