@@ -12,6 +12,7 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/adhocore/gronx"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
@@ -50,7 +51,7 @@ type JobSpec struct {
 	globalSchedule *Schedule
 	runs           []time.Time
 	statuses       []int
-	logTails       []string
+	logTail        string
 }
 
 type StringArray []string
@@ -122,37 +123,47 @@ func LoadSchedule(fn string) (Schedule, error) {
 	return s, nil
 }
 
+func (j *JobSpec) AppendToLogTail(new string) {
+	const maxLength int = 300
+
+	buffer := maxLength - (len(j.logTail) + len(new))
+
+	if buffer < 0 {
+		j.logTail = j.logTail[-buffer : len(j.logTail)-1]
+	}
+
+	j.logTail = j.logTail + new
+
+}
+
 func (j *JobSpec) ExecCommand(trigger string) {
 	log.Info().Str("job", j.name).Str("trigger", trigger).Msgf("Job triggered")
-	// spew.Dump(j)
-	// os.Exit(1)
 	// register new run
 	j.runs = append(j.runs, time.Now())
-	j.logTails = append(j.logTails, "")
-
 	cmd := exec.Command(j.Command[0], j.Command[1:]...)
 
 	outPipe, _ := cmd.StdoutPipe()
 	errPipe, _ := cmd.StderrPipe()
-
+	spew.Dump(888, j.logTail)
 	err := cmd.Start()
 	if err != nil {
 		exitCode := -1
 		j.statuses = append(j.statuses, exitCode)
-		j.logTails[len(j.logTails)-1] = err.Error()
-		fmt.Println(err)
+		j.AppendToLogTail(err.Error() + "\n")
+		fmt.Println(err.Error())
 		log.Warn().Str("job", j.name).Msgf("Job unable to start")
+		return
 
 	}
 
 	merged := io.MultiReader(outPipe, errPipe)
 	reader := bufio.NewReader(merged)
 	line, err := reader.ReadString('\n')
+
 	for err == nil {
 		// output to stdout
 		fmt.Print(line)
-		// output to our logger
-		j.logTails[len(j.logTails)-1] = j.logTails[len(j.logTails)-1] + line + "\n"
+		j.AppendToLogTail(line)
 		line, err = reader.ReadString('\n')
 	}
 
