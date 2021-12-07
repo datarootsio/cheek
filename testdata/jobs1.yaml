@@ -9,6 +9,10 @@ jobs:
       - /bin/bash
       - -c
       - "sleep 2; echo bar"
+  shuttle:
+    command:
+      - ls
+    cron: "* * * * *"
   # coffee:
   #   command: this fails
   #   cron: "* * * * *"
