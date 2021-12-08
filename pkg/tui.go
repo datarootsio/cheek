@@ -34,7 +34,7 @@ type item struct {
 
 func (j *JobSpec) GetTitle() string {
 	if len(j.runs) > 0 && j.runs[0].Status != 0 {
-		return j.Name + " ⛔️"
+		return j.Name + " " + lipgloss.NewStyle().Faint(true).Render("error")
 	}
 	return j.Name
 }
@@ -137,8 +137,8 @@ func (m model) View() string {
 	str, _ := renderer.Render(jobViewContent)
 	vp.SetContent(str)
 
-	grid := lipgloss.JoinVertical(lipgloss.Left, titleStyle.Render("Just Do It!\n"),
-		lipgloss.JoinHorizontal(lipgloss.Top, m.list.View(), vp.View()))
+	grid := lipgloss.JoinVertical(lipgloss.Left, lipgloss.NewStyle().Background(lipgloss.Color("#7D56F4")).Width(96).Render("Just Do It!"),
+		lipgloss.JoinHorizontal(lipgloss.Top, lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).Render(m.list.View()), vp.View()))
 	return grid
 }
 
@@ -164,17 +164,21 @@ func TUI() {
 	items := []list.Item{}
 	for _, v := range schedule.Jobs {
 		v.LoadRuns()
-		item := item{title: v.GetTitle(), desc: v.GetStatusDescription(), jobName: v.Name}
+		item := item{title: v.GetTitle(), jobName: v.Name}
 		items = append(items, item)
 		// get run history for each job
 	}
 
 	const defaultWidth = 20
+	id := list.NewDefaultDelegate()
+	id.ShowDescription = false
+	id.SetSpacing(0)
 
-	l := list.NewModel(items, list.NewDefaultDelegate(), defaultWidth, listHeight)
-	l.Title = "Jobs"
-	// l.SetShowStatusBar(false)
-	// l.SetFilteringEnabled(false)
+	l := list.NewModel(items, id, defaultWidth, listHeight)
+	l.SetShowStatusBar(false)
+	l.SetFilteringEnabled(false)
+	l.SetShowHelp(false)
+	l.SetShowTitle(false)
 	// l.Styles.Title = titleStyle
 	// l.Styles.PaginationStyle = paginationStyle
 	// l.Styles.HelpStyle = helpStyle
