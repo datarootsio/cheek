@@ -20,6 +20,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var pretty bool
+
 // runCmd represents the run command
 var runCmd = &cobra.Command{
 	Use:   "run path/to/schedule.yaml",
@@ -27,12 +29,14 @@ var runCmd = &cobra.Command{
 	Long:  "Schedule & run jobs",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		jdi.RunSchedule(args[0])
+		jdi.RunSchedule(args[0], pretty)
 	},
 }
 
 func init() {
+
 	rootCmd.AddCommand(runCmd)
+	runCmd.Flags().BoolVarP(&pretty, "pretty", "p", false, "Output pretty formatted logs to console.")
 
 	// Here you will define your flags and configuration settings.
 

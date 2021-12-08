@@ -16,7 +16,6 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/adhocore/gronx"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
@@ -26,7 +25,7 @@ type Schedule struct {
 }
 
 func GetStateFromDisk() (*Schedule, error) {
-	const jdiStateFile = ".jdi.json"
+	const jdiStateFile = "jdi.scheduler.json"
 	usr, _ := user.Current()
 	dir := usr.HomeDir
 	stateFn := path.Join(dir, jdiStateFile)
@@ -97,9 +96,6 @@ type JobSpec struct {
 	Triggers       []string    `yaml:"triggers,omitempty" json:"triggers,omitempty"`
 	Name           string      `json:"name"`
 	globalSchedule *Schedule
-	Runs           []time.Time `json:"runs"`
-	Statuses       []int       `json:"statuses"`
-	LogTail        string      `json:"logtail"`
 }
 
 type JobRun struct {
@@ -121,16 +117,18 @@ func JdiPath() string {
 }
 
 func (j *JobRun) LogToDisk() {
-	logFn := path.Join(JdiPath(), fmt.Sprintf("%s.jsonl", j.Name))
+	logFn := path.Join(JdiPath(), fmt.Sprintf("%s.job.jsonl", j.Name))
 	f, err := os.OpenFile(logFn,
 		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		log.Warn().Str("job", j.Name).Err(err).Msg("Couldn't save job log to disk.")
+		log.Warn().Str("job", j.Name).Err(err).Msgf("Can't open job log '%v' for writing", logFn)
+		return
 	}
 	defer f.Close()
 
-	json.NewEncoder(f).Encode(j)
-	spew.Dump(333, logFn)
+	if err := json.NewEncoder(f).Encode(j); err != nil {
+		log.Warn().Str("job", j.Name).Err(err).Msg("Couldn't save job log to disk.")
+	}
 }
 
 type StringArray []string
@@ -202,23 +200,9 @@ func LoadSchedule(fn string) (Schedule, error) {
 	return s, nil
 }
 
-func (j *JobSpec) AppendToLogTail(new string) {
-	const maxLength int = 2000
-
-	buffer := maxLength - (len(j.LogTail) + len(new))
-
-	if buffer < 0 {
-		j.LogTail = j.LogTail[-buffer : len(j.LogTail)-1]
-	}
-
-	j.LogTail = j.LogTail + new
-
-}
-
 func (j *JobSpec) ExecCommand(trigger string) {
 	log.Info().Str("job", j.Name).Str("trigger", trigger).Msgf("Job triggered")
-	// register new run
-	// j.Runs = append(j.Runs, time.Now())
+	jr := JobRun{Name: j.Name, TriggeredAt: time.Now(), TriggeredBy: trigger}
 	cmd := exec.Command(j.Command[0], j.Command[1:]...)
 
 	outPipe, _ := cmd.StdoutPipe()
@@ -226,25 +210,21 @@ func (j *JobSpec) ExecCommand(trigger string) {
 
 	err := cmd.Start()
 	if err != nil {
-		exitCode := -1
-		j.Statuses = append(j.Statuses, exitCode)
-		j.AppendToLogTail(err.Error() + "\n")
+		jr.Status = -1
+		jr.Log = fmt.Sprintf("Job unable to start: %v", err.Error())
 		fmt.Println(err.Error())
-		log.Warn().Str("job", j.Name).Msgf("Job unable to start")
+		log.Warn().Str("job", j.Name).Err(err).Msgf("Job unable to start")
 		return
-
 	}
 
 	merged := io.MultiReader(outPipe, errPipe)
 	reader := bufio.NewReader(merged)
 	line, err := reader.ReadString('\n')
 
-	jr := JobRun{Name: j.Name, TriggeredAt: time.Now(), TriggeredBy: trigger}
 	for err == nil {
 		// output to stdout
 		fmt.Print(line)
 		jr.Log += line
-		// j.AppendToLogTail(line)
 		line, err = reader.ReadString('\n')
 	}
 
@@ -295,8 +275,28 @@ func server(s *Schedule) {
 
 }
 
-func RunSchedule(fn string) {
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+func RunSchedule(fn string, prettyLog bool) {
+	// config logger
+	// log to st
+	const logFile string = "core.jdi.jsonl"
+	logFn := path.Join(JdiPath(), logFile)
+	f, err := os.OpenFile(logFn,
+		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		log.Warn().Err(err).Msgf("Can't open log file '%s' for writing.", logFile)
+		return
+	}
+	defer f.Close()
+
+	var multi zerolog.LevelWriter
+
+	if prettyLog {
+		multi = zerolog.MultiLevelWriter(f, zerolog.ConsoleWriter{Out: os.Stdout})
+	} else {
+		multi = zerolog.MultiLevelWriter(f, os.Stdout)
+	}
+
+	log.Logger = zerolog.New(multi).With().Timestamp().Logger()
 
 	js, err := LoadSchedule(fn)
 	if err != nil {
