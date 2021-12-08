@@ -5,11 +5,6 @@ go 1.17
 require github.com/charmbracelet/bubbles v0.9.0
 
 require (
-	github.com/gobwas/httphead v0.1.0 // indirect
-	github.com/gobwas/pool v0.2.1 // indirect
-)
-
-require (
 	github.com/adhocore/gronx v0.2.6
 	github.com/charmbracelet/bubbletea v0.19.1
 	github.com/charmbracelet/lipgloss v0.4.0
@@ -33,12 +28,10 @@ require (
 	github.com/alecthomas/chroma v0.8.2 // indirect
 	github.com/atotto/clipboard v0.1.2 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
-	github.com/charmbracelet/glamour v0.3.0 // indirect
+	github.com/charmbracelet/glamour v0.3.0
 	github.com/danwakefield/fnmatch v0.0.0-20160403171240-cbb64ac3d964 // indirect
 	github.com/dlclark/regexp2 v1.2.0 // indirect
-	github.com/fogleman/ease v0.0.0-20170301025033-8da417bf1776 // indirect
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
-	github.com/gobwas/ws v1.1.0
 	github.com/gorilla/css v1.0.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
@@ -50,10 +43,10 @@ require (
 	github.com/sahilm/fuzzy v0.1.0 // indirect
 	github.com/spf13/afero v1.6.0 // indirect
 	github.com/spf13/cast v1.3.1 // indirect
-	github.com/spf13/cobra v1.2.1 // indirect
+	github.com/spf13/cobra v1.2.1
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	github.com/spf13/viper v1.8.1 // indirect
+	github.com/spf13/viper v1.8.1
 	github.com/subosito/gotenv v1.2.0 // indirect
 	github.com/yuin/goldmark v1.4.0 // indirect
 	github.com/yuin/goldmark-emoji v1.0.1 // indirect

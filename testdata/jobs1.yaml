@@ -16,3 +16,4 @@ jobs:
   coffee:
     command: this fails
     cron: "* * * * *"
+    retries: 3

@@ -37,7 +37,7 @@ func (s *Schedule) Run() {
 
 			if due {
 				go func(j *JobSpec) {
-					j.ExecCommand("cron")
+					j.ExecCommandWithRetry("cron")
 				}(j)
 			}
 		}
@@ -50,6 +50,7 @@ type JobSpec struct {
 	Command        StringArray `yaml:"command" json:"command"`
 	Triggers       []string    `yaml:"triggers,omitempty" json:"triggers,omitempty"`
 	Name           string      `json:"name"`
+	Retries        int         `yaml:"retries,omitempty" json:"retries,omitempty"`
 	globalSchedule *Schedule
 	runs           []JobRun
 }
@@ -168,9 +169,32 @@ func LoadSchedule(fn string) (Schedule, error) {
 	return s, nil
 }
 
-func (j *JobSpec) ExecCommand(trigger string) {
+func (j *JobSpec) ExecCommandWithRetry(trigger string) {
+	tries := 0
+	var jr JobRun
+
+	for tries < j.Retries+1 {
+
+		switch {
+		case tries == 0:
+			jr = j.ExecCommand(trigger)
+		default:
+			jr = j.ExecCommand(fmt.Sprintf("%s[retry=%v]", trigger, tries))
+		}
+
+		if jr.Status == 0 {
+			break
+		}
+		tries++
+		time.Sleep(5 * time.Second)
+
+	}
+}
+
+func (j *JobSpec) ExecCommand(trigger string) JobRun {
 	log.Info().Str("job", j.Name).Str("trigger", trigger).Msgf("Job triggered")
-	jr := JobRun{Name: j.Name, TriggeredAt: time.Now(), TriggeredBy: trigger}
+	// init status to non-zero until execution says otherwise
+	jr := JobRun{Name: j.Name, TriggeredAt: time.Now(), TriggeredBy: trigger, Status: -1}
 	cmd := exec.Command(j.Command[0], j.Command[1:]...)
 
 	outPipe, _ := cmd.StdoutPipe()
@@ -178,12 +202,11 @@ func (j *JobSpec) ExecCommand(trigger string) {
 
 	err := cmd.Start()
 	if err != nil {
-		jr.Status = -1
 		jr.Log = fmt.Sprintf("Job unable to start: %v", err.Error())
 		fmt.Println(err.Error())
 		log.Warn().Str("job", j.Name).Err(err).Msgf("Job unable to start")
 		jr.LogToDisk()
-		return
+		return jr
 	}
 
 	merged := io.MultiReader(outPipe, errPipe)
@@ -203,8 +226,7 @@ func (j *JobSpec) ExecCommand(trigger string) {
 			jr.Status = exitError.ExitCode()
 			log.Warn().Str("job", j.Name).Msgf("Exit code %v", exitError.ExitCode())
 		}
-
-		return
+		return jr
 	}
 
 	jr.Status = 0
@@ -212,11 +234,13 @@ func (j *JobSpec) ExecCommand(trigger string) {
 	for _, tn := range j.Triggers {
 		tj := j.globalSchedule.Jobs[tn]
 		go func(jobName string) {
-			tj.ExecCommand(fmt.Sprintf("job[%s]", jobName))
+			tj.ExecCommandWithRetry(fmt.Sprintf("job[%s]", jobName))
 		}(tn)
 	}
 
 	jr.LogToDisk()
+
+	return jr
 
 }
 
