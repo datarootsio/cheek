@@ -24,53 +24,9 @@ type Schedule struct {
 	Jobs map[string]*JobSpec `yaml:"jobs" json:"jobs"`
 }
 
-func GetStateFromDisk() (*Schedule, error) {
-	const jdiStateFile = "jdi.scheduler.json"
-	usr, _ := user.Current()
-	dir := usr.HomeDir
-	stateFn := path.Join(dir, jdiStateFile)
-
-	s := Schedule{}
-
-	f, err := os.Open(stateFn)
-	defer f.Close()
-	if err != nil {
-		return nil, err
-	}
-
-	data, err := ioutil.ReadAll(f)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := json.Unmarshal(data, &s); err != nil {
-		return nil, err
-	}
-
-	return &s, nil
-
-}
-
-func (s *Schedule) PersistToDisk() {
-	const jdiStateFile = ".jdi.json"
-	usr, _ := user.Current()
-	dir := usr.HomeDir
-	stateFn := path.Join(dir, jdiStateFile)
-
-	f, _ := json.MarshalIndent(s, "", " ")
-	_ = ioutil.WriteFile(stateFn, f, 0644)
-}
-
 func (s *Schedule) Run() {
 	gronx := gronx.New()
 	ticker := time.NewTicker(time.Second)
-
-	changeNotify := make(chan bool)
-	go func(ch <-chan bool) {
-		for _ = range ch {
-			s.PersistToDisk()
-		}
-	}(changeNotify)
 
 	for range ticker.C {
 		for _, j := range s.Jobs {
@@ -82,7 +38,6 @@ func (s *Schedule) Run() {
 			if due {
 				go func(j *JobSpec) {
 					j.ExecCommand("cron")
-					changeNotify <- true
 				}(j)
 			}
 		}
@@ -261,13 +216,18 @@ func server(s *Schedule) {
 	http.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		status := Healthz{Jobs: len(s.Jobs), Status: "ok"}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(status)
+		if err := json.NewEncoder(w).Encode(status); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
 
 	})
 
 	http.HandleFunc("/schedule", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(s)
+		if err := json.NewEncoder(w).Encode(s); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+
 	})
 
 	log.Info().Msgf("Starting HTTP server on %v", httpAddr)
