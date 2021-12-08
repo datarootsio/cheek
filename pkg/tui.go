@@ -137,8 +137,8 @@ func (m model) View() string {
 	str, _ := renderer.Render(jobViewContent)
 	vp.SetContent(str)
 
-	grid := lipgloss.JoinVertical(lipgloss.Left, lipgloss.NewStyle().Background(lipgloss.Color("#7D56F4")).Width(96).Render("Just Do It!"),
-		lipgloss.JoinHorizontal(lipgloss.Top, lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).Render(m.list.View()), vp.View()))
+	grid := lipgloss.JoinVertical(lipgloss.Left, lipgloss.JoinVertical(lipgloss.Left, lipgloss.NewStyle().Background(lipgloss.Color("#7D56F4")).Width(96).Render("Just Do It!"),
+		lipgloss.JoinHorizontal(lipgloss.Top, lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).Render(m.list.View()), vp.View())), "+++Whoops! Here comes the cheese! +++")
 	return grid
 }
 
