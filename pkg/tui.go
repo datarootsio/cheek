@@ -13,6 +13,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/davecgh/go-spew/spew"
 )
 
 const listHeight = 14
@@ -32,23 +33,25 @@ type item struct {
 }
 
 func (j *JobSpec) GetTitle() string {
-	if len(j.Statuses) > 0 && j.Statuses[len(j.Statuses)-1] != 0 {
+	if len(j.runs) > 0 && j.runs[0].Status != 0 {
 		return j.Name + " ⛔️"
 	}
 	return j.Name
 }
 
 func (j *JobSpec) GetStatusDescription() string {
-	if len(j.Statuses) == 0 {
+	spew.Dump(999, j)
+	if len(j.runs) == 0 {
 		return ""
 	}
 
+	lastRun := j.runs[0]
 	var sb strings.Builder
 
-	since := time.Since(j.Runs[len(j.Runs)-1]).String()
+	since := time.Since(lastRun.TriggeredAt).String()
 	sb.WriteString("ran " + since + " ago")
 
-	if j.Statuses[len(j.Statuses)-1] != 0 {
+	if lastRun.Status != 0 {
 		sb.WriteString(" | ERROR")
 	}
 
@@ -60,29 +63,6 @@ func (i item) Title() string       { return i.title }
 func (i item) Description() string { return i.desc }
 func (i item) FilterValue() string { return i.title }
 
-// type itemDelegate struct{}
-
-// func (d itemDelegate) Height() int                               { return 1 }
-// func (d itemDelegate) Spacing() int                              { return 0 }
-// func (d itemDelegate) Update(msg tea.Msg, m *list.Model) tea.Cmd { return nil }
-// func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list.Item) {
-// 	i, ok := listItem.(item)
-// 	if !ok {
-// 		return
-// 	}
-
-// 	str := fmt.Sprintf("%d. %s", index+1, i)
-
-// 	fn := itemStyle.Render
-// 	if index == m.Index() {
-// 		fn = func(s string) string {
-// 			return selectedItemStyle.Render("> " + s)
-// 		}
-// 	}
-
-// 	fmt.Fprintf(w, fn(str))
-// }
-
 type model struct {
 	list     list.Model
 	state    *Schedule
@@ -93,18 +73,19 @@ type model struct {
 func (j *JobSpec) View() string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("# Job: %s\n", j.Name))
-	sb.WriteString(fmt.Sprintf("> ran %v times\n", len(j.Statuses)))
+	// sb.WriteString(fmt.Sprintf("> ran %v times\n", len(j.Statuses)))
 
-	sum := 0
-	for _ = range j.Statuses {
-		sum += 1
-	}
+	// sum := 0
+	// for range j.Statuses {
+	// 	sum += 1
+	// }
 
-	sb.WriteString(fmt.Sprintf("> %v%% sucessful\n\n", (float64(sum) / float64(len(j.Statuses)) * 100)))
-	sb.WriteString("## Log tail\n\n")
-	sb.WriteString(j.LogTail)
+	// sb.WriteString(fmt.Sprintf("> %v%% sucessful\n\n", (float64(sum) / float64(len(j.Statuses)) * 100)))
+	// sb.WriteString("## Log tail\n\n")
+	// sb.WriteString(j.LogTail)
 
 	return sb.String()
+
 }
 
 func (m model) Init() tea.Cmd {
@@ -161,7 +142,8 @@ func (m model) View() string {
 	return grid
 }
 
-func (s *Schedule) UpdateStateFromServer() error {
+func (s *Schedule) GetSchedule() error {
+	// addr should be configurable
 	r, err := http.Get("http://localhost:8081/schedule")
 	if err != nil {
 		return err
@@ -172,18 +154,19 @@ func (s *Schedule) UpdateStateFromServer() error {
 }
 
 func TUI() {
-	// init schedule state
-	state := &Schedule{}
-	if err := state.UpdateStateFromServer(); err != nil {
+	// init schedule schedule
+	schedule := &Schedule{}
+	if err := schedule.GetSchedule(); err != nil {
 		fmt.Printf("Error connecting with JDI server: %v\n", err.Error())
 		os.Exit(1)
 	}
 
 	items := []list.Item{}
-	for _, v := range state.Jobs {
+	for _, v := range schedule.Jobs {
+		v.LoadRuns()
 		item := item{title: v.GetTitle(), desc: v.GetStatusDescription(), jobName: v.Name}
 		items = append(items, item)
-
+		// get run history for each job
 	}
 
 	const defaultWidth = 20
@@ -196,7 +179,7 @@ func TUI() {
 	// l.Styles.PaginationStyle = paginationStyle
 	// l.Styles.HelpStyle = helpStyle
 
-	m := model{list: l, state: state}
+	m := model{list: l, state: schedule}
 	if len(items) > 0 {
 		m.choice = items[len(items)-1].(item).jobName
 	}

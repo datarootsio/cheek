@@ -13,6 +13,6 @@ jobs:
     command:
       - ls
     cron: "* * * * *"
-  # coffee:
-  #   command: this fails
-  #   cron: "* * * * *"
+  coffee:
+    command: this fails
+    cron: "* * * * *"

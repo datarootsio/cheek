@@ -51,6 +51,7 @@ type JobSpec struct {
 	Triggers       []string    `yaml:"triggers,omitempty" json:"triggers,omitempty"`
 	Name           string      `json:"name"`
 	globalSchedule *Schedule
+	runs           []JobRun
 }
 
 type JobRun struct {
@@ -60,6 +61,18 @@ type JobRun struct {
 	TriggeredAt time.Time `json:"triggered_at"`
 	TriggeredBy string    `json:"triggered_by"`
 	Triggered   []string  `json:"triggered,omitempty"`
+}
+
+func (j *JobSpec) LoadRuns() {
+	const nRuns int = 10
+	logFn := path.Join(JdiPath(), fmt.Sprintf("%s.job.jsonl", j.Name))
+	jrs, err := readLastJobRuns(logFn, nRuns)
+	if err != nil {
+		log.Warn().Str("job", j.Name).Err(err).Msgf("could not load job logs from '%s'", logFn)
+
+	}
+	j.runs = jrs
+
 }
 
 func JdiPath() string {
@@ -169,6 +182,7 @@ func (j *JobSpec) ExecCommand(trigger string) {
 		jr.Log = fmt.Sprintf("Job unable to start: %v", err.Error())
 		fmt.Println(err.Error())
 		log.Warn().Str("job", j.Name).Err(err).Msgf("Job unable to start")
+		jr.LogToDisk()
 		return
 	}
 
