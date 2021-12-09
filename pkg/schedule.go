@@ -65,7 +65,7 @@ type JobRun struct {
 }
 
 func (j *JobSpec) LoadRuns() {
-	const nRuns int = 10
+	const nRuns int = 30
 	logFn := path.Join(ButtPath(), fmt.Sprintf("%s.job.jsonl", j.Name))
 	jrs, err := readLastJobRuns(logFn, nRuns)
 	if err != nil {
