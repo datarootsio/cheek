@@ -15,9 +15,16 @@ import (
 )
 
 const (
-	listWidth    = 14
-	headerHeight = 2
-	footerHeight = 2
+	listWidth        = 14
+	headerHeight     = 2
+	footerHeight     = 2
+	focusBorderColor = "228"
+)
+
+var (
+	warningStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#FFA500"))
+	faintStyle   = lipgloss.NewStyle().Faint(true)
+	titleStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("#49f770")).Bold(true)
 )
 
 type item struct {
@@ -26,28 +33,9 @@ type item struct {
 
 func (j *JobSpec) GetTitle() string {
 	if len(j.runs) > 0 && j.runs[0].Status != 0 {
-		return j.Name + " " + lipgloss.NewStyle().Foreground(lipgloss.Color("#FFA500")).Bold(true).Render("!")
+		return j.Name + " " + warningStyle.Bold(true).Render("!")
 	}
 	return j.Name
-}
-
-func (j *JobSpec) GetStatusDescription() string {
-	if len(j.runs) == 0 {
-		return ""
-	}
-
-	lastRun := j.runs[0]
-	var sb strings.Builder
-
-	since := time.Since(lastRun.TriggeredAt).String()
-	sb.WriteString("ran " + since + " ago")
-
-	if lastRun.Status != 0 {
-		sb.WriteString(" | ERROR")
-	}
-
-	return sb.String()
-
 }
 
 func (i item) Title() string       { return i.title }
@@ -64,21 +52,19 @@ type model struct {
 	ready         bool
 	listFocus     bool
 	viewportFocus bool
+	hx            string
 	viewport      viewport.Model
 }
 
 func (j *JobSpec) RunInfo() string {
-	// spew.Dump(j.runs[0].Status)
 	var runInfo string
 	if len(j.runs) == 0 {
 		runInfo = "no run history"
 	} else if j.runs[0].Status == 0 {
 		since := time.Since(j.runs[0].TriggeredAt).String()
 		runInfo = "ran " + since + " ago"
-
 	} else {
-		runInfo += lipgloss.NewStyle().Foreground(lipgloss.Color("#FFA500")).Render("error'd")
-
+		runInfo += warningStyle.Render("error'd")
 	}
 
 	return runInfo
@@ -95,7 +81,7 @@ func (j *JobSpec) View() string {
 	}
 
 	for _, jr := range j.runs {
-		sb.WriteString(lipgloss.NewStyle().Faint(true).Render(jr.TriggeredAt.String()))
+		sb.WriteString(faintStyle.Render(jr.TriggeredAt.String()))
 		sb.WriteString("\n")
 		sb.WriteString(jr.Log)
 		sb.WriteString("\n\n")
@@ -111,9 +97,6 @@ func (m model) Init() tea.Cmd {
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	// reset viewport state, view will run before this
-	// m.viewportDirty = false
-
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.height = msg.Height
@@ -177,12 +160,12 @@ func (m model) View() string {
 		j = JobSpec{}
 	}
 
-	title := lipgloss.NewStyle().Width(m.width).Foreground(lipgloss.Color("#49f770")).Bold(true).Render("butt: Better Unified Time-Driven Triggers")
+	title := titleStyle.Width(m.width).Render("butt: Better Unified Time-Driven Triggers")
 
 	jobListStyle := lipgloss.NewStyle().Border(lipgloss.NormalBorder())
 
 	if m.listFocus {
-		jobListStyle = jobListStyle.BorderForeground(lipgloss.Color("228"))
+		jobListStyle = jobListStyle.BorderForeground(lipgloss.Color(focusBorderColor))
 	}
 
 	jobList := jobListStyle.Render(m.list.View())
@@ -195,13 +178,19 @@ func (m model) View() string {
 	}
 	header := lipgloss.NewStyle().Border(headerBorder).BorderTop(false).MarginBottom(1).Render(lipgloss.JoinHorizontal(lipgloss.Left, jobTitle, jobStatus))
 
-	hx := lipgloss.NewStyle().Faint(true).Align(lipgloss.Right).Render(Hex.Poke())
+	hx := faintStyle.Align(lipgloss.Right).Render(m.hx)
 
 	// job view
 	vpBox := lipgloss.NewStyle().PaddingLeft(1).PaddingRight(1).Render(m.viewport.View())
 
 	// job box
-	jobBox := lipgloss.NewStyle().Border(lipgloss.NormalBorder()).Render(
+	jobBoxStyle := lipgloss.NewStyle().Border(lipgloss.NormalBorder())
+
+	if m.viewportFocus {
+		jobBoxStyle.BorderForeground(lipgloss.Color(focusBorderColor))
+	}
+
+	jobBox := jobBoxStyle.Render(
 		lipgloss.JoinVertical(lipgloss.Left, header, vpBox))
 
 	mv := lipgloss.JoinVertical(lipgloss.Left, title, lipgloss.JoinHorizontal(lipgloss.Top, jobList, jobBox), hx)
@@ -246,7 +235,7 @@ func TUI() {
 	l.SetShowHelp(false)
 	l.SetShowTitle(false)
 
-	m := model{list: l, state: schedule, listFocus: true}
+	m := model{list: l, state: schedule, listFocus: true, hx: Hex.Poke()}
 	// if len(items) > 0 {
 	// 	m.choice = items[len(items)-1].(item).jobName
 	// }

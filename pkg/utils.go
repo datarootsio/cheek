@@ -61,7 +61,7 @@ func readLastLines(filepath string, nLines int) ([]string, error) {
 		if cursor != -1 && (char[0] == 10 || char[0] == 13) {
 			// break
 			lines = append(lines, line)
-			if len(lines) == nLines {
+			if nLines > 0 && len(lines) == nLines {
 				break
 			}
 			line = ""

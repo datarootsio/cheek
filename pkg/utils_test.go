@@ -28,4 +28,16 @@ func TestLastLineReader(t *testing.T) {
 		t.Fatal("incorrect line in first place")
 	}
 
+	// read everything
+	l, err = readLastLines("../testdata/test.jsonl", -1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(l) != 4 {
+		t.Fatal("incorrect number of lines")
+	}
+	if l[0] != "{\"a\":4}\n" {
+		t.Fatal("incorrect line in first place")
+	}
+
 }
