@@ -78,3 +78,23 @@ func readLastLines(filepath string, nLines int) ([]string, error) {
 
 	return lines, err
 }
+
+func hardWrap(in string, width int) string {
+
+	if width < 1 {
+		return in
+	}
+
+	wrapped := ""
+
+	var i int
+	for i = 0; len(in[i:]) > width; i += width {
+
+		wrapped += in[i:i+width] + "\n"
+
+	}
+	wrapped += in[i:]
+
+	return wrapped
+
+}

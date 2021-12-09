@@ -10,6 +10,7 @@ import (
 )
 
 var cfgFile string
+var httpPort string
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -37,6 +38,7 @@ func init() {
 	// will be global for your application.
 
 	// rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.just-do-it.yaml)")
+	rootCmd.PersistentFlags().StringVar(&httpPort, "port", "8081", "port on which to open the http server to core to ui communication")
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.

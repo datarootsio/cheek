@@ -29,7 +29,7 @@ var runCmd = &cobra.Command{
 	Long:  "Schedule & run jobs",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		butt.RunSchedule(args[0], pretty)
+		butt.RunSchedule(args[0], pretty, httpPort)
 	},
 }
 

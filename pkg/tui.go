@@ -53,6 +53,7 @@ type model struct {
 	listFocus     bool
 	viewportFocus bool
 	hx            string
+	httpPort      string
 	viewport      viewport.Model
 }
 
@@ -71,7 +72,7 @@ func (j *JobSpec) RunInfo() string {
 
 }
 
-func (j *JobSpec) View() string {
+func (j *JobSpec) View(maxWidth int) string {
 
 	var sb strings.Builder
 
@@ -83,7 +84,7 @@ func (j *JobSpec) View() string {
 	for _, jr := range j.runs {
 		sb.WriteString(faintStyle.Render(jr.TriggeredAt.String()))
 		sb.WriteString("\n")
-		sb.WriteString(jr.Log)
+		sb.WriteString(hardWrap(jr.Log, maxWidth))
 		sb.WriteString("\n\n")
 
 	}
@@ -129,7 +130,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					// m.ready = false
 					m.choice = i.jobName
 					j := m.state.Jobs[m.choice]
-					m.viewport.SetContent(j.View())
+					m.viewport.SetContent(j.View(m.viewport.Width - 2))
 				}
 
 			}
@@ -198,9 +199,9 @@ func (m model) View() string {
 	return mv
 }
 
-func (s *Schedule) GetSchedule() error {
+func (s *Schedule) GetSchedule(httpPort string) error {
 	// addr should be configurable
-	r, err := http.Get("http://localhost:8081/schedule")
+	r, err := http.Get(fmt.Sprintf("http://localhost:%s/schedule", httpPort))
 	if err != nil {
 		return err
 	}
@@ -209,10 +210,10 @@ func (s *Schedule) GetSchedule() error {
 	return json.NewDecoder(r.Body).Decode(s)
 }
 
-func TUI() {
+func TUI(httpPort string) {
 	// init schedule schedule
 	schedule := &Schedule{}
-	if err := schedule.GetSchedule(); err != nil {
+	if err := schedule.GetSchedule(httpPort); err != nil {
 		fmt.Printf("Error connecting with butt server: %v\n", err.Error())
 		os.Exit(1)
 	}
@@ -235,10 +236,7 @@ func TUI() {
 	l.SetShowHelp(false)
 	l.SetShowTitle(false)
 
-	m := model{list: l, state: schedule, listFocus: true, hx: Hex.Poke()}
-	// if len(items) > 0 {
-	// 	m.choice = items[len(items)-1].(item).jobName
-	// }
+	m := model{list: l, state: schedule, listFocus: true, hx: Hex.Poke(), httpPort: httpPort}
 
 	if err := tea.NewProgram(m, tea.WithAltScreen(), tea.WithMouseCellMotion()).Start(); err != nil {
 		fmt.Println("Error running program:", err)

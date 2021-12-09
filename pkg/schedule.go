@@ -244,8 +244,8 @@ func (j *JobSpec) ExecCommand(trigger string) JobRun {
 
 }
 
-func server(s *Schedule) {
-	const httpAddr string = ":8080"
+func server(s *Schedule, httpPort string) {
+	var httpAddr string = fmt.Sprintf(":%s", httpPort)
 	type Healthz struct {
 		Jobs   int    `json:"jobs"`
 		Status string `json:"status"`
@@ -269,11 +269,11 @@ func server(s *Schedule) {
 	})
 
 	log.Info().Msgf("Starting HTTP server on %v", httpAddr)
-	log.Fatal().Err(http.ListenAndServe(":8081", nil))
+	log.Fatal().Err(http.ListenAndServe(httpAddr, nil))
 
 }
 
-func RunSchedule(fn string, prettyLog bool) {
+func RunSchedule(fn string, prettyLog bool, httpPort string) {
 	// config logger
 	// log to st
 	const logFile string = "core.butt.jsonl"
@@ -307,7 +307,7 @@ func RunSchedule(fn string, prettyLog bool) {
 		log.Info().Msgf("Initializing (%v/%v) job: %s", i, numberJobs, job.Name)
 		i = i + 1
 	}
-	go server(&js)
+	go server(&js, httpPort)
 	js.Run()
 
 }

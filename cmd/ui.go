@@ -28,7 +28,7 @@ var uiCmd = &cobra.Command{
 	
 Nothing butt the UI.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		butt.TUI()
+		butt.TUI(httpPort)
 	},
 }
 
