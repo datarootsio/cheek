@@ -1,4 +1,4 @@
-package jdi
+package butt
 
 import (
 	"encoding/json"
@@ -46,10 +46,16 @@ func readLastLines(filepath string, nLines int) ([]string, error) {
 	filesize := stat.Size()
 	for {
 		cursor -= 1
-		fileHandle.Seek(cursor, io.SeekEnd)
+		_, err := fileHandle.Seek(cursor, io.SeekEnd)
+		if err != nil {
+			return []string{}, err
+		}
 
 		char := make([]byte, 1)
-		fileHandle.Read(char)
+		_, err = fileHandle.Read(char)
+		if err != nil {
+			return []string{}, err
+		}
 
 		// nts: char 10 is newline, char 13 is carriage return
 		if cursor != -1 && (char[0] == 10 || char[0] == 13) {

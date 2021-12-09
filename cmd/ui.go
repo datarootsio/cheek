@@ -16,17 +16,19 @@ limitations under the License.
 package cmd
 
 import (
-	jdi "github.com/bart6114/just-do-it/pkg"
+	butt "github.com/bart6114/butt/pkg"
 	"github.com/spf13/cobra"
 )
 
 // uiCmd represents the ui command
 var uiCmd = &cobra.Command{
 	Use:   "ui",
-	Short: "Just Do It! UI",
-	Long:  "Just Do It! UI",
+	Short: "Terminal User Interface",
+	Long: `Terminal User Interface
+	
+Nothing butt the UI.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		jdi.TUI()
+		butt.TUI()
 	},
 }
 

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/bart6114/just-do-it/cmd"
+	"github.com/bart6114/butt/cmd"
 )
 
 func main() {

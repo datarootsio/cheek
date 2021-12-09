@@ -1,4 +1,4 @@
-module github.com/bart6114/just-do-it
+module github.com/bart6114/butt
 
 go 1.17
 

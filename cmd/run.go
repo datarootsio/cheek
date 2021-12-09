@@ -16,7 +16,7 @@ limitations under the License.
 package cmd
 
 import (
-	jdi "github.com/bart6114/just-do-it/pkg"
+	butt "github.com/bart6114/butt/pkg"
 	"github.com/spf13/cobra"
 )
 
@@ -29,7 +29,7 @@ var runCmd = &cobra.Command{
 	Long:  "Schedule & run jobs",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		jdi.RunSchedule(args[0], pretty)
+		butt.RunSchedule(args[0], pretty)
 	},
 }
 

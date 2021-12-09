@@ -1,4 +1,4 @@
-package jdi
+package butt
 
 import (
 	"bufio"
@@ -66,7 +66,7 @@ type JobRun struct {
 
 func (j *JobSpec) LoadRuns() {
 	const nRuns int = 10
-	logFn := path.Join(JdiPath(), fmt.Sprintf("%s.job.jsonl", j.Name))
+	logFn := path.Join(ButtPath(), fmt.Sprintf("%s.job.jsonl", j.Name))
 	jrs, err := readLastJobRuns(logFn, nRuns)
 	if err != nil {
 		log.Warn().Str("job", j.Name).Err(err).Msgf("could not load job logs from '%s'", logFn)
@@ -76,17 +76,17 @@ func (j *JobSpec) LoadRuns() {
 
 }
 
-func JdiPath() string {
+func ButtPath() string {
 	usr, _ := user.Current()
 	dir := usr.HomeDir
-	p := path.Join(dir, ".jdi")
+	p := path.Join(dir, ".butt")
 	_ = os.MkdirAll(p, os.ModePerm)
 
 	return p
 }
 
 func (j *JobRun) LogToDisk() {
-	logFn := path.Join(JdiPath(), fmt.Sprintf("%s.job.jsonl", j.Name))
+	logFn := path.Join(ButtPath(), fmt.Sprintf("%s.job.jsonl", j.Name))
 	f, err := os.OpenFile(logFn,
 		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
@@ -276,8 +276,8 @@ func server(s *Schedule) {
 func RunSchedule(fn string, prettyLog bool) {
 	// config logger
 	// log to st
-	const logFile string = "core.jdi.jsonl"
-	logFn := path.Join(JdiPath(), logFile)
+	const logFile string = "core.butt.jsonl"
+	logFn := path.Join(ButtPath(), logFile)
 	f, err := os.OpenFile(logFn,
 		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {

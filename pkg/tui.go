@@ -1,4 +1,4 @@
-package jdi
+package butt
 
 import (
 	"encoding/json"
@@ -11,21 +11,13 @@ import (
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/davecgh/go-spew/spew"
 )
 
-const listHeight = 14
-
-var (
-	docStyle          = lipgloss.NewStyle().Background(lipgloss.Color("#000000")).Foreground(lipgloss.Color("#33FF33"))
-	titleStyle        = lipgloss.NewStyle().MarginLeft(2).Bold(true).Underline(true)
-	itemStyle         = lipgloss.NewStyle().PaddingLeft(4)
-	selectedItemStyle = lipgloss.NewStyle().PaddingLeft(2).Foreground(lipgloss.Color("170"))
-	paginationStyle   = list.DefaultStyles().PaginationStyle.PaddingLeft(4)
-	helpStyle         = list.DefaultStyles().HelpStyle.PaddingLeft(4).PaddingBottom(1)
-	quitTextStyle     = lipgloss.NewStyle().Margin(1, 0, 2, 4)
+const (
+	listWidth    = 14
+	headerHeight = 2
+	footerHeight = 2
 )
 
 type item struct {
@@ -34,13 +26,12 @@ type item struct {
 
 func (j *JobSpec) GetTitle() string {
 	if len(j.runs) > 0 && j.runs[0].Status != 0 {
-		return j.Name + " " + lipgloss.NewStyle().Faint(true).Render("error")
+		return j.Name + " " + lipgloss.NewStyle().Foreground(lipgloss.Color("#FFA500")).Bold(true).Render("!")
 	}
 	return j.Name
 }
 
 func (j *JobSpec) GetStatusDescription() string {
-	spew.Dump(999, j)
 	if len(j.runs) == 0 {
 		return ""
 	}
@@ -64,25 +55,52 @@ func (i item) Description() string { return i.desc }
 func (i item) FilterValue() string { return i.title }
 
 type model struct {
-	list     list.Model
-	state    *Schedule
-	choice   string
-	quitting bool
+	list          list.Model
+	state         *Schedule
+	choice        string
+	quitting      bool
+	width         int
+	height        int
+	ready         bool
+	listFocus     bool
+	viewportFocus bool
+	viewport      viewport.Model
+}
+
+func (j *JobSpec) RunInfo() string {
+	// spew.Dump(j.runs[0].Status)
+	var runInfo string
+	if len(j.runs) == 0 {
+		runInfo = "no run history"
+	} else if j.runs[0].Status == 0 {
+		since := time.Since(j.runs[0].TriggeredAt).String()
+		runInfo = "ran " + since + " ago"
+
+	} else {
+		runInfo += lipgloss.NewStyle().Foreground(lipgloss.Color("#FFA500")).Render("error'd")
+
+	}
+
+	return runInfo
+
 }
 
 func (j *JobSpec) View() string {
+
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("# Job: %s\n", j.Name))
-	// sb.WriteString(fmt.Sprintf("> ran %v times\n", len(j.Statuses)))
 
-	// sum := 0
-	// for range j.Statuses {
-	// 	sum += 1
-	// }
+	if len(j.runs) == 0 {
+		sb.WriteString("no run history")
+		return sb.String()
+	}
 
-	// sb.WriteString(fmt.Sprintf("> %v%% sucessful\n\n", (float64(sum) / float64(len(j.Statuses)) * 100)))
-	// sb.WriteString("## Log tail\n\n")
-	// sb.WriteString(j.LogTail)
+	for _, jr := range j.runs {
+		sb.WriteString(lipgloss.NewStyle().Faint(true).Render(jr.TriggeredAt.String()))
+		sb.WriteString("\n")
+		sb.WriteString(jr.Log)
+		sb.WriteString("\n\n")
+
+	}
 
 	return sb.String()
 
@@ -93,53 +111,102 @@ func (m model) Init() tea.Cmd {
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	// reset viewport state, view will run before this
+	// m.viewportDirty = false
+
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
-		m.list.SetWidth(msg.Width)
-		return m, nil
+		m.height = msg.Height
+		m.width = msg.Width
+
+		m.viewport = viewport.Model{Width: msg.Width - listWidth, Height: msg.Height - headerHeight - footerHeight - 3}
+		if !m.ready {
+			m.viewport.SetContent("")
+			m.ready = true
+		}
+
+		m.list.SetHeight(msg.Height - footerHeight - headerHeight)
 
 	case tea.KeyMsg:
 		switch keypress := msg.String(); keypress {
+		case "left":
+			m.listFocus = true
+			m.viewportFocus = !m.listFocus
+		case "right":
+			m.viewportFocus = true
+			m.listFocus = !m.viewportFocus
 		case "ctrl+c":
 			m.quitting = true
 			return m, tea.Quit
 
-		// case "enter":
-		// 	i, ok := m.list.SelectedItem().(item)
-		// 	if ok {
-		// 		m.choice = i.title
-		// 	}
-		// 	return m, tea.Quit
-		default:
+		case "enter":
 			i, ok := m.list.SelectedItem().(item)
 			if ok {
-				m.choice = i.jobName
+				if i.jobName != m.choice {
+					// m.ready = false
+					m.choice = i.jobName
+					j := m.state.Jobs[m.choice]
+					m.viewport.SetContent(j.View())
+				}
+
 			}
 		}
 	}
 
+	var cmds []tea.Cmd
 	var cmd tea.Cmd
-	m.list, cmd = m.list.Update(msg)
-	return m, cmd
+
+	if m.viewportFocus {
+		m.viewport, cmd = m.viewport.Update(msg)
+		cmds = append(cmds, cmd)
+	}
+	if m.listFocus {
+		m.list, cmd = m.list.Update(msg)
+		cmds = append(cmds, cmd)
+	}
+
+	return m, tea.Batch(cmds...)
+
 }
 
 func (m model) View() string {
-	var jobViewContent string
+	var j JobSpec
 	if _, ok := m.state.Jobs[m.choice]; ok {
-		jobViewContent = m.state.Jobs[m.choice].View()
+		j = *m.state.Jobs[m.choice]
 	} else {
-		jobViewContent = "Please select a job."
+		j = JobSpec{}
 	}
 
-	// job view
-	vp := viewport.Model{Width: 78, Height: 20}
-	renderer, _ := glamour.NewTermRenderer(glamour.WithStylePath("notty"), glamour.WithWordWrap(40))
-	str, _ := renderer.Render(jobViewContent)
-	vp.SetContent(str)
+	title := lipgloss.NewStyle().Width(m.width).Foreground(lipgloss.Color("#49f770")).Bold(true).Render("butt: Better Unified Time-Driven Triggers")
 
-	grid := lipgloss.JoinVertical(lipgloss.Left, lipgloss.JoinVertical(lipgloss.Left, lipgloss.NewStyle().Background(lipgloss.Color("#7D56F4")).Width(96).Render("Just Do It!"),
-		lipgloss.JoinHorizontal(lipgloss.Top, lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).Render(m.list.View()), vp.View())), "+++Whoops! Here comes the cheese! +++")
-	return grid
+	jobListStyle := lipgloss.NewStyle().Border(lipgloss.NormalBorder())
+
+	if m.listFocus {
+		jobListStyle = jobListStyle.BorderForeground(lipgloss.Color("228"))
+	}
+
+	jobList := jobListStyle.Render(m.list.View())
+
+	jobTitle := lipgloss.NewStyle().Foreground(lipgloss.Color("#49f770")).Bold(true).Render(j.Name)
+	jobStatus := lipgloss.NewStyle().Faint(true).Align(lipgloss.Right).PaddingRight(1).Width(m.width - lipgloss.Width(jobTitle) - lipgloss.Width(jobList) - 4).Render(j.RunInfo())
+
+	headerBorder := lipgloss.Border{
+		Bottom: "_.-.",
+	}
+	header := lipgloss.NewStyle().Border(headerBorder).BorderTop(false).MarginBottom(1).Render(lipgloss.JoinHorizontal(lipgloss.Left, jobTitle, jobStatus))
+
+	hx := lipgloss.NewStyle().Faint(true).Align(lipgloss.Right).Render(Hex.Poke())
+
+	// job view
+	vpBox := lipgloss.NewStyle().PaddingLeft(1).PaddingRight(1).Render(m.viewport.View())
+
+	// job box
+	jobBox := lipgloss.NewStyle().Border(lipgloss.NormalBorder()).Render(
+		lipgloss.JoinVertical(lipgloss.Left, header, vpBox))
+
+	mv := lipgloss.JoinVertical(lipgloss.Left, title, lipgloss.JoinHorizontal(lipgloss.Top, jobList, jobBox), hx)
+
+	return mv
 }
 
 func (s *Schedule) GetSchedule() error {
@@ -157,7 +224,7 @@ func TUI() {
 	// init schedule schedule
 	schedule := &Schedule{}
 	if err := schedule.GetSchedule(); err != nil {
-		fmt.Printf("Error connecting with JDI server: %v\n", err.Error())
+		fmt.Printf("Error connecting with butt server: %v\n", err.Error())
 		os.Exit(1)
 	}
 
@@ -169,26 +236,22 @@ func TUI() {
 		// get run history for each job
 	}
 
-	const defaultWidth = 20
 	id := list.NewDefaultDelegate()
 	id.ShowDescription = false
 	id.SetSpacing(0)
 
-	l := list.NewModel(items, id, defaultWidth, listHeight)
+	l := list.NewModel(items, id, listWidth, 10)
 	l.SetShowStatusBar(false)
 	l.SetFilteringEnabled(false)
 	l.SetShowHelp(false)
 	l.SetShowTitle(false)
-	// l.Styles.Title = titleStyle
-	// l.Styles.PaginationStyle = paginationStyle
-	// l.Styles.HelpStyle = helpStyle
 
-	m := model{list: l, state: schedule}
-	if len(items) > 0 {
-		m.choice = items[len(items)-1].(item).jobName
-	}
+	m := model{list: l, state: schedule, listFocus: true}
+	// if len(items) > 0 {
+	// 	m.choice = items[len(items)-1].(item).jobName
+	// }
 
-	if err := tea.NewProgram(m, tea.WithAltScreen()).Start(); err != nil {
+	if err := tea.NewProgram(m, tea.WithAltScreen(), tea.WithMouseCellMotion()).Start(); err != nil {
 		fmt.Println("Error running program:", err)
 		os.Exit(1)
 	}
