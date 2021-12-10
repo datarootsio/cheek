@@ -19,7 +19,7 @@ jobs:
     command: date
     cron: "* * * * *"
     triggers:
-      - bar
+      - another_job
   another_job:
     command:
       - /bin/bash
