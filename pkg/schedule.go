@@ -24,7 +24,7 @@ type Schedule struct {
 	Jobs map[string]*JobSpec `yaml:"jobs" json:"jobs"`
 }
 
-func (s *Schedule) Run() {
+func (s *Schedule) Run(surpressLogs bool) {
 	gronx := gronx.New()
 	ticker := time.NewTicker(time.Second)
 
@@ -37,7 +37,7 @@ func (s *Schedule) Run() {
 
 			if due {
 				go func(j *JobSpec) {
-					j.ExecCommandWithRetry("cron")
+					j.ExecCommandWithRetry("cron", surpressLogs)
 				}(j)
 			}
 		}
@@ -161,7 +161,8 @@ func LoadSchedule(fn string) (Schedule, error) {
 			}
 
 		}
-		// set name for easy access
+		// set so metadata / refs to each job struct
+		// for easier retrievability
 		v.Name = k
 		v.globalSchedule = &s
 	}
@@ -169,29 +170,31 @@ func LoadSchedule(fn string) (Schedule, error) {
 	return s, nil
 }
 
-func (j *JobSpec) ExecCommandWithRetry(trigger string) {
+func (j *JobSpec) ExecCommandWithRetry(trigger string, supressLogs bool) {
 	tries := 0
 	var jr JobRun
+	const timeOut = 5 * time.Second
 
 	for tries < j.Retries+1 {
 
 		switch {
 		case tries == 0:
-			jr = j.ExecCommand(trigger)
+			jr = j.ExecCommand(trigger, supressLogs)
 		default:
-			jr = j.ExecCommand(fmt.Sprintf("%s[retry=%v]", trigger, tries))
+			jr = j.ExecCommand(fmt.Sprintf("%s[retry=%v]", trigger, tries), supressLogs)
 		}
 
 		if jr.Status == 0 {
 			break
 		}
+		log.Debug().Str("job", j.Name).Msgf("Job exited unsucessfully, launching retry after %v timeout.", timeOut)
 		tries++
-		time.Sleep(5 * time.Second)
+		time.Sleep(timeOut)
 
 	}
 }
 
-func (j *JobSpec) ExecCommand(trigger string) JobRun {
+func (j *JobSpec) ExecCommand(trigger string, surpressLogs bool) JobRun {
 	log.Info().Str("job", j.Name).Str("trigger", trigger).Msgf("Job triggered")
 	// init status to non-zero until execution says otherwise
 	jr := JobRun{Name: j.Name, TriggeredAt: time.Now(), TriggeredBy: trigger, Status: -1}
@@ -203,7 +206,9 @@ func (j *JobSpec) ExecCommand(trigger string) JobRun {
 	err := cmd.Start()
 	if err != nil {
 		jr.Log = fmt.Sprintf("Job unable to start: %v", err.Error())
-		fmt.Println(err.Error())
+		if !surpressLogs {
+			fmt.Println(err.Error())
+		}
 		log.Warn().Str("job", j.Name).Err(err).Msgf("Job unable to start")
 		jr.LogToDisk()
 		return jr
@@ -214,8 +219,9 @@ func (j *JobSpec) ExecCommand(trigger string) JobRun {
 	line, err := reader.ReadString('\n')
 
 	for err == nil {
-		// output to stdout
-		fmt.Print(line)
+		if !surpressLogs {
+			fmt.Print(line)
+		}
 		jr.Log += line
 		line, err = reader.ReadString('\n')
 	}
@@ -234,7 +240,7 @@ func (j *JobSpec) ExecCommand(trigger string) JobRun {
 	for _, tn := range j.Triggers {
 		tj := j.globalSchedule.Jobs[tn]
 		go func(jobName string) {
-			tj.ExecCommandWithRetry(fmt.Sprintf("job[%s]", jobName))
+			tj.ExecCommandWithRetry(fmt.Sprintf("job[%s]", jobName), surpressLogs)
 		}(tn)
 	}
 
@@ -273,7 +279,7 @@ func server(s *Schedule, httpPort string) {
 
 }
 
-func RunSchedule(fn string, prettyLog bool, httpPort string) {
+func RunSchedule(fn string, prettyLog bool, httpPort string, supressLogs bool, logLevel string) {
 	// config logger
 	// log to st
 	const logFile string = "core.butt.jsonl"
@@ -294,7 +300,12 @@ func RunSchedule(fn string, prettyLog bool, httpPort string) {
 		multi = zerolog.MultiLevelWriter(f, os.Stdout)
 	}
 
-	log.Logger = zerolog.New(multi).With().Timestamp().Logger()
+	level, err := zerolog.ParseLevel(logLevel)
+	if err != nil {
+		fmt.Printf("Exiting, cannot initialize logger with level '%s'\n", logLevel)
+		os.Exit(1)
+	}
+	log.Logger = zerolog.New(multi).With().Timestamp().Logger().Level(level)
 
 	js, err := LoadSchedule(fn)
 	if err != nil {
@@ -308,6 +319,6 @@ func RunSchedule(fn string, prettyLog bool, httpPort string) {
 		i = i + 1
 	}
 	go server(&js, httpPort)
-	js.Run()
+	js.Run(supressLogs)
 
 }

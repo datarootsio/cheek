@@ -161,7 +161,7 @@ func (m model) View() string {
 		j = JobSpec{}
 	}
 
-	title := titleStyle.Width(m.width).Render("butt: Better Unified Time-Driven Triggers")
+	title := titleStyle.Width(m.width).Render("butt: Better Unified Time-Driven Triggering")
 
 	jobListStyle := lipgloss.NewStyle().Border(lipgloss.NormalBorder())
 
