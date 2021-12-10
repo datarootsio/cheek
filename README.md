@@ -65,5 +65,5 @@ It requires to the scheduler to be up and running. The UI allows to get a quick 
 Thanks goes to:
 - [gronx](https://github.com/adhocore/gronx): for allowing me not to worry about CRON strings.
 - [Charm](https://www.charm.sh/): for their bubbleicious TUI libraries.
-- [Freddy](https://github.com/frederikdesmedt): for butt jokes.
+- [Freddy](https://github.com/frederikdesmedt): for cracking those butt jokes.
 - [Murilo](https://github.com/murilo-cunha): for asking me about my butt.
