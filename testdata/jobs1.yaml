@@ -12,6 +12,7 @@ jobs:
   shuttle:
     command:
       - ls
+      - .
     cron: "* * * * *"
   coffee:
     command: this fails
