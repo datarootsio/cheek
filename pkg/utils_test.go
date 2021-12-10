@@ -3,7 +3,6 @@ package butt
 import (
 	"testing"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/magiconair/properties/assert"
 )
 
@@ -47,8 +46,6 @@ func TestLastLineReader(t *testing.T) {
 
 func TestHardWrap(t *testing.T) {
 	test := "12345678"
-	out := hardWrap(test, 5)
-	assert.Equal(t, hardWrap(test, 5), "12345")
-	assert.Equal(t, hardWrap(test, 2), "12")
-	spew.Dump(out)
+	assert.Equal(t, hardWrap(test, 5), "12345\n678")
+	assert.Equal(t, hardWrap(test, 2), "12\n34\n56\n78")
 }
