@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"sort"
 	"strings"
 	"time"
 
@@ -22,6 +23,7 @@ const (
 )
 
 var (
+	serverPort   string
 	warningStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#FFA500"))
 	faintStyle   = lipgloss.NewStyle().Faint(true)
 	titleStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("#49f770")).Bold(true)
@@ -52,7 +54,6 @@ type model struct {
 	ready         bool
 	listFocus     bool
 	viewportFocus bool
-	hx            string
 	httpPort      string
 	viewport      viewport.Model
 }
@@ -94,11 +95,48 @@ func (j *JobSpec) View(maxWidth int) string {
 }
 
 func (m model) Init() tea.Cmd {
-	return nil
+	return refreshState
+}
+
+func refreshState() tea.Msg {
+	schedule := &Schedule{}
+	if err := schedule.GetSchedule(serverPort); err != nil {
+		fmt.Printf("Error connecting with butt server: %v\n", err.Error())
+		os.Exit(1)
+	}
+
+	for _, v := range schedule.Jobs {
+		v.LoadRuns()
+	}
+	return schedule
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmds []tea.Cmd
+	var cmd tea.Cmd
+
 	switch msg := msg.(type) {
+	case *Schedule:
+
+		keys := make([]string, 0)
+		for k, _ := range msg.Jobs {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+
+		items := []list.Item{}
+		for _, k := range keys {
+			j := msg.Jobs[k]
+			item := item{title: j.GetTitle(), jobName: j.Name}
+			items = append(items, item)
+		}
+
+		m.list.SetItems(items)
+		m.state = msg
+		m.choice = m.list.SelectedItem().(item).jobName
+		j := m.state.Jobs[m.choice]
+		m.viewport.SetContent(j.View(m.viewport.Width - 2))
+
 	case tea.WindowSizeMsg:
 		m.height = msg.Height
 		m.width = msg.Width
@@ -113,6 +151,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.KeyMsg:
 		switch keypress := msg.String(); keypress {
+		case "r":
+			return m, refreshState
 		case "left":
 			m.listFocus = true
 			m.viewportFocus = !m.listFocus
@@ -125,20 +165,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case "enter":
 			i, ok := m.list.SelectedItem().(item)
-			if ok {
-				if i.jobName != m.choice {
-					// m.ready = false
-					m.choice = i.jobName
-					j := m.state.Jobs[m.choice]
-					m.viewport.SetContent(j.View(m.viewport.Width - 2))
-				}
-
+			if ok && i.jobName != m.choice {
+				// m.ready = false
+				m.choice = i.jobName
+				j := m.state.Jobs[m.choice]
+				m.viewport.SetContent(j.View(m.viewport.Width - 2))
 			}
 		}
 	}
-
-	var cmds []tea.Cmd
-	var cmd tea.Cmd
 
 	if m.viewportFocus {
 		m.viewport, cmd = m.viewport.Update(msg)
@@ -179,7 +213,11 @@ func (m model) View() string {
 	}
 	header := lipgloss.NewStyle().Border(headerBorder).BorderTop(false).MarginBottom(1).Render(lipgloss.JoinHorizontal(lipgloss.Left, jobTitle, jobStatus))
 
-	hx := faintStyle.Align(lipgloss.Right).Render(m.hx)
+	var hx string
+	if len(j.runs) > 0 && j.runs[0].Status != 0 {
+		hx = faintStyle.Align(lipgloss.Right).Render(Hex.Poke())
+
+	}
 
 	// job view
 	vpBox := lipgloss.NewStyle().PaddingLeft(1).PaddingRight(1).Render(m.viewport.View())
@@ -211,6 +249,7 @@ func (s *Schedule) GetSchedule(httpPort string) error {
 }
 
 func TUI(httpPort string) {
+	serverPort = httpPort
 	// init schedule schedule
 	schedule := &Schedule{}
 	if err := schedule.GetSchedule(httpPort); err != nil {
@@ -219,12 +258,12 @@ func TUI(httpPort string) {
 	}
 
 	items := []list.Item{}
-	for _, v := range schedule.Jobs {
-		v.LoadRuns()
-		item := item{title: v.GetTitle(), jobName: v.Name}
-		items = append(items, item)
-		// get run history for each job
-	}
+	// for _, v := range schedule.Jobs {
+	// 	v.LoadRuns()
+	// 	item := item{title: v.GetTitle(), jobName: v.Name}
+	// 	items = append(items, item)
+	// 	// get run history for each job
+	// }
 
 	id := list.NewDefaultDelegate()
 	id.ShowDescription = false
@@ -236,7 +275,7 @@ func TUI(httpPort string) {
 	l.SetShowHelp(false)
 	l.SetShowTitle(false)
 
-	m := model{list: l, state: schedule, listFocus: true, hx: Hex.Poke(), httpPort: httpPort}
+	m := model{list: l, state: schedule, listFocus: true, httpPort: httpPort}
 
 	if err := tea.NewProgram(m, tea.WithAltScreen(), tea.WithMouseCellMotion()).Start(); err != nil {
 		fmt.Println("Error running program:", err)

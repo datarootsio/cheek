@@ -66,7 +66,7 @@ type JobRun struct {
 
 func (j *JobSpec) LoadRuns() {
 	const nRuns int = 30
-	logFn := path.Join(ButtPath(), fmt.Sprintf("%s.job.jsonl", j.Name))
+	logFn := path.Join(buttPath(), fmt.Sprintf("%s.job.jsonl", j.Name))
 	jrs, err := readLastJobRuns(logFn, nRuns)
 	if err != nil {
 		log.Warn().Str("job", j.Name).Err(err).Msgf("could not load job logs from '%s'", logFn)
@@ -76,7 +76,7 @@ func (j *JobSpec) LoadRuns() {
 
 }
 
-func ButtPath() string {
+func buttPath() string {
 	usr, _ := user.Current()
 	dir := usr.HomeDir
 	p := path.Join(dir, ".butt")
@@ -86,7 +86,7 @@ func ButtPath() string {
 }
 
 func (j *JobRun) LogToDisk() {
-	logFn := path.Join(ButtPath(), fmt.Sprintf("%s.job.jsonl", j.Name))
+	logFn := path.Join(buttPath(), fmt.Sprintf("%s.job.jsonl", j.Name))
 	f, err := os.OpenFile(logFn,
 		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
@@ -138,7 +138,7 @@ func readSpecs(fn string) (Schedule, error) {
 
 }
 
-func LoadSchedule(fn string) (Schedule, error) {
+func loadSchedule(fn string) (Schedule, error) {
 	s, err := readSpecs(fn)
 	if err != nil {
 		return Schedule{}, err
@@ -281,18 +281,17 @@ func server(s *Schedule, httpPort string) {
 
 func RunSchedule(fn string, prettyLog bool, httpPort string, supressLogs bool, logLevel string) {
 	// config logger
-	// log to st
+	var multi zerolog.LevelWriter
+
 	const logFile string = "core.butt.jsonl"
-	logFn := path.Join(ButtPath(), logFile)
+	logFn := path.Join(buttPath(), logFile)
 	f, err := os.OpenFile(logFn,
 		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		log.Warn().Err(err).Msgf("Can't open log file '%s' for writing.", logFile)
-		return
+		fmt.Printf("Can't open log file '%s' for writing.", logFile)
+		os.Exit(1)
 	}
 	defer f.Close()
-
-	var multi zerolog.LevelWriter
 
 	if prettyLog {
 		multi = zerolog.MultiLevelWriter(f, zerolog.ConsoleWriter{Out: os.Stdout})
@@ -307,7 +306,7 @@ func RunSchedule(fn string, prettyLog bool, httpPort string, supressLogs bool, l
 	}
 	log.Logger = zerolog.New(multi).With().Timestamp().Logger().Level(level)
 
-	js, err := LoadSchedule(fn)
+	js, err := loadSchedule(fn)
 	if err != nil {
 		log.Error().Err(err).Msg("")
 		os.Exit(1)
@@ -316,7 +315,7 @@ func RunSchedule(fn string, prettyLog bool, httpPort string, supressLogs bool, l
 	i := 0
 	for _, job := range js.Jobs {
 		log.Info().Msgf("Initializing (%v/%v) job: %s", i, numberJobs, job.Name)
-		i = i + 1
+		i++
 	}
 	go server(&js, httpPort)
 	js.Run(supressLogs)
