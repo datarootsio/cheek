@@ -261,13 +261,6 @@ func TUI(httpPort string) {
 	}
 
 	items := []list.Item{}
-	// for _, v := range schedule.Jobs {
-	// 	v.LoadRuns()
-	// 	item := item{title: v.GetTitle(), jobName: v.Name}
-	// 	items = append(items, item)
-	// 	// get run history for each job
-	// }
-
 	id := list.NewDefaultDelegate()
 	id.ShowDescription = false
 	id.SetSpacing(0)
