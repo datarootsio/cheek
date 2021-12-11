@@ -52,6 +52,7 @@ type model struct {
 	width         int
 	height        int
 	ready         bool
+	hx            string
 	listFocus     bool
 	viewportFocus bool
 	httpPort      string
@@ -119,7 +120,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case *Schedule:
 
 		keys := make([]string, 0)
-		for k, _ := range msg.Jobs {
+		for k := range msg.Jobs {
 			keys = append(keys, k)
 		}
 		sort.Strings(keys)
@@ -166,7 +167,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "enter":
 			i, ok := m.list.SelectedItem().(item)
 			if ok && i.jobName != m.choice {
-				// m.ready = false
+				m.hx = Hex.Poke()
 				m.choice = i.jobName
 				j := m.state.Jobs[m.choice]
 				m.viewport.SetContent(j.View(m.viewport.Width - 2))
@@ -195,7 +196,9 @@ func (m model) View() string {
 		j = JobSpec{}
 	}
 
-	title := titleStyle.Width(m.width).Render("butt: Better Unified Time-Driven Triggering")
+	refresh := faintStyle.Align(lipgloss.Right).Render("(r)efresh")
+	title := titleStyle.Width(m.width - lipgloss.Width(refresh)).Render("butt: Better Unified Time-Driven Triggering")
+	header := lipgloss.JoinHorizontal(lipgloss.Left, title, refresh)
 
 	jobListStyle := lipgloss.NewStyle().Border(lipgloss.NormalBorder())
 
@@ -208,15 +211,15 @@ func (m model) View() string {
 	jobTitle := lipgloss.NewStyle().Foreground(lipgloss.Color("#49f770")).Bold(true).Render(j.Name)
 	jobStatus := lipgloss.NewStyle().Faint(true).Align(lipgloss.Right).PaddingRight(1).Width(m.width - lipgloss.Width(jobTitle) - lipgloss.Width(jobList) - 4).Render(j.RunInfo())
 
-	headerBorder := lipgloss.Border{
+	logBoxHeaderBorder := lipgloss.Border{
 		Bottom: "_.-.",
 	}
-	header := lipgloss.NewStyle().Border(headerBorder).BorderTop(false).MarginBottom(1).Render(lipgloss.JoinHorizontal(lipgloss.Left, jobTitle, jobStatus))
+	logBoxHeader := lipgloss.NewStyle().Border(logBoxHeaderBorder).BorderTop(false).MarginBottom(1).Render(lipgloss.JoinHorizontal(lipgloss.Left, jobTitle, jobStatus))
 
 	var hx string
 	if len(j.runs) > 0 && j.runs[0].Status != 0 {
-		hx = faintStyle.Align(lipgloss.Right).Render(Hex.Poke())
-
+		hx = lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFDF5")).
+			Background(lipgloss.Color("#FF5F87")).Align(lipgloss.Right).Render(m.hx)
 	}
 
 	// job view
@@ -230,9 +233,9 @@ func (m model) View() string {
 	}
 
 	jobBox := jobBoxStyle.Render(
-		lipgloss.JoinVertical(lipgloss.Left, header, vpBox))
+		lipgloss.JoinVertical(lipgloss.Left, logBoxHeader, vpBox))
 
-	mv := lipgloss.JoinVertical(lipgloss.Left, title, lipgloss.JoinHorizontal(lipgloss.Top, jobList, jobBox), hx)
+	mv := lipgloss.JoinVertical(lipgloss.Left, header, lipgloss.JoinHorizontal(lipgloss.Top, jobList, jobBox), hx)
 
 	return mv
 }

@@ -3,6 +3,7 @@ package butt
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -138,6 +139,30 @@ func readSpecs(fn string) (Schedule, error) {
 
 }
 
+func (s *Schedule) Validate() error {
+	for k, v := range s.Jobs {
+		// validate cron string
+		if v.Cron != "" {
+			gronx := gronx.New()
+			if !gronx.IsValid(v.Cron) {
+				return fmt.Errorf("cron string for job '%s' not valid", k)
+
+			}
+		}
+		// check if trigger references exist
+		for _, t := range v.Triggers {
+			if _, ok := s.Jobs[t]; !ok {
+				return fmt.Errorf("cannot find spec of job '%s' that is referenced in job '%s'", t, k)
+			}
+		}
+		// set so metadata / refs to each job struct
+		// for easier retrievability
+		v.Name = k
+		v.globalSchedule = s
+	}
+	return nil
+}
+
 func loadSchedule(fn string) (Schedule, error) {
 	s, err := readSpecs(fn)
 	if err != nil {
@@ -145,26 +170,8 @@ func loadSchedule(fn string) (Schedule, error) {
 	}
 
 	// run validations
-	for k, v := range s.Jobs {
-		// validate cron string
-		if v.Cron != "" {
-			gronx := gronx.New()
-			if !gronx.IsValid(v.Cron) {
-				return Schedule{}, fmt.Errorf("cron string for job '%s' not valid", k)
-
-			}
-		}
-		// check if trigger references exist
-		for _, t := range v.Triggers {
-			if _, ok := s.Jobs[t]; !ok {
-				return Schedule{}, fmt.Errorf("cannot find spec of job '%s' that is referenced in job '%s'", t, k)
-			}
-
-		}
-		// set so metadata / refs to each job struct
-		// for easier retrievability
-		v.Name = k
-		v.globalSchedule = &s
+	if err := s.Validate(); err != nil {
+		return Schedule{}, nil
 	}
 
 	return s, nil
@@ -198,7 +205,23 @@ func (j *JobSpec) ExecCommand(trigger string, surpressLogs bool) JobRun {
 	log.Info().Str("job", j.Name).Str("trigger", trigger).Msgf("Job triggered")
 	// init status to non-zero until execution says otherwise
 	jr := JobRun{Name: j.Name, TriggeredAt: time.Now(), TriggeredBy: trigger, Status: -1}
-	cmd := exec.Command(j.Command[0], j.Command[1:]...)
+
+	var cmd *exec.Cmd
+	switch len(j.Command) {
+	case 0:
+		err := errors.New("no command specified")
+		jr.Log = fmt.Sprintf("Job unable to start: %v", err.Error())
+		log.Warn().Str("job", j.Name).Err(err).Msgf("Job unable to start")
+		if !surpressLogs {
+			fmt.Println(err.Error())
+		}
+		jr.LogToDisk()
+		return jr
+	case 1:
+		cmd = exec.Command(j.Command[0])
+	default:
+		cmd = exec.Command(j.Command[0], j.Command[1:]...)
+	}
 
 	outPipe, _ := cmd.StdoutPipe()
 	errPipe, _ := cmd.StderrPipe()

@@ -2,14 +2,19 @@ module github.com/bart6114/butt
 
 go 1.17
 
-require github.com/charmbracelet/bubbles v0.9.0
+require (
+	github.com/charmbracelet/bubbles v0.9.0
+	github.com/stretchr/testify v1.7.0
+)
+
+require github.com/pmezard/go-difflib v1.0.0 // indirect
 
 require (
 	github.com/adhocore/gronx v0.2.6
 	github.com/charmbracelet/bubbletea v0.19.1
 	github.com/charmbracelet/lipgloss v0.4.0
 	github.com/containerd/console v1.0.2 // indirect
-	github.com/davecgh/go-spew v1.1.1
+	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/mattn/go-isatty v0.0.13 // indirect
 	github.com/mattn/go-runewidth v0.0.13 // indirect

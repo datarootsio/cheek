@@ -13,6 +13,7 @@ var Hex SGIOrigin2800 = []string{
 	"+++Wahhhhhhh! Mine!+++",
 	"+++ Divide By Cucumber Error. Please Reinstall Universe And Reboot +++",
 	"+++Whoops! Here comes the cheese! +++",
+	"+++ I Regret This +++",
 }
 
 func (hq SGIOrigin2800) Poke() string {
