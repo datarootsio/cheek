@@ -2,6 +2,9 @@
 
 # butt
 
+[![codecov](https://codecov.io/gh/Bart6114/butt/branch/main/graph/badge.svg?token=011KCCGPE6)](https://codecov.io/gh/Bart6114/butt)![example workflow](https://github.com/bart6114/butt/actions/workflows/ci.yml/badge.svg)
+
+
 `butt`, of course, stands for Better Unified Time-Driven Triggering. `butt` is a KISS approach to crontab-like job scheduling. `butt` was born out of a (/my?) frustration about the big gap between a lightweight crontab and full-fledged solutions like Airflow.
 
 `butt` aims to be a KISS approach to job scheduling. Focus is on the KISS approach not to necessarily do this in the most robust way possible.
