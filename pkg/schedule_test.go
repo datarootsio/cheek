@@ -50,9 +50,21 @@ func TestJobRunNoCommand(t *testing.T) {
 
 }
 
+func TestJobNonZero(t *testing.T) {
+	j := &JobSpec{
+		Cron: "* * * * *",
+		Name: "test",
+		Command: []string{
+			"la", "--moo"},
+	}
+
+	jr := j.ExecCommand("test", true)
+	assert.NotEqual(t, jr.Status, 0)
+
+}
+
 func TestJobRunInvalidSchedule(t *testing.T) {
 	s := Schedule{}
-
 	j := &JobSpec{
 		Cron:    "MooIAmACow",
 		Name:    "Bertha",
