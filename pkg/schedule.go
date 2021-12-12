@@ -21,10 +21,12 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+// Schedule defines specs of a job schedule.
 type Schedule struct {
 	Jobs map[string]*JobSpec `yaml:"jobs" json:"jobs"`
 }
 
+// Run a Schedule based on its specs.
 func (s *Schedule) Run(surpressLogs bool) {
 	gronx := gronx.New()
 	ticker := time.NewTicker(time.Second)
@@ -38,7 +40,7 @@ func (s *Schedule) Run(surpressLogs bool) {
 
 			if due {
 				go func(j *JobSpec) {
-					j.ExecCommandWithRetry("cron", surpressLogs)
+					j.execCommandWithRetry("cron", surpressLogs)
 				}(j)
 			}
 		}
@@ -46,9 +48,10 @@ func (s *Schedule) Run(surpressLogs bool) {
 
 }
 
+// JobSpec holds specifications and metadata of a job.
 type JobSpec struct {
 	Cron           string      `yaml:"cron,omitempty" json:"cron,omitempty"`
-	Command        StringArray `yaml:"command" json:"command"`
+	Command        stringArray `yaml:"command" json:"command"`
 	Triggers       []string    `yaml:"triggers,omitempty" json:"triggers,omitempty"`
 	Name           string      `json:"name"`
 	Retries        int         `yaml:"retries,omitempty" json:"retries,omitempty"`
@@ -56,6 +59,7 @@ type JobSpec struct {
 	runs           []JobRun
 }
 
+// JobRun holds information about a job execution.
 type JobRun struct {
 	Status      int       `json:"status"`
 	Log         string    `json:"log"`
@@ -65,7 +69,7 @@ type JobRun struct {
 	Triggered   []string  `json:"triggered,omitempty"`
 }
 
-func (j *JobSpec) LoadRuns() {
+func (j *JobSpec) loadRuns() {
 	const nRuns int = 30
 	logFn := path.Join(buttPath(), fmt.Sprintf("%s.job.jsonl", j.Name))
 	jrs, err := readLastJobRuns(logFn, nRuns)
@@ -86,7 +90,7 @@ func buttPath() string {
 	return p
 }
 
-func (j *JobRun) LogToDisk() {
+func (j *JobRun) logToDisk() {
 	logFn := path.Join(buttPath(), fmt.Sprintf("%s.job.jsonl", j.Name))
 	f, err := os.OpenFile(logFn,
 		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
@@ -101,9 +105,9 @@ func (j *JobRun) LogToDisk() {
 	}
 }
 
-type StringArray []string
+type stringArray []string
 
-func (a *StringArray) UnmarshalYAML(unmarshal func(interface{}) error) error {
+func (a *stringArray) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	var multi []string
 	err := unmarshal(&multi)
 	if err != nil {
@@ -139,6 +143,7 @@ func readSpecs(fn string) (Schedule, error) {
 
 }
 
+// Validate Schedule spec and logic.
 func (s *Schedule) Validate() error {
 	for k, v := range s.Jobs {
 		// validate cron string
@@ -177,7 +182,7 @@ func loadSchedule(fn string) (Schedule, error) {
 	return s, nil
 }
 
-func (j *JobSpec) ExecCommandWithRetry(trigger string, supressLogs bool) {
+func (j *JobSpec) execCommandWithRetry(trigger string, supressLogs bool) {
 	tries := 0
 	var jr JobRun
 	const timeOut = 5 * time.Second
@@ -186,9 +191,9 @@ func (j *JobSpec) ExecCommandWithRetry(trigger string, supressLogs bool) {
 
 		switch {
 		case tries == 0:
-			jr = j.ExecCommand(trigger, supressLogs)
+			jr = j.execCommand(trigger, supressLogs)
 		default:
-			jr = j.ExecCommand(fmt.Sprintf("%s[retry=%v]", trigger, tries), supressLogs)
+			jr = j.execCommand(fmt.Sprintf("%s[retry=%v]", trigger, tries), supressLogs)
 		}
 
 		if jr.Status == 0 {
@@ -201,7 +206,7 @@ func (j *JobSpec) ExecCommandWithRetry(trigger string, supressLogs bool) {
 	}
 }
 
-func (j *JobSpec) ExecCommand(trigger string, surpressLogs bool) JobRun {
+func (j *JobSpec) execCommand(trigger string, surpressLogs bool) JobRun {
 	log.Info().Str("job", j.Name).Str("trigger", trigger).Msgf("Job triggered")
 	// init status to non-zero until execution says otherwise
 	jr := JobRun{Name: j.Name, TriggeredAt: time.Now(), TriggeredBy: trigger, Status: -1}
@@ -215,7 +220,7 @@ func (j *JobSpec) ExecCommand(trigger string, surpressLogs bool) JobRun {
 		if !surpressLogs {
 			fmt.Println(err.Error())
 		}
-		jr.LogToDisk()
+		jr.logToDisk()
 		return jr
 	case 1:
 		cmd = exec.Command(j.Command[0])
@@ -233,7 +238,7 @@ func (j *JobSpec) ExecCommand(trigger string, surpressLogs bool) JobRun {
 			fmt.Println(err.Error())
 		}
 		log.Warn().Str("job", j.Name).Err(err).Msgf("Job unable to start")
-		jr.LogToDisk()
+		jr.logToDisk()
 		return jr
 	}
 
@@ -263,11 +268,11 @@ func (j *JobSpec) ExecCommand(trigger string, surpressLogs bool) JobRun {
 	for _, tn := range j.Triggers {
 		tj := j.globalSchedule.Jobs[tn]
 		go func(jobName string) {
-			tj.ExecCommandWithRetry(fmt.Sprintf("job[%s]", jobName), surpressLogs)
+			tj.execCommandWithRetry(fmt.Sprintf("job[%s]", jobName), surpressLogs)
 		}(tn)
 	}
 
-	jr.LogToDisk()
+	jr.logToDisk()
 
 	return jr
 
@@ -302,6 +307,7 @@ func server(s *Schedule, httpPort string) {
 
 }
 
+// RunSchedule is the main entry entrypoint of butt.
 func RunSchedule(fn string, prettyLog bool, httpPort string, supressLogs bool, logLevel string) {
 	// config logger
 	var multi zerolog.LevelWriter

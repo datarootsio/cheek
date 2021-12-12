@@ -33,7 +33,7 @@ type item struct {
 	title, desc, jobName string
 }
 
-func (j *JobSpec) GetTitle() string {
+func (j *JobSpec) getTitle() string {
 	if len(j.runs) > 0 && j.runs[0].Status != 0 {
 		return j.Name + " " + warningStyle.Bold(true).Render("!")
 	}
@@ -59,7 +59,7 @@ type model struct {
 	viewport      viewport.Model
 }
 
-func (j *JobSpec) RunInfo() string {
+func (j *JobSpec) runInfo() string {
 	var runInfo string
 	if len(j.runs) == 0 {
 		runInfo = "no run history"
@@ -74,7 +74,7 @@ func (j *JobSpec) RunInfo() string {
 
 }
 
-func (j *JobSpec) View(maxWidth int) string {
+func (j *JobSpec) view(maxWidth int) string {
 
 	var sb strings.Builder
 
@@ -101,13 +101,13 @@ func (m model) Init() tea.Cmd {
 
 func refreshState() tea.Msg {
 	schedule := &Schedule{}
-	if err := schedule.GetSchedule(serverPort); err != nil {
+	if err := schedule.getSchedule(serverPort); err != nil {
 		fmt.Printf("Error connecting with butt server: %v\n", err.Error())
 		os.Exit(1)
 	}
 
 	for _, v := range schedule.Jobs {
-		v.LoadRuns()
+		v.loadRuns()
 	}
 	return schedule
 }
@@ -128,7 +128,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		items := []list.Item{}
 		for _, k := range keys {
 			j := msg.Jobs[k]
-			item := item{title: j.GetTitle(), jobName: j.Name}
+			item := item{title: j.getTitle(), jobName: j.Name}
 			items = append(items, item)
 		}
 
@@ -136,7 +136,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.state = msg
 		m.choice = m.list.SelectedItem().(item).jobName
 		j := m.state.Jobs[m.choice]
-		m.viewport.SetContent(j.View(m.viewport.Width - 2))
+		m.viewport.SetContent(j.view(m.viewport.Width - 2))
 
 	case tea.WindowSizeMsg:
 		m.height = msg.Height
@@ -167,10 +167,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "enter":
 			i, ok := m.list.SelectedItem().(item)
 			if ok && i.jobName != m.choice {
-				m.hx = Hex.Poke()
+				m.hx = hexComp.Poke()
 				m.choice = i.jobName
 				j := m.state.Jobs[m.choice]
-				m.viewport.SetContent(j.View(m.viewport.Width - 2))
+				m.viewport.SetContent(j.view(m.viewport.Width - 2))
 			}
 		}
 	}
@@ -209,7 +209,7 @@ func (m model) View() string {
 	jobList := jobListStyle.Render(m.list.View())
 
 	jobTitle := lipgloss.NewStyle().Foreground(lipgloss.Color("#49f770")).Bold(true).Render(j.Name)
-	jobStatus := lipgloss.NewStyle().Faint(true).Align(lipgloss.Right).PaddingRight(1).Width(m.width - lipgloss.Width(jobTitle) - lipgloss.Width(jobList) - 4).Render(j.RunInfo())
+	jobStatus := lipgloss.NewStyle().Faint(true).Align(lipgloss.Right).PaddingRight(1).Width(m.width - lipgloss.Width(jobTitle) - lipgloss.Width(jobList) - 4).Render(j.runInfo())
 
 	logBoxHeaderBorder := lipgloss.Border{
 		Bottom: "_.-.",
@@ -240,7 +240,7 @@ func (m model) View() string {
 	return mv
 }
 
-func (s *Schedule) GetSchedule(httpPort string) error {
+func (s *Schedule) getSchedule(httpPort string) error {
 	// addr should be configurable
 	r, err := http.Get(fmt.Sprintf("http://localhost:%s/schedule", httpPort))
 	if err != nil {
@@ -251,11 +251,12 @@ func (s *Schedule) GetSchedule(httpPort string) error {
 	return json.NewDecoder(r.Body).Decode(s)
 }
 
+// TUI is the main entrypoint for the butt ui.
 func TUI(httpPort string) {
 	serverPort = httpPort
 	// init schedule schedule
 	schedule := &Schedule{}
-	if err := schedule.GetSchedule(httpPort); err != nil {
+	if err := schedule.getSchedule(httpPort); err != nil {
 		fmt.Printf("Error connecting with butt server: %v\n", err.Error())
 		os.Exit(1)
 	}

@@ -45,7 +45,7 @@ func readLastLines(filepath string, nLines int) ([]string, error) {
 	stat, _ := fileHandle.Stat()
 	filesize := stat.Size()
 	for {
-		cursor -= 1
+		cursor--
 		_, err := fileHandle.Seek(cursor, io.SeekEnd)
 		if err != nil {
 			return []string{}, err
