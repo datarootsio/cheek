@@ -34,7 +34,7 @@ jobs:
       with:
         go-version: '^1.16'
     - run: mkdir -p ${{ matrix.goos }}/${{ matrix.goarch }}
-    - run: env GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build github.com/bart6114/butt -o ${{ matrix.goos }}/${{ matrix.goarch }}/butt
+    - run: env GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build github.com/bart6114/butt -o ${{ matrix.goos }}/${{ matrix.goarch }}
     ## above is fine to get latest for now, also save a copy with short sha
     - id: vars
       run: echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
