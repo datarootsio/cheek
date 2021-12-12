@@ -12,7 +12,21 @@
 
 ## Getting started
 
-Install via ... TBD
+Fetch the latest version for your system below.
+
+[darwin-arm64](https://storage.googleapis.com/better-unified/darwin/arm64/butt) |
+[darwin-amd64](https://storage.googleapis.com/better-unified/darwin/amd64/butt) |
+[linux-386](https://storage.googleapis.com/better-unified/linux/386/butt) |
+[linux-arm64](https://storage.googleapis.com/better-unified/linux/arm64/butt) |
+[linux-amd64](https://storage.googleapis.com/better-unified/linux/amd64/butt)
+
+You can (for example) fetch it like below, make it executable and run it. Optionally put the `butt` on your `PATH`.
+
+```sh
+curl https://storage.googleapis.com/better-unified/darwin/amd64/butt -o butt
+chmod +x butt
+./butt
+```
 
 Create a schedule specification using the below YAML structure:
 
