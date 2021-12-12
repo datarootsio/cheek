@@ -38,7 +38,7 @@ jobs:
     ## above is fine to get latest for now, also save a copy with short sha
     - id: vars
       run: echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
-    - run: cp ${{ matrix.goos }}/${{ matrix.goarch }/butt ${{ matrix.goos }}/${{ matrix.goarch }}/butt-${{ steps.vars.outputs.sha_short }}
+    - run: cp ${{ matrix.goos }}/${{ matrix.goarch }}/butt ${{ matrix.goos }}/${{ matrix.goarch }}/butt-${{ steps.vars.outputs.sha_short }}
     ## upload binary to google storage
     - id: auth
       uses: google-github-actions/auth@v0.4.0
