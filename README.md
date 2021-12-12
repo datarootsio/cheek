@@ -75,7 +75,13 @@ Check out `butt run --help` for configuration options.
 butt ui
 ```
 
-It requires to the scheduler to be up and running. The UI allows to get a quick overview on jobs that have run, that error'd and their logs.
+The UI allows to get a quick overview on jobs that have run, that error'd and their logs. It basically does this by fetching the state of the scheduler and by reading the logs that (per job) get written to `$HOME/.butt/`. Note that you can ignore these logs, output of jobs will always go to stdout as well.
+
+The UI requires the scheduler to be up and running.
+
+![](https://storage.googleapis.com/better-unified/ui-screenshot.png)
+
+
 
 ## Acknowledgements
 
