@@ -2,7 +2,7 @@
 
 # butt
 
-[![codecov](https://codecov.io/gh/Bart6114/butt/branch/main/graph/badge.svg?token=011KCCGPE6)](https://codecov.io/gh/Bart6114/butt) ![example workflow](https://github.com/bart6114/butt/actions/workflows/ci.yml/badge.svg) [![Go Report Card](https://goreportcard.com/badge/github.com/bart6114/butt)](https://goreportcard.com/report/github.com/bart6114/butt)
+[![codecov](https://codecov.io/gh/Bart6114/butt/branch/main/graph/badge.svg?token=011KCCGPE6)](https://codecov.io/gh/Bart6114/butt) ![example workflow](https://github.com/bart6114/butt/actions/workflows/ci.yml/badge.svg) [![Go Report Card](https://goreportcard.com/badge/github.com/bart6114/butt)](https://goreportcard.com/report/github.com/bart6114/butt) [![Go Reference](https://pkg.go.dev/badge/github.com/bart6114/butt.svg)](https://pkg.go.dev/github.com/bart6114/butt)
 
 
 `butt`, of course, stands for Better Unified Time-Driven Triggering. `butt` is a KISS approach to crontab-like job scheduling. `butt` was born out of a (/my?) frustration about the big gap between a lightweight crontab and full-fledged solutions like Airflow.
