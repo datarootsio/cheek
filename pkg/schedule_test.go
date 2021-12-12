@@ -17,7 +17,7 @@ func TestLoadLogs(t *testing.T) {
 		Command: []string{"echo", "bar"},
 	}
 
-	j.ExecCommand("test", true)
+	j.execCommand("test", true)
 
 	// log loading goes on job name basis
 	// let's recreate
@@ -25,7 +25,7 @@ func TestLoadLogs(t *testing.T) {
 		Name: "test",
 	}
 
-	j.LoadRuns()
+	j.loadRuns()
 	assert.Greater(t, len(j.runs), 0)
 }
 func TestJobRun(t *testing.T) {
@@ -35,7 +35,7 @@ func TestJobRun(t *testing.T) {
 		Command: []string{"echo", "bar"},
 	}
 
-	jr := j.ExecCommand("test", true)
+	jr := j.execCommand("test", true)
 	assert.Equal(t, jr.Status, 0)
 }
 
@@ -45,7 +45,7 @@ func TestJobRunNoCommand(t *testing.T) {
 		Name: "test",
 	}
 
-	jr := j.ExecCommand("test", true)
+	jr := j.execCommand("test", true)
 	assert.NotEqual(t, jr.Status, 0)
 
 }
@@ -58,7 +58,7 @@ func TestJobNonZero(t *testing.T) {
 			"la", "--moo"},
 	}
 
-	jr := j.ExecCommand("test", true)
+	jr := j.execCommand("test", true)
 	assert.NotEqual(t, jr.Status, 0)
 
 }

@@ -5,6 +5,6 @@ import (
 )
 
 func TestHex(t *testing.T) {
-	q := Hex.Poke()
+	q := hexComp.Poke()
 	t.Log(q)
 }
