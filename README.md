@@ -82,6 +82,9 @@ The UI requires the scheduler to be up and running.
 ![](https://storage.googleapis.com/better-unified/ui-screenshot.png)
 
 
+## Docker
+
+Check out the `Dockerfile` for an example on how to set up `butt` within the context of a Docker image.
 
 ## Acknowledgements
 
