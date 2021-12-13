@@ -28,6 +28,7 @@ func TestLoadLogs(t *testing.T) {
 	j.loadRuns()
 	assert.Greater(t, len(j.runs), 0)
 }
+
 func TestJobRun(t *testing.T) {
 	j := &JobSpec{
 		Cron:    "* * * * *",
@@ -47,7 +48,6 @@ func TestJobRunNoCommand(t *testing.T) {
 
 	jr := j.execCommand("test", true)
 	assert.NotEqual(t, jr.Status, 0)
-
 }
 
 func TestJobNonZero(t *testing.T) {
@@ -55,12 +55,12 @@ func TestJobNonZero(t *testing.T) {
 		Cron: "* * * * *",
 		Name: "test",
 		Command: []string{
-			"la", "--moo"},
+			"la", "--moo",
+		},
 	}
 
 	jr := j.execCommand("test", true)
 	assert.NotEqual(t, jr.Status, 0)
-
 }
 
 func TestJobRunInvalidSchedule(t *testing.T) {
@@ -79,7 +79,6 @@ func TestJobRunInvalidSchedule(t *testing.T) {
 	s.Jobs["Bertha"].Triggers = []string{"IDontExist"}
 
 	assert.Error(t, s.Validate())
-
 }
 
 func TestScheduleRun(t *testing.T) {
@@ -94,5 +93,4 @@ func TestScheduleRun(t *testing.T) {
 	log.Logger = zerolog.New(&b)
 	time.Sleep(2 * time.Second)
 	assert.Contains(t, b.String(), "Job triggered")
-
 }

@@ -28,12 +28,10 @@ func readLastJobRuns(filepath string, nRuns int) ([]JobRun, error) {
 	}
 
 	return jrs, nil
-
 }
 
 func readLastLines(filepath string, nLines int) ([]string, error) {
 	fileHandle, err := os.Open(filepath)
-
 	if err != nil {
 		return []string{}, err
 	}
@@ -80,7 +78,6 @@ func readLastLines(filepath string, nLines int) ([]string, error) {
 }
 
 func hardWrap(in string, width int) string {
-
 	if width < 1 {
 		return in
 	}
@@ -89,12 +86,9 @@ func hardWrap(in string, width int) string {
 
 	var i int
 	for i = 0; len(in[i:]) > width; i += width {
-
 		wrapped += in[i:i+width] + "\n"
-
 	}
 	wrapped += in[i:]
 
 	return wrapped
-
 }

@@ -45,7 +45,6 @@ func (s *Schedule) Run(surpressLogs bool) {
 			}
 		}
 	}
-
 }
 
 // JobSpec holds specifications and metadata of a job.
@@ -75,10 +74,8 @@ func (j *JobSpec) loadRuns() {
 	jrs, err := readLastJobRuns(logFn, nRuns)
 	if err != nil {
 		log.Warn().Str("job", j.Name).Err(err).Msgf("could not load job logs from '%s'", logFn)
-
 	}
 	j.runs = jrs
-
 }
 
 func buttPath() string {
@@ -93,7 +90,7 @@ func buttPath() string {
 func (j *JobRun) logToDisk() {
 	logFn := path.Join(buttPath(), fmt.Sprintf("%s.job.jsonl", j.Name))
 	f, err := os.OpenFile(logFn,
-		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 	if err != nil {
 		log.Warn().Str("job", j.Name).Err(err).Msgf("Can't open job log '%v' for writing", logFn)
 		return
@@ -125,7 +122,6 @@ func (a *stringArray) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 func readSpecs(fn string) (Schedule, error) {
 	yfile, err := ioutil.ReadFile(fn)
-
 	if err != nil {
 		log.Error().Err(err)
 		return Schedule{}, err
@@ -140,7 +136,6 @@ func readSpecs(fn string) (Schedule, error) {
 	}
 
 	return specs, nil
-
 }
 
 // Validate Schedule spec and logic.
@@ -151,7 +146,6 @@ func (s *Schedule) Validate() error {
 			gronx := gronx.New()
 			if !gronx.IsValid(v.Cron) {
 				return fmt.Errorf("cron string for job '%s' not valid", k)
-
 			}
 		}
 		// check if trigger references exist
@@ -275,7 +269,6 @@ func (j *JobSpec) execCommand(trigger string, surpressLogs bool) JobRun {
 	jr.logToDisk()
 
 	return jr
-
 }
 
 func server(s *Schedule, httpPort string) {
@@ -291,7 +284,6 @@ func server(s *Schedule, httpPort string) {
 		if err := json.NewEncoder(w).Encode(status); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
-
 	})
 
 	http.HandleFunc("/schedule", func(w http.ResponseWriter, r *http.Request) {
@@ -299,12 +291,10 @@ func server(s *Schedule, httpPort string) {
 		if err := json.NewEncoder(w).Encode(s); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
-
 	})
 
 	log.Info().Msgf("Starting HTTP server on %v", httpAddr)
 	log.Fatal().Err(http.ListenAndServe(httpAddr, nil))
-
 }
 
 // RunSchedule is the main entry entrypoint of butt.
@@ -315,7 +305,7 @@ func RunSchedule(fn string, prettyLog bool, httpPort string, supressLogs bool, l
 	const logFile string = "core.butt.jsonl"
 	logFn := path.Join(buttPath(), logFile)
 	f, err := os.OpenFile(logFn,
-		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 	if err != nil {
 		fmt.Printf("Can't open log file '%s' for writing.", logFile)
 		os.Exit(1)
@@ -348,5 +338,4 @@ func RunSchedule(fn string, prettyLog bool, httpPort string, supressLogs bool, l
 	}
 	go server(&js, httpPort)
 	js.Run(supressLogs)
-
 }
