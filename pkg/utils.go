@@ -15,7 +15,7 @@ func readLastJobRuns(filepath string, nRuns int) ([]JobRun, error) {
 		return []JobRun{}, nil
 	}
 
-	jrs := []JobRun{}
+	var jrs []JobRun
 	for _, line := range lines {
 		jr := JobRun{}
 		err = json.Unmarshal([]byte(line), &jr)
@@ -37,7 +37,7 @@ func readLastLines(filepath string, nLines int) ([]string, error) {
 	}
 	defer fileHandle.Close()
 
-	lines := []string{}
+	var lines []string
 	line := ""
 	var cursor int64 = 0
 	stat, _ := fileHandle.Stat()
