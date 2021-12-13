@@ -193,14 +193,14 @@ func (j *JobSpec) execCommandWithRetry(trigger string, supressLogs bool) {
 		if jr.Status == 0 {
 			break
 		}
-		log.Debug().Str("job", j.Name).Msgf("Job exited unsucessfully, launching retry after %v timeout.", timeOut)
+		log.Debug().Str("job", j.Name).Msgf("Job exited unsuccessfully, launching retry after %v timeout.", timeOut)
 		tries++
 		time.Sleep(timeOut)
 
 	}
 }
 
-func (j *JobSpec) execCommand(trigger string, surpressLogs bool) JobRun {
+func (j *JobSpec) execCommand(trigger string, suppressLogs bool) JobRun {
 	log.Info().Str("job", j.Name).Str("trigger", trigger).Msgf("Job triggered")
 	// init status to non-zero until execution says otherwise
 	jr := JobRun{Name: j.Name, TriggeredAt: time.Now(), TriggeredBy: trigger, Status: -1}
@@ -211,7 +211,7 @@ func (j *JobSpec) execCommand(trigger string, surpressLogs bool) JobRun {
 		err := errors.New("no command specified")
 		jr.Log = fmt.Sprintf("Job unable to start: %v", err.Error())
 		log.Warn().Str("job", j.Name).Err(err).Msgf("Job unable to start")
-		if !surpressLogs {
+		if !suppressLogs {
 			fmt.Println(err.Error())
 		}
 		jr.logToDisk()
@@ -228,7 +228,7 @@ func (j *JobSpec) execCommand(trigger string, surpressLogs bool) JobRun {
 	err := cmd.Start()
 	if err != nil {
 		jr.Log = fmt.Sprintf("Job unable to start: %v", err.Error())
-		if !surpressLogs {
+		if !suppressLogs {
 			fmt.Println(err.Error())
 		}
 		log.Warn().Str("job", j.Name).Err(err).Msgf("Job unable to start")
@@ -241,7 +241,7 @@ func (j *JobSpec) execCommand(trigger string, surpressLogs bool) JobRun {
 	line, err := reader.ReadString('\n')
 
 	for err == nil {
-		if !surpressLogs {
+		if !suppressLogs {
 			fmt.Print(line)
 		}
 		jr.Log += line
@@ -258,11 +258,11 @@ func (j *JobSpec) execCommand(trigger string, surpressLogs bool) JobRun {
 	}
 
 	jr.Status = 0
-	// trigger jobs that should run on succesful completion
+	// trigger jobs that should run on successful completion
 	for _, tn := range j.Triggers {
 		tj := j.globalSchedule.Jobs[tn]
 		go func(jobName string) {
-			tj.execCommandWithRetry(fmt.Sprintf("job[%s]", jobName), surpressLogs)
+			tj.execCommandWithRetry(fmt.Sprintf("job[%s]", jobName), suppressLogs)
 		}(tn)
 	}
 
