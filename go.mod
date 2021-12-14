@@ -1,4 +1,4 @@
-module github.com/datarootsio/butt
+module github.com/datarootsio/cheek
 
 go 1.17
 

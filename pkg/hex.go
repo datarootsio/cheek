@@ -1,4 +1,4 @@
-package butt
+package cheek
 
 import (
 	"math/rand"

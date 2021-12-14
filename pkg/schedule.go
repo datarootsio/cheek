@@ -1,4 +1,4 @@
-package butt
+package cheek
 
 import (
 	"encoding/json"
@@ -142,13 +142,13 @@ func server(s *Schedule, httpPort string) {
 	log.Fatal().Err(http.ListenAndServe(httpAddr, nil))
 }
 
-// RunSchedule is the main entry entrypoint of butt.
+// RunSchedule is the main entry entrypoint of cheek.
 func RunSchedule(fn string, prettyLog bool, httpPort string, supressLogs bool, logLevel string) {
 	// config logger
 	var multi zerolog.LevelWriter
 
-	const logFile string = "core.butt.jsonl"
-	logFn := path.Join(buttPath(), logFile)
+	const logFile string = "core.cheek.jsonl"
+	logFn := path.Join(cheekPath(), logFile)
 	f, err := os.OpenFile(logFn,
 		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {

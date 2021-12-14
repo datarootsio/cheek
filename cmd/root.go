@@ -16,14 +16,11 @@ var (
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "butt",
-	Short: "Better Unified Time-Driven Triggers",
-	Long: `Better Unified Time-Driven Triggers
+	Use:   "cheek",
+	Short: "Crontab-like scHeduler for Effective Execution of tasKs",
+	Long: `Crontab-like scHeduler for Effective Execution of tasKs
 
 A KISS approach to job scheduling.`,
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
-	// Run: func(cmd *cobra.Command, args []string) { },
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -47,10 +44,10 @@ func initConfig() {
 		home, err := os.UserHomeDir()
 		cobra.CheckErr(err)
 
-		// Search config in home directory with name ".butt" (without extension).
+		// Search config in home directory with name ".cheek" (without extension).
 		viper.AddConfigPath(home)
 		viper.SetConfigType("yaml")
-		viper.SetConfigName(".butt")
+		viper.SetConfigName(".cheek")
 	}
 
 	viper.AutomaticEnv() // read in environment variables that match

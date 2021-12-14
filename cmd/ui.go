@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	butt "github.com/datarootsio/butt/pkg"
+	cheek "github.com/datarootsio/cheek/pkg"
 	"github.com/spf13/cobra"
 )
 
@@ -11,9 +11,9 @@ var uiCmd = &cobra.Command{
 	Short: "Terminal User Interface",
 	Long: `Terminal User Interface
 	
-Nothing butt the UI.`,
+Nothing cheek the UI.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		butt.TUI(httpPort)
+		cheek.TUI(httpPort)
 	},
 }
 

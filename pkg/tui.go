@@ -1,4 +1,4 @@
-package butt
+package cheek
 
 import (
 	"encoding/json"
@@ -99,7 +99,7 @@ func (m model) Init() tea.Cmd {
 func refreshState() tea.Msg {
 	schedule := &Schedule{}
 	if err := schedule.getSchedule(serverPort); err != nil {
-		fmt.Printf("Error connecting with butt server: %v\n", err.Error())
+		fmt.Printf("Error connecting with cheek server: %v\n", err.Error())
 		os.Exit(1)
 	}
 
@@ -193,7 +193,7 @@ func (m model) View() string {
 	}
 
 	refresh := faintStyle.Align(lipgloss.Right).Render("(r)efresh")
-	title := titleStyle.Width(m.width - lipgloss.Width(refresh)).Render("butt: Better Unified Time-Driven Triggering")
+	title := titleStyle.Width(m.width - lipgloss.Width(refresh)).Render("cheek |_|>")
 	header := lipgloss.JoinHorizontal(lipgloss.Left, title, refresh)
 
 	jobListStyle := lipgloss.NewStyle().Border(lipgloss.NormalBorder())
@@ -247,13 +247,13 @@ func (s *Schedule) getSchedule(httpPort string) error {
 	return json.NewDecoder(r.Body).Decode(s)
 }
 
-// TUI is the main entrypoint for the butt ui.
+// TUI is the main entrypoint for the cheek ui.
 func TUI(httpPort string) {
 	serverPort = httpPort
 	// init schedule schedule
 	schedule := &Schedule{}
 	if err := schedule.getSchedule(httpPort); err != nil {
-		fmt.Printf("Error connecting with butt server: %v\n", err.Error())
+		fmt.Printf("Error connecting with cheek server: %v\n", err.Error())
 		os.Exit(1)
 	}
 

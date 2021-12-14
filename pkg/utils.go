@@ -1,4 +1,4 @@
-package butt
+package cheek
 
 import (
 	"encoding/json"
@@ -11,10 +11,10 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func buttPath() string {
+func cheekPath() string {
 	usr, _ := user.Current()
 	dir := usr.HomeDir
-	p := path.Join(dir, ".butt")
+	p := path.Join(dir, ".cheek")
 	_ = os.MkdirAll(p, os.ModePerm)
 
 	return p

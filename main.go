@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/datarootsio/butt/cmd"
+	"github.com/datarootsio/cheek/cmd"
 )
 
 func main() {
