@@ -41,7 +41,6 @@ func TestLastLineReader(t *testing.T) {
 	if l[0] != "{\"a\":4}\n" {
 		t.Fatal("incorrect line in first place")
 	}
-
 }
 
 func TestHardWrap(t *testing.T) {

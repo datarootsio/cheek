@@ -9,8 +9,10 @@ import (
 	"github.com/spf13/viper"
 )
 
-var cfgFile string
-var httpPort string
+var (
+	cfgFile  string
+	httpPort string
+)
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{

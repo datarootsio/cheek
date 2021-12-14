@@ -8,9 +8,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var pretty bool
-var surpressLogs bool
-var logLevel string
+var (
+	pretty       bool
+	surpressLogs bool
+	logLevel     string
+)
 
 // runCmd represents the run command
 var runCmd = &cobra.Command{
@@ -24,10 +26,8 @@ var runCmd = &cobra.Command{
 }
 
 func init() {
-
 	rootCmd.AddCommand(runCmd)
 	runCmd.Flags().BoolVarP(&pretty, "pretty", "p", false, "Output pretty formatted logs to console.")
 	runCmd.Flags().BoolVarP(&surpressLogs, "surpress-logs", "s", false, "Do not output logs to stdout, only to file.")
 	runCmd.Flags().StringVarP(&logLevel, "log-level", "l", "debug", fmt.Sprintf("Set log level, can be one of %v|%v|%v|%v|%v|%v|%v (only applies to butt specific logging)", zl.LevelTraceValue, zl.LevelDebugValue, zl.LevelInfoValue, zl.LevelWarnValue, zl.LevelErrorValue, zl.LevelFatalValue, zl.LevelPanicValue))
-
 }

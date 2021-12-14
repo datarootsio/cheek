@@ -5,9 +5,20 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/user"
+	"path"
 
 	"github.com/rs/zerolog/log"
 )
+
+func buttPath() string {
+	usr, _ := user.Current()
+	dir := usr.HomeDir
+	p := path.Join(dir, ".butt")
+	_ = os.MkdirAll(p, os.ModePerm)
+
+	return p
+}
 
 func readLastJobRuns(filepath string, nRuns int) ([]JobRun, error) {
 	lines, err := readLastLines(filepath, nRuns)
@@ -15,7 +26,7 @@ func readLastJobRuns(filepath string, nRuns int) ([]JobRun, error) {
 		return []JobRun{}, nil
 	}
 
-	jrs := []JobRun{}
+	var jrs []JobRun
 	for _, line := range lines {
 		jr := JobRun{}
 		err = json.Unmarshal([]byte(line), &jr)
@@ -28,18 +39,16 @@ func readLastJobRuns(filepath string, nRuns int) ([]JobRun, error) {
 	}
 
 	return jrs, nil
-
 }
 
 func readLastLines(filepath string, nLines int) ([]string, error) {
 	fileHandle, err := os.Open(filepath)
-
 	if err != nil {
 		return []string{}, err
 	}
 	defer fileHandle.Close()
 
-	lines := []string{}
+	var lines []string
 	line := ""
 	var cursor int64 = 0
 	stat, _ := fileHandle.Stat()
@@ -80,7 +89,6 @@ func readLastLines(filepath string, nLines int) ([]string, error) {
 }
 
 func hardWrap(in string, width int) string {
-
 	if width < 1 {
 		return in
 	}
@@ -89,12 +97,9 @@ func hardWrap(in string, width int) string {
 
 	var i int
 	for i = 0; len(in[i:]) > width; i += width {
-
 		wrapped += in[i:i+width] + "\n"
-
 	}
 	wrapped += in[i:]
 
 	return wrapped
-
 }

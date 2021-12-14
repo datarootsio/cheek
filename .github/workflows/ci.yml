@@ -1,5 +1,7 @@
 name: ci
-on: push
+on: 
+  push:
+  pull_request:
 
 jobs:
   tests:
@@ -9,10 +11,15 @@ jobs:
       - uses: actions/setup-go@v2
         with:
           go-version: "^1.16"
+      - name: run gofmt
+        run: test -z $(gofmt -l .)
+      - name: run go vet
+        run: go vet ./...
+      - uses: golangci/golangci-lint-action@v2
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v2
-      - run: golangci-lint run ./...
-      - run: go test ./... -coverprofile=cover.out -covermode=atomic
+        run: golangci-lint run ./...
+      - name: run tests
+        run: go test ./... -coverprofile=cover.out -covermode=atomic
       - uses: codecov/codecov-action@v2
         with:
           files: ./cover.out
@@ -20,6 +27,8 @@ jobs:
   build:
     needs: tests
     runs-on: ubuntu-latest
+    ## need decent versioning strategy in future
+    if: github.ref == 'refs/heads/master'
     strategy:
       matrix:
         goos: [linux, darwin]

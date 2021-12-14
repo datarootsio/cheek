@@ -91,5 +91,6 @@ Check out the `Dockerfile` for an example on how to set up `butt` within the con
 Thanks goes to:
 - [gronx](https://github.com/adhocore/gronx): for allowing me not to worry about CRON strings.
 - [Charm](https://www.charm.sh/): for their bubble-icious TUI libraries.
-- [Freddy](https://github.com/frederikdesmedt): for cracking them butt jokes.
-- [Murilo](https://github.com/murilo-cunha): for asking me about my butt.
+- [Sam](https://github.com/sdebruyn): for valuable code reviews / feedback.
+- [Freddy](https://github.com/frederikdesmedt): for crackin' them butt jokes
+- [Murilo](https://github.com/murilo-cunha): for asking me about my butt

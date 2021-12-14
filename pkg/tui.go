@@ -71,11 +71,9 @@ func (j *JobSpec) runInfo() string {
 	}
 
 	return runInfo
-
 }
 
 func (j *JobSpec) view(maxWidth int) string {
-
 	var sb strings.Builder
 
 	if len(j.runs) == 0 {
@@ -92,7 +90,6 @@ func (j *JobSpec) view(maxWidth int) string {
 	}
 
 	return sb.String()
-
 }
 
 func (m model) Init() tea.Cmd {
@@ -185,7 +182,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	return m, tea.Batch(cmds...)
-
 }
 
 func (m model) View() string {

@@ -1,16 +1,11 @@
 package butt
 
 import (
-	"bufio"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
-	"os/exec"
-	"os/user"
 	"path"
 	"time"
 
@@ -45,64 +40,6 @@ func (s *Schedule) Run(surpressLogs bool) {
 			}
 		}
 	}
-
-}
-
-// JobSpec holds specifications and metadata of a job.
-type JobSpec struct {
-	Cron           string      `yaml:"cron,omitempty" json:"cron,omitempty"`
-	Command        stringArray `yaml:"command" json:"command"`
-	Triggers       []string    `yaml:"triggers,omitempty" json:"triggers,omitempty"`
-	Name           string      `json:"name"`
-	Retries        int         `yaml:"retries,omitempty" json:"retries,omitempty"`
-	globalSchedule *Schedule
-	runs           []JobRun
-}
-
-// JobRun holds information about a job execution.
-type JobRun struct {
-	Status      int       `json:"status"`
-	Log         string    `json:"log"`
-	Name        string    `json:"name"`
-	TriggeredAt time.Time `json:"triggered_at"`
-	TriggeredBy string    `json:"triggered_by"`
-	Triggered   []string  `json:"triggered,omitempty"`
-}
-
-func (j *JobSpec) loadRuns() {
-	const nRuns int = 30
-	logFn := path.Join(buttPath(), fmt.Sprintf("%s.job.jsonl", j.Name))
-	jrs, err := readLastJobRuns(logFn, nRuns)
-	if err != nil {
-		log.Warn().Str("job", j.Name).Err(err).Msgf("could not load job logs from '%s'", logFn)
-
-	}
-	j.runs = jrs
-
-}
-
-func buttPath() string {
-	usr, _ := user.Current()
-	dir := usr.HomeDir
-	p := path.Join(dir, ".butt")
-	_ = os.MkdirAll(p, os.ModePerm)
-
-	return p
-}
-
-func (j *JobRun) logToDisk() {
-	logFn := path.Join(buttPath(), fmt.Sprintf("%s.job.jsonl", j.Name))
-	f, err := os.OpenFile(logFn,
-		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		log.Warn().Str("job", j.Name).Err(err).Msgf("Can't open job log '%v' for writing", logFn)
-		return
-	}
-	defer f.Close()
-
-	if err := json.NewEncoder(f).Encode(j); err != nil {
-		log.Warn().Str("job", j.Name).Err(err).Msg("Couldn't save job log to disk.")
-	}
 }
 
 type stringArray []string
@@ -125,7 +62,6 @@ func (a *stringArray) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 func readSpecs(fn string) (Schedule, error) {
 	yfile, err := ioutil.ReadFile(fn)
-
 	if err != nil {
 		log.Error().Err(err)
 		return Schedule{}, err
@@ -140,7 +76,6 @@ func readSpecs(fn string) (Schedule, error) {
 	}
 
 	return specs, nil
-
 }
 
 // Validate Schedule spec and logic.
@@ -151,7 +86,6 @@ func (s *Schedule) Validate() error {
 			gronx := gronx.New()
 			if !gronx.IsValid(v.Cron) {
 				return fmt.Errorf("cron string for job '%s' not valid", k)
-
 			}
 		}
 		// check if trigger references exist
@@ -182,102 +116,6 @@ func loadSchedule(fn string) (Schedule, error) {
 	return s, nil
 }
 
-func (j *JobSpec) execCommandWithRetry(trigger string, supressLogs bool) {
-	tries := 0
-	var jr JobRun
-	const timeOut = 5 * time.Second
-
-	for tries < j.Retries+1 {
-
-		switch {
-		case tries == 0:
-			jr = j.execCommand(trigger, supressLogs)
-		default:
-			jr = j.execCommand(fmt.Sprintf("%s[retry=%v]", trigger, tries), supressLogs)
-		}
-
-		if jr.Status == 0 {
-			break
-		}
-		log.Debug().Str("job", j.Name).Msgf("Job exited unsucessfully, launching retry after %v timeout.", timeOut)
-		tries++
-		time.Sleep(timeOut)
-
-	}
-}
-
-func (j *JobSpec) execCommand(trigger string, surpressLogs bool) JobRun {
-	log.Info().Str("job", j.Name).Str("trigger", trigger).Msgf("Job triggered")
-	// init status to non-zero until execution says otherwise
-	jr := JobRun{Name: j.Name, TriggeredAt: time.Now(), TriggeredBy: trigger, Status: -1}
-
-	var cmd *exec.Cmd
-	switch len(j.Command) {
-	case 0:
-		err := errors.New("no command specified")
-		jr.Log = fmt.Sprintf("Job unable to start: %v", err.Error())
-		log.Warn().Str("job", j.Name).Err(err).Msgf("Job unable to start")
-		if !surpressLogs {
-			fmt.Println(err.Error())
-		}
-		jr.logToDisk()
-		return jr
-	case 1:
-		cmd = exec.Command(j.Command[0])
-	default:
-		cmd = exec.Command(j.Command[0], j.Command[1:]...)
-	}
-
-	outPipe, _ := cmd.StdoutPipe()
-	errPipe, _ := cmd.StderrPipe()
-
-	err := cmd.Start()
-	if err != nil {
-		jr.Log = fmt.Sprintf("Job unable to start: %v", err.Error())
-		if !surpressLogs {
-			fmt.Println(err.Error())
-		}
-		log.Warn().Str("job", j.Name).Err(err).Msgf("Job unable to start")
-		jr.logToDisk()
-		return jr
-	}
-
-	merged := io.MultiReader(outPipe, errPipe)
-	reader := bufio.NewReader(merged)
-	line, err := reader.ReadString('\n')
-
-	for err == nil {
-		if !surpressLogs {
-			fmt.Print(line)
-		}
-		jr.Log += line
-		line, err = reader.ReadString('\n')
-	}
-
-	if err := cmd.Wait(); err != nil {
-		if exitError, ok := err.(*exec.ExitError); ok {
-			// j.Statuses = append(j.Statuses, exitError.ExitCode())
-			jr.Status = exitError.ExitCode()
-			log.Warn().Str("job", j.Name).Msgf("Exit code %v", exitError.ExitCode())
-		}
-		return jr
-	}
-
-	jr.Status = 0
-	// trigger jobs that should run on succesful completion
-	for _, tn := range j.Triggers {
-		tj := j.globalSchedule.Jobs[tn]
-		go func(jobName string) {
-			tj.execCommandWithRetry(fmt.Sprintf("job[%s]", jobName), surpressLogs)
-		}(tn)
-	}
-
-	jr.logToDisk()
-
-	return jr
-
-}
-
 func server(s *Schedule, httpPort string) {
 	var httpAddr string = fmt.Sprintf(":%s", httpPort)
 	type Healthz struct {
@@ -291,7 +129,6 @@ func server(s *Schedule, httpPort string) {
 		if err := json.NewEncoder(w).Encode(status); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
-
 	})
 
 	http.HandleFunc("/schedule", func(w http.ResponseWriter, r *http.Request) {
@@ -299,12 +136,10 @@ func server(s *Schedule, httpPort string) {
 		if err := json.NewEncoder(w).Encode(s); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
-
 	})
 
 	log.Info().Msgf("Starting HTTP server on %v", httpAddr)
 	log.Fatal().Err(http.ListenAndServe(httpAddr, nil))
-
 }
 
 // RunSchedule is the main entry entrypoint of butt.
@@ -348,5 +183,4 @@ func RunSchedule(fn string, prettyLog bool, httpPort string, supressLogs bool, l
 	}
 	go server(&js, httpPort)
 	js.Run(supressLogs)
-
 }
