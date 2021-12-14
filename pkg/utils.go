@@ -5,9 +5,20 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/user"
+	"path"
 
 	"github.com/rs/zerolog/log"
 )
+
+func buttPath() string {
+	usr, _ := user.Current()
+	dir := usr.HomeDir
+	p := path.Join(dir, ".butt")
+	_ = os.MkdirAll(p, os.ModePerm)
+
+	return p
+}
 
 func readLastJobRuns(filepath string, nRuns int) ([]JobRun, error) {
 	lines, err := readLastLines(filepath, nRuns)
