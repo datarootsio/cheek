@@ -92,5 +92,3 @@ Thanks goes to:
 - [gronx](https://github.com/adhocore/gronx): for allowing me not to worry about CRON strings.
 - [Charm](https://www.charm.sh/): for their bubble-icious TUI libraries.
 - [Sam](https://github.com/sdebruyn): for valuable code reviews / feedback.
-- [Freddy](https://github.com/frederikdesmedt): for crackin' them cheek jokes
-- [Murilo](https://github.com/murilo-cunha): for asking me about my cheek
