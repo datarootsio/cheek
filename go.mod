@@ -1,4 +1,4 @@
-module github.com/bart6114/butt
+module github.com/datarootsio/butt
 
 go 1.17
 

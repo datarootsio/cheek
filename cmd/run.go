@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	butt "github.com/bart6114/butt/pkg"
+	butt "github.com/datarootsio/butt/pkg"
 	zl "github.com/rs/zerolog"
 	"github.com/spf13/cobra"
 )
