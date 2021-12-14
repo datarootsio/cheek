@@ -1,5 +1,3 @@
-![](https://dataroots.io/cheek.png)
-
 # cheek
 
 [![codecov](https://codecov.io/gh/datarootsio/cheek/branch/main/graph/badge.svg?token=011KCCGPE6)](https://codecov.io/gh/datarootsio/cheek) ![example workflow](https://github.com/datarootsio/cheek/actions/workflows/ci.yml/badge.svg) [![Go Report Card](https://goreportcard.com/badge/github.com/datarootsio/cheek)](https://goreportcard.com/report/github.com/datarootsio/cheek) [![Go Reference](https://pkg.go.dev/badge/github.com/datarootsio/cheek.svg)](https://pkg.go.dev/github.com/datarootsio/cheek) [![dataroots](https://dataroots.io/maintained.svg)](https://dataroots.io/)
