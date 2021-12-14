@@ -27,6 +27,8 @@ jobs:
   build:
     needs: tests
     runs-on: ubuntu-latest
+    ## need decent versioning strategy in future
+    if: github.ref == 'refs/heads/master'
     strategy:
       matrix:
         goos: [linux, darwin]
