@@ -136,7 +136,6 @@ func (j *JobSpec) execCommand(trigger string, suppressLogs bool) JobRun {
 
 	if err := cmd.Wait(); err != nil {
 		if exitError, ok := err.(*exec.ExitError); ok {
-			// j.Statuses = append(j.Statuses, exitError.ExitCode())
 			jr.Status = exitError.ExitCode()
 			log.Warn().Str("job", j.Name).Msgf("Exit code %v", exitError.ExitCode())
 		}
