@@ -305,7 +305,7 @@ func RunSchedule(fn string, prettyLog bool, httpPort string, supressLogs bool, l
 	const logFile string = "core.butt.jsonl"
 	logFn := path.Join(buttPath(), logFile)
 	f, err := os.OpenFile(logFn,
-		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		fmt.Printf("Can't open log file '%s' for writing.", logFile)
 		os.Exit(1)

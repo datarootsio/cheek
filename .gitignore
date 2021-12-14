@@ -201,6 +201,7 @@ Temporary Items
 .apdisk
 
 ### VisualStudioCode ###
+.vscode
 .vscode/*
 !.vscode/settings.json
 !.vscode/tasks.json
@@ -249,3 +250,4 @@ $RECYCLE.BIN/
 
 build
 butt
+cover.out
