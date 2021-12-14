@@ -28,7 +28,7 @@ jobs:
     needs: tests
     runs-on: ubuntu-latest
     ## need decent versioning strategy in future
-    if: github.ref == 'refs/heads/master'
+    if: github.ref == 'refs/heads/main'
     strategy:
       matrix:
         goos: [linux, darwin]
