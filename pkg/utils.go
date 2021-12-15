@@ -1,12 +1,14 @@
 package cheek
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
 	"os"
 	"os/user"
 	"path"
+	"sync"
 
 	"github.com/rs/zerolog/log"
 )
@@ -102,4 +104,27 @@ func hardWrap(in string, width int) string {
 	wrapped += in[i:]
 
 	return wrapped
+}
+
+type tsBuffer struct {
+	b bytes.Buffer
+	m sync.Mutex
+}
+
+func (b *tsBuffer) Read(p []byte) (n int, err error) {
+	b.m.Lock()
+	defer b.m.Unlock()
+	return b.b.Read(p)
+}
+
+func (b *tsBuffer) Write(p []byte) (n int, err error) {
+	b.m.Lock()
+	defer b.m.Unlock()
+	return b.b.Write(p)
+}
+
+func (b *tsBuffer) String() string {
+	b.m.Lock()
+	defer b.m.Unlock()
+	return b.b.String()
 }

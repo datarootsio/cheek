@@ -3,16 +3,17 @@ package cheek
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
-	"path"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"gopkg.in/yaml.v3"
 
 	"github.com/adhocore/gronx"
-	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
@@ -25,19 +26,28 @@ type Schedule struct {
 func (s *Schedule) Run(surpressLogs bool) {
 	gronx := gronx.New()
 	ticker := time.NewTicker(time.Second)
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
-	for range ticker.C {
-		for _, j := range s.Jobs {
-			if j.Cron == "" {
-				continue
-			}
-			due, _ := gronx.IsDue(j.Cron)
+	for {
+		select {
+		case <-ticker.C:
+			for _, j := range s.Jobs {
+				if j.Cron == "" {
+					continue
+				}
+				due, _ := gronx.IsDue(j.Cron)
 
-			if due {
-				go func(j *JobSpec) {
-					j.execCommandWithRetry("cron", surpressLogs)
-				}(j)
+				if due {
+					go func(j *JobSpec) {
+						j.execCommandWithRetry("cron", surpressLogs)
+					}(j)
+				}
 			}
+
+		case sig := <-sigs:
+			log.Info().Msgf("%s signal received, exiting...", sig.String())
+			return
 		}
 	}
 }
@@ -143,33 +153,7 @@ func server(s *Schedule, httpPort string) {
 }
 
 // RunSchedule is the main entry entrypoint of cheek.
-func RunSchedule(fn string, prettyLog bool, httpPort string, supressLogs bool, logLevel string) {
-	// config logger
-	var multi zerolog.LevelWriter
-
-	const logFile string = "core.cheek.jsonl"
-	logFn := path.Join(cheekPath(), logFile)
-	f, err := os.OpenFile(logFn,
-		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		fmt.Printf("Can't open log file '%s' for writing.", logFile)
-		os.Exit(1)
-	}
-	defer f.Close()
-
-	if prettyLog {
-		multi = zerolog.MultiLevelWriter(f, zerolog.ConsoleWriter{Out: os.Stdout})
-	} else {
-		multi = zerolog.MultiLevelWriter(f, os.Stdout)
-	}
-
-	level, err := zerolog.ParseLevel(logLevel)
-	if err != nil {
-		fmt.Printf("Exiting, cannot initialize logger with level '%s'\n", logLevel)
-		os.Exit(1)
-	}
-	log.Logger = zerolog.New(multi).With().Timestamp().Logger().Level(level)
-
+func RunSchedule(fn string, httpPort string, supressLogs bool, extraLoggers ...io.Writer) {
 	js, err := loadSchedule(fn)
 	if err != nil {
 		log.Error().Err(err).Msg("")
