@@ -18,9 +18,7 @@ func TestScheduleRun(t *testing.T) {
 		t.Fatal(err)
 	}
 	b := new(tsBuffer)
-	lc := LogConfig{}
-	lc.Init(false, "debug", b)
-	// defer lc.Close()
+	ConfigLogger(false, "debug", b)
 	go func() {
 		RunSchedule("../testdata/jobs1.yaml", "9999", true)
 	}()
