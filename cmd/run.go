@@ -23,7 +23,7 @@ var runCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		lc := cheek.LogConfig{}
 		lc.Init(pretty, logLevel)
-		defer lc.Close()
+		// defer lc.Close()
 		cheek.RunSchedule(args[0], httpPort, surpressLogs)
 	},
 }
