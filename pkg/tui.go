@@ -24,6 +24,7 @@ const (
 
 var (
 	serverPort   string
+	yamlFile     string
 	warningStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#FFA500"))
 	faintStyle   = lipgloss.NewStyle().Faint(true)
 	titleStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("#49f770")).Bold(true)
@@ -98,8 +99,8 @@ func (m model) Init() tea.Cmd {
 
 func refreshState() tea.Msg {
 	schedule := &Schedule{}
-	if err := schedule.getSchedule(serverPort); err != nil {
-		fmt.Printf("Error connecting with cheek server: %v\n", err.Error())
+	if err := schedule.getSchedule(serverPort, yamlFile); err != nil {
+		fmt.Printf(err.Error())
 		os.Exit(1)
 	}
 
@@ -236,23 +237,31 @@ func (m model) View() string {
 	return mv
 }
 
-func (s *Schedule) getSchedule(httpPort string) error {
+func (s *Schedule) getSchedule(httpPort string, scheduleFile string) error {
 	// addr should be configurable
-	r, err := http.Get(fmt.Sprintf("http://localhost:%s/schedule", httpPort))
-	if err != nil {
-		return err
+	r, server_err := http.Get(fmt.Sprintf("http://localhost:%s/schedule", httpPort))
+	if server_err == nil {
+		defer r.Body.Close()
+		return json.NewDecoder(r.Body).Decode(s)
+	} else if scheduleFile != "" {
+		schedule, err := loadSchedule(scheduleFile)
+		if err != nil {
+			return fmt.Errorf("%w; Error reading from YAML at location '%v': %v", server_err, scheduleFile, err.Error())
+		}
+		*s = schedule
+		return nil
+	} else {
+		return fmt.Errorf("Error connecting to cheek server and no schedule file specified: %v\n", server_err.Error())
 	}
-	defer r.Body.Close()
-
-	return json.NewDecoder(r.Body).Decode(s)
 }
 
 // TUI is the main entrypoint for the cheek ui.
-func TUI(httpPort string) {
+func TUI(httpPort string, scheduleFile string) {
 	serverPort = httpPort
+	yamlFile = scheduleFile
 	// init schedule schedule
 	schedule := &Schedule{}
-	if err := schedule.getSchedule(httpPort); err != nil {
+	if err := schedule.getSchedule(httpPort, scheduleFile); err != nil {
 		fmt.Printf("Error connecting with cheek server: %v\n", err.Error())
 		os.Exit(1)
 	}

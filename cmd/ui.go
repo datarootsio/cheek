@@ -5,6 +5,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var yamlFile string
+
 // uiCmd represents the ui command
 var uiCmd = &cobra.Command{
 	Use:   "ui",
@@ -13,12 +15,13 @@ var uiCmd = &cobra.Command{
 	
 Nothing cheek the UI.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		cheek.TUI(httpPort)
+		cheek.TUI(httpPort, yamlFile)
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(uiCmd)
+	uiCmd.Flags().StringVarP(&yamlFile, "schedule", "s", "", "Define the schedule file to display.")
 
 	// Here you will define your flags and configuration settings.
 
