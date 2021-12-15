@@ -10,23 +10,15 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-type LogConfig struct {
-	coreFileIO *os.File
-}
-
-func (lc *LogConfig) Close() {
-	lc.coreFileIO.Close()
-	// reset logger to avoid race events
-	log.Logger = zerolog.New(os.Stdout)
-}
-
-func (lc *LogConfig) Init(prettyLog bool, logLevel string, extraWriters ...io.Writer) {
+// Configures the package's global logger, also allows to pass in custom writers for
+// testing purposes.
+func ConfigLogger(prettyLog bool, logLevel string, extraWriters ...io.Writer) {
 	var multi zerolog.LevelWriter
 
 	const logFile string = "core.cheek.jsonl"
 	logFn := path.Join(cheekPath(), logFile)
-	var err error
-	lc.coreFileIO, err = os.OpenFile(logFn,
+
+	f, err := os.OpenFile(logFn,
 		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 	if err != nil {
 		fmt.Printf("Can't open log file '%s' for writing.", logFile)
@@ -34,7 +26,7 @@ func (lc *LogConfig) Init(prettyLog bool, logLevel string, extraWriters ...io.Wr
 	}
 
 	var loggers []io.Writer
-	loggers = append(loggers, lc.coreFileIO)
+	loggers = append(loggers, f)
 	loggers = append(loggers, extraWriters...)
 
 	if prettyLog {
