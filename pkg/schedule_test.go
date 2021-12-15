@@ -26,7 +26,10 @@ func TestScheduleRun(t *testing.T) {
 	}()
 
 	time.Sleep(2 * time.Second)
-	proc.Signal(os.Interrupt)
+	if err := proc.Signal(os.Interrupt); err != nil {
+		t.Fatal(err)
+	}
+
 	time.Sleep(1 * time.Second)
 	assert.Contains(t, b.String(), "Job triggered")
 	assert.Contains(t, b.String(), "interrupt signal received")
