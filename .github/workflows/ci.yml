@@ -11,15 +11,16 @@ jobs:
       - uses: actions/setup-go@v2
         with:
           go-version: "^1.16"
+      - run: go install mvdan.cc/gofumpt@latest
       - name: run gofmt
-        run: test -z $(gofmt -l .)
+        run: test -z $(gofumpt -l .)
       - name: run go vet
         run: go vet ./...
       - uses: golangci/golangci-lint-action@v2
       - name: golangci-lint
         run: golangci-lint run ./...
       - name: run tests
-        run: go test ./... -coverprofile=cover.out -covermode=atomic
+        run: go test ./... -race -coverprofile=cover.out -covermode=atomic
       - uses: codecov/codecov-action@v2
         with:
           files: ./cover.out
