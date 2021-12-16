@@ -60,6 +60,30 @@ type model struct {
 	viewport      viewport.Model
 }
 
+// An error message that should be shown to the user
+type errorMsg struct {
+	// The description of the error
+	err error
+	// Whether the error is critical (non-recoverable)
+	critical bool
+}
+
+func (m model) handleErrorMsg(msg errorMsg) (tea.Model, tea.Cmd) {
+	model := notificationModel{
+		msg:     msg.err.Error(),
+		msgType: Error,
+		returningState: func() (tea.Model, tea.Cmd) {
+			if msg.critical {
+				return nil, func() tea.Msg {
+					return tea.Quit()
+				}
+			}
+			return m, nil
+		},
+	}
+	return model, nil
+}
+
 func (j *JobSpec) runInfo() string {
 	var runInfo string
 	if len(j.runs) == 0 {
@@ -100,8 +124,10 @@ func (m model) Init() tea.Cmd {
 func refreshState() tea.Msg {
 	schedule := &Schedule{}
 	if err := schedule.getSchedule(serverPort, yamlFile); err != nil {
-		fmt.Print(err.Error())
-		os.Exit(1)
+		return errorMsg{
+			err:      err,
+			critical: false,
+		}
 	}
 
 	for _, v := range schedule.Jobs {
@@ -171,6 +197,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.viewport.SetContent(j.view(m.viewport.Width - 2))
 			}
 		}
+
+	case errorMsg:
+		return m.handleErrorMsg(msg)
 	}
 
 	if m.viewportFocus {
