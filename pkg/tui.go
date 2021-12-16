@@ -244,7 +244,6 @@ func (s *Schedule) getSchedule(httpPort string, scheduleFile string) error {
 		defer r.Body.Close()
 		return json.NewDecoder(r.Body).Decode(s)
 	}
-
 	if scheduleFile != "" {
 		schedule, err := loadSchedule(scheduleFile)
 		if err != nil {
@@ -253,7 +252,6 @@ func (s *Schedule) getSchedule(httpPort string, scheduleFile string) error {
 		*s = schedule
 		return nil
 	}
-
 	return fmt.Errorf("Error connecting to cheek server and no schedule file specified: %v\n", server_err.Error())
 }
 
