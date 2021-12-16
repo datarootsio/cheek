@@ -88,7 +88,7 @@ Check out the `Dockerfile` for an example on how to set up `cheek` within the co
 Thanks goes to:
 - [gronx](https://github.com/adhocore/gronx): for allowing me not to worry about CRON strings.
 - [Charm](https://www.charm.sh/): for their bubble-icious TUI libraries.
-- [Sam](https://github.com/sdebruyn): for valuable code reviews / feedback.
+- [Sam](https://github.com/sdebruyn) & [Frederik](https://github.com/frederikdesmedt): for valuable code reviews / feedback.
 
 <br/>
  
