@@ -91,5 +91,5 @@ Thanks goes to:
 - [Sam](https://github.com/sdebruyn): for valuable code reviews / feedback.
 
 <br/>
-
+ 
 ![GitHub Contributors](https://contrib.rocks/image?repo=datarootsio/cheek)
