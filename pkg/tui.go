@@ -203,6 +203,28 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
+func (m model) renderStatusBar() string {
+	logInfo := faintStyle.Align(lipgloss.Right).Render("View (l)ogs")
+	notificationStyle := lipgloss.NewStyle().Width(m.width - lipgloss.Width(logInfo))
+	var notification string
+	switch m.notification.notificationType {
+	case Info:
+		notification = m.notification.content
+	case Error:
+		notification = lipgloss.
+			NewStyle().
+			Foreground(lipgloss.Color("#FFFDF5")).
+			Background(lipgloss.Color("#FF5F87")).
+			Align(lipgloss.Right).
+			Render(m.notification.content)
+	}
+	return lipgloss.JoinHorizontal(
+		lipgloss.Center,
+		notificationStyle.Render(notification),
+		logInfo,
+	)
+}
+
 func (m model) View() string {
 	var j JobSpec
 	if _, ok := m.state.Jobs[m.choice]; ok {
@@ -231,18 +253,7 @@ func (m model) View() string {
 	}
 	logBoxHeader := lipgloss.NewStyle().Border(logBoxHeaderBorder).BorderTop(false).MarginBottom(1).Render(lipgloss.JoinHorizontal(lipgloss.Left, jobTitle, jobStatus))
 
-	var notification string
-	switch m.notification.notificationType {
-	case Info:
-		notification = m.notification.content
-	case Error:
-		notification = lipgloss.
-			NewStyle().
-			Foreground(lipgloss.Color("#FFFDF5")).
-			Background(lipgloss.Color("#FF5F87")).
-			Align(lipgloss.Right).
-			Render(m.notification.content)
-	}
+	statusBar := m.renderStatusBar()
 
 	// job view
 	vpBox := lipgloss.NewStyle().PaddingLeft(1).PaddingRight(1).Render(m.viewport.View())
@@ -257,7 +268,7 @@ func (m model) View() string {
 	jobBox := jobBoxStyle.Render(
 		lipgloss.JoinVertical(lipgloss.Left, logBoxHeader, vpBox))
 
-	mv := lipgloss.JoinVertical(lipgloss.Left, header, lipgloss.JoinHorizontal(lipgloss.Top, jobList, jobBox), notification)
+	mv := lipgloss.JoinVertical(lipgloss.Left, header, lipgloss.JoinHorizontal(lipgloss.Top, jobList, jobBox), statusBar)
 
 	return mv
 }
