@@ -272,12 +272,12 @@ func (s *Schedule) getSchedule(httpPort string, scheduleFile string) error {
 	if scheduleFile != "" {
 		schedule, err := loadSchedule(scheduleFile)
 		if err != nil {
-			return fmt.Errorf("%w; Error reading from YAML at location '%v': %v", server_err, scheduleFile, err.Error())
+			return fmt.Errorf("%w\nError reading YAML: %v", server_err, err.Error())
 		}
 		*s = schedule
 		return nil
 	}
-	return fmt.Errorf("Error connecting to cheek server and no schedule file specified: %v\n", server_err.Error())
+	return fmt.Errorf("Error connecting to cheek server and -s is not set: %w", server_err)
 }
 
 // TUI is the main entrypoint for the cheek ui.
@@ -287,7 +287,7 @@ func TUI(httpPort string, scheduleFile string) {
 	// init schedule schedule
 	schedule := &Schedule{}
 	if err := schedule.getSchedule(httpPort, scheduleFile); err != nil {
-		fmt.Printf("Error connecting with cheek server: %v\n", err.Error())
+		fmt.Println(err.Error())
 		os.Exit(1)
 	}
 
