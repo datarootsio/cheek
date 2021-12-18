@@ -76,7 +76,7 @@ The UI allows to get a quick overview on jobs that have run, that error'd and th
 
 The UI requires the scheduler to be up and running.
 
-![](https://storage.googleapis.com/better-unified/ui-screenshot.png)
+![](https://storage.googleapis.com/better-unified/ui-screenshot2.png)
 
 
 ## Docker
