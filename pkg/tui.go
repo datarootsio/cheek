@@ -13,6 +13,7 @@ import (
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/rs/zerolog/log"
 )
 
 const (
@@ -53,35 +54,23 @@ type model struct {
 	width         int
 	height        int
 	ready         bool
-	hx            string
 	listFocus     bool
 	viewportFocus bool
 	httpPort      string
 	viewport      viewport.Model
+	notification  notification
 }
 
-// An error message that should be shown to the user
-type errorMsg struct {
-	// The description of the error
-	err error
-	// Whether the error is critical (non-recoverable)
-	critical bool
-}
+type notificationType int32
 
-func (m model) handleErrorMsg(msg errorMsg) (tea.Model, tea.Cmd) {
-	model := notificationModel{
-		msg:     msg.err.Error(),
-		msgType: Error,
-		returningState: func() (tea.Model, tea.Cmd) {
-			if msg.critical {
-				return nil, func() tea.Msg {
-					return tea.Quit()
-				}
-			}
-			return m, nil
-		},
-	}
-	return model, nil
+const (
+	Info notificationType = iota
+	Error
+)
+
+type notification struct {
+	content          string
+	notificationType notificationType
 }
 
 func (j *JobSpec) runInfo() string {
@@ -124,9 +113,10 @@ func (m model) Init() tea.Cmd {
 func refreshState() tea.Msg {
 	schedule := &Schedule{}
 	if err := schedule.getSchedule(serverPort, yamlFile); err != nil {
-		return errorMsg{
-			err:      err,
-			critical: false,
+		log.Error().Err(err).Msg("Failed to load schedules")
+		return notification{
+			content:          "Can't refresh run info",
+			notificationType: Error,
 		}
 	}
 
@@ -191,15 +181,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "enter":
 			i, ok := m.list.SelectedItem().(item)
 			if ok && i.jobName != m.choice {
-				m.hx = hexComp.Poke()
 				m.choice = i.jobName
 				j := m.state.Jobs[m.choice]
 				m.viewport.SetContent(j.view(m.viewport.Width - 2))
 			}
 		}
 
-	case errorMsg:
-		return m.handleErrorMsg(msg)
+	case notification:
+		m.notification = msg
 	}
 
 	if m.viewportFocus {
@@ -242,10 +231,17 @@ func (m model) View() string {
 	}
 	logBoxHeader := lipgloss.NewStyle().Border(logBoxHeaderBorder).BorderTop(false).MarginBottom(1).Render(lipgloss.JoinHorizontal(lipgloss.Left, jobTitle, jobStatus))
 
-	var hx string
-	if len(j.runs) > 0 && j.runs[0].Status != 0 {
-		hx = lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFDF5")).
-			Background(lipgloss.Color("#FF5F87")).Align(lipgloss.Right).Render(m.hx)
+	var notification string
+	switch m.notification.notificationType {
+	case Info:
+		notification = m.notification.content
+	case Error:
+		notification = lipgloss.
+			NewStyle().
+			Foreground(lipgloss.Color("#FFFDF5")).
+			Background(lipgloss.Color("#FF5F87")).
+			Align(lipgloss.Right).
+			Render(m.notification.content)
 	}
 
 	// job view
@@ -261,7 +257,7 @@ func (m model) View() string {
 	jobBox := jobBoxStyle.Render(
 		lipgloss.JoinVertical(lipgloss.Left, logBoxHeader, vpBox))
 
-	mv := lipgloss.JoinVertical(lipgloss.Left, header, lipgloss.JoinHorizontal(lipgloss.Top, jobList, jobBox), hx)
+	mv := lipgloss.JoinVertical(lipgloss.Left, header, lipgloss.JoinHorizontal(lipgloss.Top, jobList, jobBox), notification)
 
 	return mv
 }

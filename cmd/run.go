@@ -21,7 +21,7 @@ var runCmd = &cobra.Command{
 	Long:  "Schedule & run jobs",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		cheek.ConfigLogger(pretty, logLevel)
+		cheek.ConfigLogger(logLevel, cheek.PrettyStdout())
 		cheek.RunSchedule(args[0], httpPort, surpressLogs)
 	},
 }

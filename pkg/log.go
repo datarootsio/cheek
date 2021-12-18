@@ -10,11 +10,11 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// Configures the package's global logger, also allows to pass in custom writers for
-// testing purposes.
-func ConfigLogger(prettyLog bool, logLevel string, extraWriters ...io.Writer) {
-	var multi zerolog.LevelWriter
+func PrettyStdout() io.Writer {
+	return zerolog.ConsoleWriter{Out: os.Stdout}
+}
 
+func coreJsonLogger() io.Writer {
 	const logFile string = "core.cheek.jsonl"
 	logFn := path.Join(cheekPath(), logFile)
 
@@ -24,16 +24,17 @@ func ConfigLogger(prettyLog bool, logLevel string, extraWriters ...io.Writer) {
 		fmt.Printf("Can't open log file '%s' for writing.", logFile)
 		os.Exit(1)
 	}
+	return f
+}
+
+// Configures the package's global logger, also allows to pass in custom writers for
+// testing purposes. If no additional loggers specified logs will only be written to the core JSON log.
+func ConfigLogger(logLevel string, extraWriters ...io.Writer) {
+	var multi zerolog.LevelWriter
 
 	var loggers []io.Writer
-	loggers = append(loggers, f)
+	loggers = append(loggers, coreJsonLogger())
 	loggers = append(loggers, extraWriters...)
-
-	if prettyLog {
-		loggers = append(loggers, zerolog.ConsoleWriter{Out: os.Stdout})
-	} else {
-		loggers = append(loggers, os.Stdout)
-	}
 
 	multi = zerolog.MultiLevelWriter(loggers...)
 	level, err := zerolog.ParseLevel(logLevel)
