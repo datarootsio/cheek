@@ -56,5 +56,4 @@ func TestCheekPath(t *testing.T) {
 
 	viper.Set("homedir", "moo_i_am_sheep")
 	assert.True(t, strings.Contains(CheekPath(), "sheep"))
-
 }
