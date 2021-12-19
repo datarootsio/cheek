@@ -19,7 +19,6 @@ func TestConfig(t *testing.T) {
 			t.Fatalf("a default viper value has not been set for var with index %v", i)
 		}
 	}
-
 }
 
 func TestEnvVar(t *testing.T) {
@@ -36,5 +35,4 @@ func TestEnvVar(t *testing.T) {
 	if viper.GetBool("pretty") {
 		t.Fatalf("env var not picked up")
 	}
-
 }

@@ -44,17 +44,24 @@ func initConfig() {
 	// because tests will often be called without flags
 	// being set
 	viper.SetDefault("port", "8081")
-	viper.BindPFlag("port", rootCmd.PersistentFlags().Lookup("port"))
+	if err := viper.BindPFlag("port", rootCmd.PersistentFlags().Lookup("port")); err != nil {
+		fmt.Printf("error binding pflag")
+	}
 
 	viper.SetDefault("suppressLogs", false)
-	viper.BindPFlag("suppressLogs", runCmd.PersistentFlags().Lookup("port"))
-
+	if err := viper.BindPFlag("suppressLogs", runCmd.PersistentFlags().Lookup("port")); err != nil {
+		fmt.Printf("error binding pflag")
+	}
 	viper.SetDefault("logLevel", "info")
-	viper.BindPFlag("logLevel", runCmd.PersistentFlags().Lookup("logLevel"))
-
+	if err := viper.BindPFlag("logLevel", runCmd.PersistentFlags().Lookup("logLevel")); err != nil {
+		fmt.Printf("error binding pflag")
+	}
 	viper.SetDefault("pretty", true)
-	// viper.BindPFlag("pretty", runCmd.PersistentFlags().Lookup("pretty"))
-
+	if err := viper.BindPFlag("pretty", runCmd.PersistentFlags().Lookup("pretty")); err != nil {
+		fmt.Printf("error binding pflag")
+	}
 	viper.SetDefault("homedir", cheek.CheekPath())
-	viper.BindPFlag("homedir", rootCmd.PersistentFlags().Lookup("homedir"))
+	if err := viper.BindPFlag("homedir", rootCmd.PersistentFlags().Lookup("homedir")); err != nil {
+		fmt.Printf("error binding pflag")
+	}
 }

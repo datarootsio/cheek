@@ -57,7 +57,6 @@ type model struct {
 	hx            string
 	listFocus     bool
 	viewportFocus bool
-	httpPort      string
 	viewport      viewport.Model
 }
 
