@@ -11,12 +11,20 @@ import (
 	"sync"
 
 	"github.com/rs/zerolog/log"
+	"github.com/spf13/viper"
 )
 
-func cheekPath() string {
-	usr, _ := user.Current()
-	dir := usr.HomeDir
-	p := path.Join(dir, ".cheek")
+func CheekPath() string {
+	var p string
+	switch viper.IsSet("homedir") {
+	case true:
+		p = viper.GetString("homedir")
+	default:
+		usr, _ := user.Current()
+		dir := usr.HomeDir
+		p = path.Join(dir, ".cheek")
+	}
+
 	_ = os.MkdirAll(p, os.ModePerm)
 
 	return p

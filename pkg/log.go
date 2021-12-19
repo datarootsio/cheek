@@ -16,7 +16,7 @@ func ConfigLogger(prettyLog bool, logLevel string, extraWriters ...io.Writer) {
 	var multi zerolog.LevelWriter
 
 	const logFile string = "core.cheek.jsonl"
-	logFn := path.Join(cheekPath(), logFile)
+	logFn := path.Join(CheekPath(), logFile)
 
 	f, err := os.OpenFile(logFn,
 		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)

@@ -37,7 +37,7 @@ type JobRun struct {
 
 func (j *JobSpec) loadRuns() {
 	const nRuns int = 30
-	logFn := path.Join(cheekPath(), fmt.Sprintf("%s.job.jsonl", j.Name))
+	logFn := path.Join(CheekPath(), fmt.Sprintf("%s.job.jsonl", j.Name))
 	jrs, err := readLastJobRuns(logFn, nRuns)
 	if err != nil {
 		log.Warn().Str("job", j.Name).Err(err).Msgf("could not load job logs from '%s'", logFn)
@@ -46,7 +46,7 @@ func (j *JobSpec) loadRuns() {
 }
 
 func (j *JobRun) logToDisk() {
-	logFn := path.Join(cheekPath(), fmt.Sprintf("%s.job.jsonl", j.Name))
+	logFn := path.Join(CheekPath(), fmt.Sprintf("%s.job.jsonl", j.Name))
 	f, err := os.OpenFile(logFn,
 		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 	if err != nil {
@@ -60,7 +60,7 @@ func (j *JobRun) logToDisk() {
 	}
 }
 
-func (j *JobSpec) execCommandWithRetry(trigger string, supressLogs bool) {
+func (j *JobSpec) execCommandWithRetry(trigger string, suppressLogs bool) {
 	tries := 0
 	var jr JobRun
 	const timeOut = 5 * time.Second
@@ -69,9 +69,9 @@ func (j *JobSpec) execCommandWithRetry(trigger string, supressLogs bool) {
 
 		switch {
 		case tries == 0:
-			jr = j.execCommand(trigger, supressLogs)
+			jr = j.execCommand(trigger, suppressLogs)
 		default:
-			jr = j.execCommand(fmt.Sprintf("%s[retry=%v]", trigger, tries), supressLogs)
+			jr = j.execCommand(fmt.Sprintf("%s[retry=%v]", trigger, tries), suppressLogs)
 		}
 
 		if jr.Status == 0 {
