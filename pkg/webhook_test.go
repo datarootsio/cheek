@@ -38,7 +38,9 @@ func TestJobRunWebhookCall(t *testing.T) {
 	}
 
 	jr2 := JobRun{}
-	json.NewDecoder(bytes.NewBuffer(resp_body)).Decode(&jr2)
+	if err := json.NewDecoder(bytes.NewBuffer(resp_body)).Decode(&jr2); err != nil {
+		t.Fatal(err)
+	}
 
 	assert.Equal(t, jr, jr2)
 }
