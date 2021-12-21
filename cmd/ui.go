@@ -24,5 +24,5 @@ Alternatively, the '-schedule' flag allows you to provide a path to the specs YA
 
 func init() {
 	rootCmd.AddCommand(uiCmd)
-	uiCmd.Flags().StringVarP(&yamlFile, "schedule", "s", "", "Define the schedule file to use if cheek scheduler is not runinn.")
+	uiCmd.Flags().StringVarP(&yamlFile, "schedule", "s", "", "Define the schedule YAML to use if cheek scheduler is not running.")
 }

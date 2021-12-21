@@ -97,6 +97,7 @@ func (j *JobSpec) execCommand(trigger string, suppressLogs bool) JobRun {
 	log.Info().Str("job", j.Name).Str("trigger", trigger).Msgf("Job triggered")
 	// init status to non-zero until execution says otherwise
 	jr := JobRun{Name: j.Name, TriggeredAt: time.Now(), TriggeredBy: trigger, Status: -1}
+	defer ET{}.PhoneHome()
 	defer jr.logToDisk()
 	defer j.OnEvent(&jr, suppressLogs)
 
@@ -172,7 +173,7 @@ func (j *JobSpec) OnEvent(jr *JobRun, suppressLogs bool) {
 	for _, wu := range webhooksToCall {
 		log.Debug().Str("job", j.Name).Str("on_event", "webhook_call").Msg("triggered by parent job")
 		go func(webhookURL string) {
-			err, _ := JobRunWebhookCall(jr, webhookURL)
+			_, err := JobRunWebhookCall(jr, webhookURL)
 			if err != nil {
 				log.Warn().Str("job", j.Name).Str("on_event", "webhook").Err(err).Msg("webhook notify failed")
 			}

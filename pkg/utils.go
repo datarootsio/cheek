@@ -136,3 +136,9 @@ func (b *tsBuffer) String() string {
 	defer b.m.Unlock()
 	return b.b.String()
 }
+
+func (b *tsBuffer) Reset() {
+	b.m.Lock()
+	defer b.m.Unlock()
+	b.b.Reset()
+}

@@ -1,18 +1,20 @@
 package cheek
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestJobRunWebhookCall(t *testing.T) {
+func TestPhoneHome(t *testing.T) {
+	b := new(tsBuffer)
+	ConfigLogger(false, "debug", b)
+
 	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer r.Body.Close()
 		body, err := io.ReadAll(r.Body)
@@ -26,21 +28,25 @@ func TestJobRunWebhookCall(t *testing.T) {
 
 	defer testServer.Close()
 
-	jr := JobRun{
-		Status:      0,
-		Name:        "test",
-		TriggeredBy: "cron",
-	}
+	viper.Set("phoneHomeURL", testServer.URL)
+	viper.Set("noTelemetry", false)
 
-	resp_body, err := JobRunWebhookCall(&jr, testServer.URL)
+	et := ET{}
+	_, err := et.PhoneHome()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	jr2 := JobRun{}
-	if err := json.NewDecoder(bytes.NewBuffer(resp_body)).Decode(&jr2); err != nil {
+	assert.Contains(t, b.String(), "phoned home")
+
+	// respect to not phone home
+	viper.Set("noTelemetry", true)
+	b.Reset()
+
+	_, err = et.PhoneHome()
+	if err != nil {
 		t.Fatal(err)
 	}
 
-	assert.Equal(t, jr, jr2)
+	assert.NotContains(t, b.String(), "phoned home")
 }

@@ -10,8 +10,9 @@ import (
 )
 
 var (
-	httpPort string
-	homeDir  string
+	httpPort  string
+	homeDir   string
+	telemetry bool
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -32,6 +33,7 @@ func Execute() {
 func init() {
 	rootCmd.PersistentFlags().StringVar(&httpPort, "port", "8081", "port on which to open the http server for core to ui communication")
 	rootCmd.PersistentFlags().StringVar(&homeDir, "homedir", cheek.CheekPath(), fmt.Sprintf("directory in which to save cheek's core & job logs, defaults to '%s'", cheek.CheekPath()))
+	rootCmd.PersistentFlags().BoolVarP(&telemetry, "no-telemetry", "n", false, "pass this flag if you do not want to report statistics, check the readme for more info")
 	cobra.OnInitialize(initConfig)
 }
 
@@ -44,6 +46,11 @@ func initConfig() {
 	// because tests will often be called without flags
 	// being set
 	viper.SetDefault("port", "8081")
+	if err := viper.BindPFlag("port", rootCmd.PersistentFlags().Lookup("port")); err != nil {
+		fmt.Printf("error binding pflag")
+	}
+
+	viper.SetDefault("telemetry", true)
 	if err := viper.BindPFlag("port", rootCmd.PersistentFlags().Lookup("port")); err != nil {
 		fmt.Printf("error binding pflag")
 	}
@@ -64,4 +71,10 @@ func initConfig() {
 	if err := viper.BindPFlag("homedir", rootCmd.PersistentFlags().Lookup("homedir")); err != nil {
 		fmt.Printf("error binding pflag")
 	}
+	viper.SetDefault("noTelemetry", false)
+	if err := viper.BindPFlag("no-telemetry", rootCmd.PersistentFlags().Lookup("no-telemetry")); err != nil {
+		fmt.Printf("error binding pflag")
+	}
+
+	viper.SetDefault("phoneHomeURL", "https://api.dataroots.io/v1/cheek/ring")
 }

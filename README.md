@@ -2,23 +2,11 @@
 
 # cheek
 
-[![codecov](https://codecov.io/gh/datarootsio/cheek/branch/main/graph/badge.svg?token=011KCCGPE6)](https://codecov.io/gh/datarootsio/cheek) ![example workflow](https://github.com/datarootsio/cheek/actions/workflows/ci.yml/badge.svg) [![Go Report Card](https://goreportcard.com/badge/github.com/datarootsio/cheek)](https://goreportcard.com/report/github.com/datarootsio/cheek) [![Go Reference](https://pkg.go.dev/badge/github.com/datarootsio/cheek.svg)](https://pkg.go.dev/github.com/datarootsio/cheek) [![dataroots](https://dataroots.io/maintained.svg)](https://dataroots.io/)
+[![dataroots](https://dataroots.io/maintained.svg)](https://dataroots.io/) [![codecov](https://codecov.io/gh/datarootsio/cheek/branch/main/graph/badge.svg?token=011KCCGPE6)](https://codecov.io/gh/datarootsio/cheek) ![example workflow](https://github.com/datarootsio/cheek/actions/workflows/ci.yml/badge.svg) [![Go Report Card](https://goreportcard.com/badge/github.com/datarootsio/cheek)](https://goreportcard.com/report/github.com/datarootsio/cheek) [![Go Reference](https://pkg.go.dev/badge/github.com/datarootsio/cheek.svg)](https://pkg.go.dev/github.com/datarootsio/cheek) ![triggers](https://img.shields.io/badge/dynamic/json?color=blueviolet&label=jobs-triggered&query=%24.triggered&url=https%3A%2F%2Fapi.dataroots.io%2Fv1%2Fcheek%2Ftriggered&style=flat-square)
 
 `cheek`, of course, stands for `C`rontab-like sc`H`eduler for `E`ffective `E`xecution of tas`K`s. `cheek` is a KISS approach to crontab-like job scheduling. It was born out of a (/my?) frustration about the big gap between a lightweight crontab and full-fledged solutions like Airflow.
 
 `cheek` aims to be a KISS approach to job scheduling. Focus is on the KISS approach not to necessarily do this in the most robust way possible.
-
-## TOC
-
-- [cheek](#cheek)
-  - [TOC](#toc)
-  - [Getting started](#getting-started)
-  - [Scheduler](#scheduler)
-  - [UI](#ui)
-  - [Configuration](#configuration)
-  - [Docker](#docker)
-  - [Acknowledgements](#acknowledgements)
-
 
 ## Getting started
 
@@ -94,12 +82,15 @@ The UI requires the scheduler to be up and running.
 
 All configuration options are available by checking out `cheek --help` or the help of its subcommands (e.g. `cheek run --help`).
 
-Configuration can be passed as flags to the `cheek` CLI directly. All configuration flags are also possible to set via environment variables. The following environment variables are available, they will override the default and/or set value of their similarly named CLI flags (without the prefix): `CHEEK_PORT`, `CHEEK_SUPPRESSLOGS`, `CHEEK_LOGLEVEL`, `CHEEK_PRETTY`, `CHEEK_HOMEDIR`.
+Configuration can be passed as flags to the `cheek` CLI directly. All configuration flags are also possible to set via environment variables. The following environment variables are available, they will override the default and/or set value of their similarly named CLI flags (without the prefix): `CHEEK_PORT`, `CHEEK_SUPPRESSLOGS`, `CHEEK_LOGLEVEL`, `CHEEK_PRETTY`, `CHEEK_HOMEDIR`, `CHEEK_NOTELEMETRY`.
 
 ## Docker
 
 Check out the `Dockerfile` for an example on how to set up `cheek` within the context of a Docker image.
 
+## Usage stats
+
+By default `cheek` reports minimal usage stats. Each time a job is triggered a simple request that (only) contains your `cheek` version is send to our servers. Check out the exact implementation [here](https://github.com/datarootsio/cheek/blob/main/pkg/telemetry.go). Note that you can always opt-out of this by passing the `-no-telemetry` or `-n` flag.
 ## Acknowledgements
 
 Thanks goes to:
