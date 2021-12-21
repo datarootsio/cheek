@@ -72,7 +72,7 @@ func TestJobRunInvalidSchedule(t *testing.T) {
 	assert.Error(t, s.Validate())
 	// fix cron but add invalid ref
 	s.Jobs["Bertha"].Cron = "* * * * *"
-	s.Jobs["Bertha"].Triggers = []string{"IDontExist"}
+	s.Jobs["Bertha"].OnSuccess.TriggerJobs = []string{"IDontExist"}
 
 	assert.Error(t, s.Validate())
 }

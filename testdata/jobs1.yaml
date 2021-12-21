@@ -2,8 +2,9 @@ jobs:
   foo:
     command: date
     cron: "* * * * *"
-    triggers:
-      - bar
+    on_success:
+      trigger_jobs:
+        - bar
   bar:
     command:
       - /bin/bash

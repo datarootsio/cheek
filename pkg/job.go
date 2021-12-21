@@ -14,13 +14,22 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+// OnEvent contains specs on what needs to happen after a job event.
+type OnEvent struct {
+	TriggerJobs   []string `yaml:"trigger_jobs,omitempty" json:"trigger_jobs,omitempty"`
+	NotifyWebhook []string `yaml:"notify_webhook,omitempty" json:"notify_webhook,omitempty"`
+}
+
 // JobSpec holds specifications and metadata of a job.
 type JobSpec struct {
-	Cron           string      `yaml:"cron,omitempty" json:"cron,omitempty"`
-	Command        stringArray `yaml:"command" json:"command"`
-	Triggers       []string    `yaml:"triggers,omitempty" json:"triggers,omitempty"`
-	Name           string      `json:"name"`
-	Retries        int         `yaml:"retries,omitempty" json:"retries,omitempty"`
+	Cron    string      `yaml:"cron,omitempty" json:"cron,omitempty"`
+	Command stringArray `yaml:"command" json:"command"`
+
+	OnSuccess OnEvent `yaml:"on_success,omitempty" json:"on_success,omitempty"`
+	OnError   OnEvent `yaml:"on_error,omitempty" json:"on_error,omitempty"`
+
+	Name           string `json:"name"`
+	Retries        int    `yaml:"retries,omitempty" json:"retries,omitempty"`
 	globalSchedule *Schedule
 	runs           []JobRun
 }
@@ -142,7 +151,7 @@ func (j *JobSpec) execCommand(trigger string, suppressLogs bool) JobRun {
 
 	jr.Status = 0
 	// trigger jobs that should run on successful completion
-	for _, tn := range j.Triggers {
+	for _, tn := range j.OnSuccess.TriggerJobs {
 		tj := j.globalSchedule.Jobs[tn]
 		go func() {
 			tj.execCommandWithRetry(fmt.Sprintf("job[%s]", j.Name), suppressLogs)
