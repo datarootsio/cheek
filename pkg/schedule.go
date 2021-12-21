@@ -100,7 +100,8 @@ func (s *Schedule) Validate() error {
 			}
 		}
 		// check if trigger references exist
-		for _, t := range v.Triggers {
+		triggerJobs := append(v.OnSuccess.TriggerJob, v.OnError.TriggerJob...)
+		for _, t := range triggerJobs {
 			if _, ok := s.Jobs[t]; !ok {
 				return fmt.Errorf("cannot find spec of job '%s' that is referenced in job '%s'", t, k)
 			}
