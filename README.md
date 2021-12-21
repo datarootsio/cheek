@@ -10,12 +10,14 @@
 
 ## TOC
 
-- [Getting started](#getting-started)
-- [Scheduler](#scheduler)
-- [UI](#ui)
-- [Configuration](#configuration)
-- [Docker](#docker)
-- [Acknowledgements](#acknowledgements)
+- [cheek](#cheek)
+  - [TOC](#toc)
+  - [Getting started](#getting-started)
+  - [Scheduler](#scheduler)
+  - [UI](#ui)
+  - [Configuration](#configuration)
+  - [Docker](#docker)
+  - [Acknowledgements](#acknowledgements)
 
 
 ## Getting started
@@ -40,25 +42,24 @@ Create a schedule specification using the below YAML structure:
 
 ```yaml
 jobs:
-  my_job:
+  foo:
     command: date
     cron: "* * * * *"
-    triggers:
-      - another_job
-  another_job:
+    on_success:
+      trigger_job:
+        - bar
+  bar:
     command:
       - /bin/bash
       - -c
-      - "sleep 2; echo bar"
-  foo_job:
-    command:
-      - ls
-      - .
-    cron: "* * * * *"
-  coffee_alert:
+      - "echo bar_foo"
+  coffee:
     command: this fails
     cron: "* * * * *"
     retries: 3
+    on_error:
+      notify_webhook:
+        - https://webhook.site/4b732eb4-ba10-4a84-8f6b-30167b2f2762
 ```
 
 If your `command` requires arguments, please make sure to pass them as an array like in `foo_job`.
