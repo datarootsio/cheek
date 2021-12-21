@@ -11,7 +11,7 @@ require github.com/pmezard/go-difflib v1.0.0 // indirect
 
 require (
 	github.com/adhocore/gronx v0.2.6
-	github.com/charmbracelet/bubbletea v0.19.1
+	github.com/charmbracelet/bubbletea v0.19.2
 	github.com/charmbracelet/lipgloss v0.4.0
 	github.com/containerd/console v1.0.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
