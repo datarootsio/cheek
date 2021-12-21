@@ -15,6 +15,7 @@ import (
 
 	"github.com/adhocore/gronx"
 	"github.com/rs/zerolog/log"
+	"github.com/spf13/viper"
 )
 
 // Schedule defines specs of a job schedule.
@@ -126,7 +127,13 @@ func loadSchedule(fn string) (Schedule, error) {
 	return s, nil
 }
 
-func server(s *Schedule, httpPort string) {
+func server(s *Schedule) {
+	if !viper.IsSet("port") {
+		log.Fatal().Msg("port value not found and no default set")
+		os.Exit(1)
+	}
+	httpPort := viper.GetString("port")
+
 	var httpAddr string = fmt.Sprintf(":%s", httpPort)
 	type Healthz struct {
 		Jobs   int    `json:"jobs"`
@@ -153,7 +160,7 @@ func server(s *Schedule, httpPort string) {
 }
 
 // RunSchedule is the main entry entrypoint of cheek.
-func RunSchedule(fn string, httpPort string, supressLogs bool, extraLoggers ...io.Writer) {
+func RunSchedule(fn string, suppressLogs bool, extraLoggers ...io.Writer) {
 	js, err := loadSchedule(fn)
 	if err != nil {
 		log.Error().Err(err).Msg("")
@@ -165,6 +172,6 @@ func RunSchedule(fn string, httpPort string, supressLogs bool, extraLoggers ...i
 		log.Info().Msgf("Initializing (%v/%v) job: %s", i, numberJobs, job.Name)
 		i++
 	}
-	go server(&js, httpPort)
-	js.Run(supressLogs)
+	go server(&js)
+	js.Run(suppressLogs)
 }

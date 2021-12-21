@@ -8,6 +8,15 @@
 
 `cheek` aims to be a KISS approach to job scheduling. Focus is on the KISS approach not to necessarily do this in the most robust way possible.
 
+## TOC
+
+- [Getting started](#getting-started)
+- [Scheduler](#scheduler)
+- [UI](#ui)
+- [Configuration](#configuration)
+- [Docker](#docker)
+- [Acknowledgements](#acknowledgements)
+
 
 ## Getting started
 
@@ -58,7 +67,7 @@ If your `command` requires arguments, please make sure to pass them as an array 
 
 The core of `cheek` consists of a scheduler that uses a schedule specified in a `yaml` file to triggers jobs when they are due.
 
-You can launch the scheduler via: 
+You can launch the scheduler via:
 
 ```sh
 cheek run ./path/to/my-schedule.yaml
@@ -80,6 +89,11 @@ The UI requires the scheduler to be up and running.
 
 ![](https://storage.googleapis.com/better-unified/ui-screenshot2.png)
 
+## Configuration
+
+All configuration options are available by checking out `cheek --help` or the help of its subcommands (e.g. `cheek run --help`).
+
+Configuration can be passed as flags to the `cheek` CLI directly. All configuration flags are also possible to set via environment variables. The following environment variables are available, they will override the default and/or set value of their similarly named CLI flags (without the prefix): `CHEEK_PORT`, `CHEEK_SUPPRESSLOGS`, `CHEEK_LOGLEVEL`, `CHEEK_PRETTY`, `CHEEK_HOMEDIR`.
 
 ## Docker
 
@@ -88,6 +102,7 @@ Check out the `Dockerfile` for an example on how to set up `cheek` within the co
 ## Acknowledgements
 
 Thanks goes to:
+
 - [gronx](https://github.com/adhocore/gronx): for allowing me not to worry about CRON strings.
 - [Charm](https://www.charm.sh/): for their bubble-icious TUI libraries.
 - [Sam](https://github.com/sdebruyn) & [Frederik](https://github.com/frederikdesmedt): for valuable code reviews / feedback.

@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -12,7 +13,7 @@ func TestScheduleRun(t *testing.T) {
 	// rough test
 	// just tries to see if we can get to a job trigger
 	// and to see that exit signals are received correctly
-
+	viper.Set("port", "9999")
 	proc, err := os.FindProcess(os.Getpid())
 	if err != nil {
 		t.Fatal(err)
@@ -20,7 +21,7 @@ func TestScheduleRun(t *testing.T) {
 	b := new(tsBuffer)
 	ConfigLogger(false, "debug", b)
 	go func() {
-		RunSchedule("../testdata/jobs1.yaml", "9999", true)
+		RunSchedule("../testdata/jobs1.yaml", true)
 	}()
 
 	time.Sleep(2 * time.Second)
