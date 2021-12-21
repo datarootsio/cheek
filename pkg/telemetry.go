@@ -36,14 +36,12 @@ func (et ET) PhoneHome() ([]byte, error) {
 
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Debug().Str("telemetry", "ET").Err(err).Msg("cannot phone home")
 		return []byte{}, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		msg := fmt.Sprintf("cannot phone home, status %v", resp.StatusCode)
-		log.Debug().Str("telemetry", "ET").Msg(msg)
 		return []byte{}, errors.New(msg)
 	}
 

@@ -97,7 +97,14 @@ func (j *JobSpec) execCommand(trigger string, suppressLogs bool) JobRun {
 	log.Info().Str("job", j.Name).Str("trigger", trigger).Msgf("Job triggered")
 	// init status to non-zero until execution says otherwise
 	jr := JobRun{Name: j.Name, TriggeredAt: time.Now(), TriggeredBy: trigger, Status: -1}
-	defer ET{}.PhoneHome()
+
+	go func() {
+		_, err := ET{}.PhoneHome()
+		if err != nil {
+			log.Debug().Str("telemetry", "ET").Err(err).Msg("cannot phone home")
+		}
+	}()
+
 	defer jr.logToDisk()
 	defer j.OnEvent(&jr, suppressLogs)
 
