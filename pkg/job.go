@@ -150,15 +150,33 @@ func (j *JobSpec) execCommand(trigger string, suppressLogs bool) JobRun {
 	}
 
 	jr.Status = 0
-	// trigger jobs that should run on successful completion
-	for _, tn := range j.OnSuccess.TriggerJobs {
-		tj := j.globalSchedule.Jobs[tn]
-		go func() {
-			tj.execCommandWithRetry(fmt.Sprintf("job[%s]", j.Name), suppressLogs)
-		}()
-	}
-
+	j.OnEvent(&jr, suppressLogs)
 	jr.logToDisk()
 
 	return jr
+}
+
+func (j *JobSpec) OnEvent(jr *JobRun, suppressLogs bool) {
+
+	switch jr.Status {
+	case 0:
+		// on success job trigger
+		for _, tn := range j.OnSuccess.TriggerJobs {
+			tj := j.globalSchedule.Jobs[tn]
+			go func() {
+				tj.execCommandWithRetry(fmt.Sprintf("job[%s]", j.Name), suppressLogs)
+			}()
+		}
+
+	default:
+		// on error job trigger
+		for _, tn := range j.OnError.TriggerJobs {
+			tj := j.globalSchedule.Jobs[tn]
+			go func() {
+				tj.execCommandWithRetry(fmt.Sprintf("job[%s]", j.Name), suppressLogs)
+			}()
+		}
+
+	}
+
 }
