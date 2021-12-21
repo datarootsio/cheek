@@ -11,6 +11,7 @@ import (
 	"path"
 	"time"
 
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
@@ -98,12 +99,12 @@ func (j *JobSpec) execCommand(trigger string, suppressLogs bool) JobRun {
 	// init status to non-zero until execution says otherwise
 	jr := JobRun{Name: j.Name, TriggeredAt: time.Now(), TriggeredBy: trigger, Status: -1}
 
-	go func() {
+	go func(log zerolog.Logger) {
 		_, err := ET{}.PhoneHome()
 		if err != nil {
 			log.Debug().Str("telemetry", "ET").Err(err).Msg("cannot phone home")
 		}
-	}()
+	}(log.Logger)
 
 	defer jr.logToDisk()
 	defer j.OnEvent(&jr, suppressLogs)
