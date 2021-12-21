@@ -144,9 +144,9 @@ func (j *JobSpec) execCommand(trigger string, suppressLogs bool) JobRun {
 	// trigger jobs that should run on successful completion
 	for _, tn := range j.Triggers {
 		tj := j.globalSchedule.Jobs[tn]
-		go func(jobName string) {
-			tj.execCommandWithRetry(fmt.Sprintf("job[%s]", jobName), suppressLogs)
-		}(tn)
+		go func() {
+			tj.execCommandWithRetry(fmt.Sprintf("job[%s]", j.Name), suppressLogs)
+		}()
 	}
 
 	jr.logToDisk()

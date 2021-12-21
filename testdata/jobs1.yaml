@@ -8,7 +8,7 @@ jobs:
     command:
       - /bin/bash
       - -c
-      - "sleep 2; echo bar"
+      - "echo bar_foo"
   shuttle:
     command:
       - ls
