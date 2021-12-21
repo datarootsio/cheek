@@ -3,7 +3,7 @@ jobs:
     command: date
     cron: "* * * * *"
     on_success:
-      trigger_jobs:
+      trigger_job:
         - bar
   bar:
     command:

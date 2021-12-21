@@ -16,7 +16,7 @@ import (
 
 // OnEvent contains specs on what needs to happen after a job event.
 type OnEvent struct {
-	TriggerJobs   []string `yaml:"trigger_jobs,omitempty" json:"trigger_jobs,omitempty"`
+	TriggerJob    []string `yaml:"trigger_job,omitempty" json:"trigger_job,omitempty"`
 	NotifyWebhook []string `yaml:"notify_webhook,omitempty" json:"notify_webhook,omitempty"`
 }
 
@@ -97,6 +97,8 @@ func (j *JobSpec) execCommand(trigger string, suppressLogs bool) JobRun {
 	log.Info().Str("job", j.Name).Str("trigger", trigger).Msgf("Job triggered")
 	// init status to non-zero until execution says otherwise
 	jr := JobRun{Name: j.Name, TriggeredAt: time.Now(), TriggeredBy: trigger, Status: -1}
+	defer jr.logToDisk()
+	defer j.OnEvent(&jr, suppressLogs)
 
 	var cmd *exec.Cmd
 	switch len(j.Command) {
@@ -107,7 +109,6 @@ func (j *JobSpec) execCommand(trigger string, suppressLogs bool) JobRun {
 		if !suppressLogs {
 			fmt.Println(err.Error())
 		}
-		jr.logToDisk()
 		return jr
 	case 1:
 		cmd = exec.Command(j.Command[0])
@@ -125,7 +126,6 @@ func (j *JobSpec) execCommand(trigger string, suppressLogs bool) JobRun {
 			fmt.Println(err.Error())
 		}
 		log.Warn().Str("job", j.Name).Err(err).Msgf("Job unable to start")
-		jr.logToDisk()
 		return jr
 	}
 
@@ -150,33 +150,32 @@ func (j *JobSpec) execCommand(trigger string, suppressLogs bool) JobRun {
 	}
 
 	jr.Status = 0
-	j.OnEvent(&jr, suppressLogs)
-	jr.logToDisk()
 
 	return jr
 }
 
 func (j *JobSpec) OnEvent(jr *JobRun, suppressLogs bool) {
+	// trigger jobs
+	jobsToTrigger := append(j.OnError.TriggerJob, j.OnSuccess.TriggerJob...)
 
-	switch jr.Status {
-	case 0:
-		// on success job trigger
-		for _, tn := range j.OnSuccess.TriggerJobs {
-			tj := j.globalSchedule.Jobs[tn]
-			go func() {
-				tj.execCommandWithRetry(fmt.Sprintf("job[%s]", j.Name), suppressLogs)
-			}()
-		}
-
-	default:
-		// on error job trigger
-		for _, tn := range j.OnError.TriggerJobs {
-			tj := j.globalSchedule.Jobs[tn]
-			go func() {
-				tj.execCommandWithRetry(fmt.Sprintf("job[%s]", j.Name), suppressLogs)
-			}()
-		}
-
+	for _, tn := range jobsToTrigger {
+		tj := j.globalSchedule.Jobs[tn]
+		log.Debug().Str("job", j.Name).Str("on_event", "job_trigger").Msg("triggered by parent job")
+		go func() {
+			tj.execCommandWithRetry(fmt.Sprintf("job[%s]", j.Name), suppressLogs)
+		}()
 	}
 
+	webhooksToCall := append(j.OnError.NotifyWebhook, j.OnSuccess.NotifyWebhook...)
+
+	// trigger webhooks
+	for _, wu := range webhooksToCall {
+		log.Debug().Str("job", j.Name).Str("on_event", "webhook_call").Msg("triggered by parent job")
+		go func(webhookURL string) {
+			err, _ := JobRunWebhookCall(jr, webhookURL)
+			if err != nil {
+				log.Warn().Str("job", j.Name).Str("on_event", "webhook").Err(err).Msg("webhook notify failed")
+			}
+		}(wu)
+	}
 }
