@@ -1,6 +1,7 @@
 package cheek
 
 import (
+	"os"
 	"strings"
 	"testing"
 
@@ -54,6 +55,11 @@ func TestHardWrap(t *testing.T) {
 func TestCheekPath(t *testing.T) {
 	assert.True(t, strings.Contains(CheekPath(), ".cheek"))
 
-	viper.Set("homedir", "moo_i_am_sheep")
+	const dirName = "moo_i_am_sheep"
+
+	viper.Set("homedir", dirName)
 	assert.True(t, strings.Contains(CheekPath(), "sheep"))
+
+	// cleanup
+	os.RemoveAll(dirName)
 }

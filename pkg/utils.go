@@ -10,9 +10,31 @@ import (
 	"path"
 	"sync"
 
-	"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
 )
+
+type Config struct {
+	Pretty       bool   `yaml:"pretty"`
+	SuppressLogs bool   `yaml:"suppressLogs"`
+	LogLevel     string `yaml:"logLevel"`
+	HomeDir      string `yaml:"homedir"`
+	Port         string `yaml:"port"`
+	Telemetry    bool   `yaml:"telemetry"`
+	PhoneHomeUrl string `yaml:"phoneHomeUrl"`
+}
+
+func NewConfig() Config {
+	return Config{
+		Pretty:       true,
+		SuppressLogs: false,
+		LogLevel:     "info",
+		HomeDir:      CheekPath(),
+		Port:         "8081",
+		Telemetry:    true,
+		PhoneHomeUrl: "https://api.dataroots.io/v1/cheek/ring",
+	}
+}
 
 func CheekPath() string {
 	var p string
@@ -30,7 +52,7 @@ func CheekPath() string {
 	return p
 }
 
-func readLastJobRuns(filepath string, nRuns int) ([]JobRun, error) {
+func readLastJobRuns(log zerolog.Logger, filepath string, nRuns int) ([]JobRun, error) {
 	lines, err := readLastLines(filepath, nRuns)
 	if err != nil {
 		return []JobRun{}, nil
@@ -135,4 +157,44 @@ func (b *tsBuffer) String() string {
 	b.m.Lock()
 	defer b.m.Unlock()
 	return b.b.String()
+}
+
+func (b *tsBuffer) Reset() {
+	b.m.Lock()
+	defer b.m.Unlock()
+	b.b.Reset()
+}
+
+// Configures the package's global logger, also allows to pass in custom writers for
+// testing purposes.
+func NewLogger(prettyLog bool, logLevel string, extraWriters ...io.Writer) zerolog.Logger {
+	var multi zerolog.LevelWriter
+
+	const logFile string = "core.cheek.jsonl"
+	logFn := path.Join(CheekPath(), logFile)
+
+	f, err := os.OpenFile(logFn,
+		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+	if err != nil {
+		fmt.Printf("Can't open log file '%s' for writing.", logFile)
+		os.Exit(1)
+	}
+
+	var loggers []io.Writer
+	loggers = append(loggers, f)
+	loggers = append(loggers, extraWriters...)
+
+	if prettyLog {
+		loggers = append(loggers, zerolog.ConsoleWriter{Out: os.Stdout})
+	} else {
+		loggers = append(loggers, os.Stdout)
+	}
+
+	multi = zerolog.MultiLevelWriter(loggers...)
+	level, err := zerolog.ParseLevel(logLevel)
+	if err != nil {
+		fmt.Printf("Exiting, cannot initialize logger with level '%s'\n", logLevel)
+		os.Exit(1)
+	}
+	return zerolog.New(multi).With().Timestamp().Logger().Level(level)
 }

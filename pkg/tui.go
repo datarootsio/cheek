@@ -13,6 +13,7 @@ import (
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
 )
 
@@ -245,7 +246,7 @@ func (s *Schedule) getSchedule(scheduleFile string) error {
 		return json.NewDecoder(r.Body).Decode(s)
 	}
 	if scheduleFile != "" {
-		schedule, err := loadSchedule(scheduleFile)
+		schedule, err := loadSchedule(zerolog.Logger{}, Config{}, scheduleFile)
 		if err != nil {
 			return fmt.Errorf("%w; Error reading from YAML at location '%v': %v", server_err, scheduleFile, err.Error())
 		}

@@ -11,7 +11,7 @@ import (
 	"path"
 	"time"
 
-	"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog"
 )
 
 // OnEvent contains specs on what needs to happen after a job event.
@@ -32,6 +32,9 @@ type JobSpec struct {
 	Retries        int    `yaml:"retries,omitempty" json:"retries,omitempty"`
 	globalSchedule *Schedule
 	runs           []JobRun
+
+	log zerolog.Logger
+	cfg Config
 }
 
 // JobRun holds information about a job execution.
@@ -42,14 +45,15 @@ type JobRun struct {
 	TriggeredAt time.Time `json:"triggered_at"`
 	TriggeredBy string    `json:"triggered_by"`
 	Triggered   []string  `json:"triggered,omitempty"`
+	jobRef      *JobSpec
 }
 
 func (j *JobSpec) loadRuns() {
 	const nRuns int = 30
 	logFn := path.Join(CheekPath(), fmt.Sprintf("%s.job.jsonl", j.Name))
-	jrs, err := readLastJobRuns(logFn, nRuns)
+	jrs, err := readLastJobRuns(j.log, logFn, nRuns)
 	if err != nil {
-		log.Warn().Str("job", j.Name).Err(err).Msgf("could not load job logs from '%s'", logFn)
+		j.log.Warn().Str("job", j.Name).Err(err).Msgf("could not load job logs from '%s'", logFn)
 	}
 	j.runs = jrs
 }
@@ -59,17 +63,17 @@ func (j *JobRun) logToDisk() {
 	f, err := os.OpenFile(logFn,
 		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 	if err != nil {
-		log.Warn().Str("job", j.Name).Err(err).Msgf("Can't open job log '%v' for writing", logFn)
+		j.jobRef.log.Warn().Str("job", j.Name).Err(err).Msgf("Can't open job log '%v' for writing", logFn)
 		return
 	}
 	defer f.Close()
 
 	if err := json.NewEncoder(f).Encode(j); err != nil {
-		log.Warn().Str("job", j.Name).Err(err).Msg("Couldn't save job log to disk.")
+		j.jobRef.log.Warn().Str("job", j.Name).Err(err).Msg("Couldn't save job log to disk.")
 	}
 }
 
-func (j *JobSpec) execCommandWithRetry(trigger string, suppressLogs bool) {
+func (j *JobSpec) execCommandWithRetry(trigger string) {
 	tries := 0
 	var jr JobRun
 	const timeOut = 5 * time.Second
@@ -78,25 +82,36 @@ func (j *JobSpec) execCommandWithRetry(trigger string, suppressLogs bool) {
 
 		switch {
 		case tries == 0:
-			jr = j.execCommand(trigger, suppressLogs)
+			jr = j.execCommand(trigger)
 		default:
-			jr = j.execCommand(fmt.Sprintf("%s[retry=%v]", trigger, tries), suppressLogs)
+			jr = j.execCommand(fmt.Sprintf("%s[retry=%v]", trigger, tries))
 		}
 
 		if jr.Status == 0 {
 			break
 		}
-		log.Debug().Str("job", j.Name).Msgf("Job exited unsuccessfully, launching retry after %v timeout.", timeOut)
+		j.log.Debug().Str("job", j.Name).Msgf("Job exited unsuccessfully, launching retry after %v timeout.", timeOut)
 		tries++
 		time.Sleep(timeOut)
 
 	}
 }
 
-func (j *JobSpec) execCommand(trigger string, suppressLogs bool) JobRun {
-	log.Info().Str("job", j.Name).Str("trigger", trigger).Msgf("Job triggered")
+func (j *JobSpec) execCommand(trigger string) JobRun {
+	j.log.Info().Str("job", j.Name).Str("trigger", trigger).Msgf("Job triggered")
 	// init status to non-zero until execution says otherwise
-	jr := JobRun{Name: j.Name, TriggeredAt: time.Now(), TriggeredBy: trigger, Status: -1}
+	jr := JobRun{Name: j.Name, TriggeredAt: time.Now(), TriggeredBy: trigger, Status: -1, jobRef: j}
+	suppressLogs := j.cfg.SuppressLogs
+
+	if j.cfg.Telemetry {
+		go func() {
+			_, err := ET{}.PhoneHome(j.cfg.PhoneHomeUrl)
+			if err != nil {
+				j.log.Debug().Str("telemetry", "ET").Err(err).Msg("cannot phone home")
+			}
+		}()
+	}
+
 	defer jr.logToDisk()
 	defer j.OnEvent(&jr, suppressLogs)
 
@@ -105,7 +120,7 @@ func (j *JobSpec) execCommand(trigger string, suppressLogs bool) JobRun {
 	case 0:
 		err := errors.New("no command specified")
 		jr.Log = fmt.Sprintf("Job unable to start: %v", err.Error())
-		log.Warn().Str("job", j.Name).Err(err).Msgf("Job unable to start")
+		j.log.Warn().Str("job", j.Name).Err(err).Msgf("Job unable to start")
 		if !suppressLogs {
 			fmt.Println(err.Error())
 		}
@@ -125,7 +140,7 @@ func (j *JobSpec) execCommand(trigger string, suppressLogs bool) JobRun {
 		if !suppressLogs {
 			fmt.Println(err.Error())
 		}
-		log.Warn().Str("job", j.Name).Err(err).Msgf("Job unable to start")
+		j.log.Warn().Str("job", j.Name).Err(err).Msgf("Job unable to start")
 		return jr
 	}
 
@@ -144,7 +159,7 @@ func (j *JobSpec) execCommand(trigger string, suppressLogs bool) JobRun {
 	if err := cmd.Wait(); err != nil {
 		if exitError, ok := err.(*exec.ExitError); ok {
 			jr.Status = exitError.ExitCode()
-			log.Warn().Str("job", j.Name).Msgf("Exit code %v", exitError.ExitCode())
+			j.log.Warn().Str("job", j.Name).Msgf("Exit code %v", exitError.ExitCode())
 		}
 		return jr
 	}
@@ -160,9 +175,9 @@ func (j *JobSpec) OnEvent(jr *JobRun, suppressLogs bool) {
 
 	for _, tn := range jobsToTrigger {
 		tj := j.globalSchedule.Jobs[tn]
-		log.Debug().Str("job", j.Name).Str("on_event", "job_trigger").Msg("triggered by parent job")
+		j.log.Debug().Str("job", j.Name).Str("on_event", "job_trigger").Msg("triggered by parent job")
 		go func() {
-			tj.execCommandWithRetry(fmt.Sprintf("job[%s]", j.Name), suppressLogs)
+			tj.execCommandWithRetry(fmt.Sprintf("job[%s]", j.Name))
 		}()
 	}
 
@@ -170,12 +185,13 @@ func (j *JobSpec) OnEvent(jr *JobRun, suppressLogs bool) {
 
 	// trigger webhooks
 	for _, wu := range webhooksToCall {
-		log.Debug().Str("job", j.Name).Str("on_event", "webhook_call").Msg("triggered by parent job")
+		j.log.Debug().Str("job", j.Name).Str("on_event", "webhook_call").Msg("triggered by parent job")
 		go func(webhookURL string) {
-			err, _ := JobRunWebhookCall(jr, webhookURL)
+			resp_body, err := JobRunWebhookCall(jr, webhookURL)
 			if err != nil {
-				log.Warn().Str("job", j.Name).Str("on_event", "webhook").Err(err).Msg("webhook notify failed")
+				j.log.Warn().Str("job", j.Name).Str("on_event", "webhook").Err(err).Msg("webhook notify failed")
 			}
+			j.log.Debug().Str("job", jr.Name).Str("webhook_call", "response").Str("webhook_url", webhookURL).Msg(string(resp_body))
 		}(wu)
 	}
 }
