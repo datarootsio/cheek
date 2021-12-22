@@ -34,6 +34,7 @@ type JobSpec struct {
 	runs           []JobRun
 
 	log zerolog.Logger
+	cfg Config
 }
 
 // JobRun holds information about a job execution.
@@ -72,7 +73,7 @@ func (j *JobRun) logToDisk() {
 	}
 }
 
-func (j *JobSpec) execCommandWithRetry(trigger string, suppressLogs bool) {
+func (j *JobSpec) execCommandWithRetry(trigger string) {
 	tries := 0
 	var jr JobRun
 	const timeOut = 5 * time.Second
@@ -81,9 +82,9 @@ func (j *JobSpec) execCommandWithRetry(trigger string, suppressLogs bool) {
 
 		switch {
 		case tries == 0:
-			jr = j.execCommand(trigger, suppressLogs)
+			jr = j.execCommand(trigger)
 		default:
-			jr = j.execCommand(fmt.Sprintf("%s[retry=%v]", trigger, tries), suppressLogs)
+			jr = j.execCommand(fmt.Sprintf("%s[retry=%v]", trigger, tries))
 		}
 
 		if jr.Status == 0 {
@@ -96,17 +97,20 @@ func (j *JobSpec) execCommandWithRetry(trigger string, suppressLogs bool) {
 	}
 }
 
-func (j *JobSpec) execCommand(trigger string, suppressLogs bool) JobRun {
+func (j *JobSpec) execCommand(trigger string) JobRun {
 	j.log.Info().Str("job", j.Name).Str("trigger", trigger).Msgf("Job triggered")
 	// init status to non-zero until execution says otherwise
 	jr := JobRun{Name: j.Name, TriggeredAt: time.Now(), TriggeredBy: trigger, Status: -1, jobRef: j}
+	suppressLogs := j.cfg.SuppressLogs
 
-	go func() {
-		_, err := ET{}.PhoneHome()
-		if err != nil {
-			j.log.Debug().Str("telemetry", "ET").Err(err).Msg("cannot phone home")
-		}
-	}()
+	if j.cfg.Telemetry {
+		go func() {
+			_, err := ET{}.PhoneHome(j.cfg.PhoneHomeUrl)
+			if err != nil {
+				j.log.Debug().Str("telemetry", "ET").Err(err).Msg("cannot phone home")
+			}
+		}()
+	}
 
 	defer jr.logToDisk()
 	defer j.OnEvent(&jr, suppressLogs)
@@ -173,7 +177,7 @@ func (j *JobSpec) OnEvent(jr *JobRun, suppressLogs bool) {
 		tj := j.globalSchedule.Jobs[tn]
 		j.log.Debug().Str("job", j.Name).Str("on_event", "job_trigger").Msg("triggered by parent job")
 		go func() {
-			tj.execCommandWithRetry(fmt.Sprintf("job[%s]", j.Name), suppressLogs)
+			tj.execCommandWithRetry(fmt.Sprintf("job[%s]", j.Name))
 		}()
 	}
 

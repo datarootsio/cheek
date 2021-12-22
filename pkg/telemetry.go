@@ -5,30 +5,16 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-
-	"github.com/spf13/viper"
 )
 
 type ET struct{}
 
-func (et ET) PhoneHome() ([]byte, error) {
-	if !viper.IsSet("noTelemetry") {
-		return []byte{}, errors.New("noTelemetry default not set")
-	}
-	if viper.GetBool("noTelemetry") {
-		return []byte{}, nil
-	}
-
-	if !viper.IsSet("phoneHomeURL") {
-		return []byte{}, errors.New("phoneHomeURL not set")
-	}
-
+func (et ET) PhoneHome(phoneHomeUrl string) ([]byte, error) {
 	client := &http.Client{}
-	req, err := http.NewRequest("GET", viper.GetString("phoneHomeURL"), nil)
+	req, err := http.NewRequest("GET", phoneHomeUrl, nil)
 	if err != nil {
 		return []byte{}, err
 	}
-
 	q := req.URL.Query()
 	q.Add("version", Version)
 	req.URL.RawQuery = q.Encode()

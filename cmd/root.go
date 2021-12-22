@@ -47,34 +47,30 @@ func initConfig() {
 	// being set
 	viper.SetDefault("port", "8081")
 	if err := viper.BindPFlag("port", rootCmd.PersistentFlags().Lookup("port")); err != nil {
-		fmt.Printf("error binding pflag")
+		fmt.Printf("error binding pflag %s", err)
 	}
 
-	viper.SetDefault("telemetry", true)
-	if err := viper.BindPFlag("port", rootCmd.PersistentFlags().Lookup("port")); err != nil {
-		fmt.Printf("error binding pflag")
-	}
-
-	viper.SetDefault("suppressLogs", false)
-	if err := viper.BindPFlag("suppressLogs", runCmd.PersistentFlags().Lookup("port")); err != nil {
-		fmt.Printf("error binding pflag")
-	}
-	viper.SetDefault("logLevel", "info")
-	if err := viper.BindPFlag("logLevel", runCmd.PersistentFlags().Lookup("logLevel")); err != nil {
-		fmt.Printf("error binding pflag")
-	}
-	viper.SetDefault("pretty", true)
-	if err := viper.BindPFlag("pretty", runCmd.PersistentFlags().Lookup("pretty")); err != nil {
-		fmt.Printf("error binding pflag")
-	}
-	viper.SetDefault("homedir", cheek.CheekPath())
-	if err := viper.BindPFlag("homedir", rootCmd.PersistentFlags().Lookup("homedir")); err != nil {
-		fmt.Printf("error binding pflag")
-	}
-	viper.SetDefault("noTelemetry", false)
 	if err := viper.BindPFlag("no-telemetry", rootCmd.PersistentFlags().Lookup("no-telemetry")); err != nil {
-		fmt.Printf("error binding pflag")
+		fmt.Printf("error binding pflag %s", err)
 	}
 
-	viper.SetDefault("phoneHomeURL", "https://api.dataroots.io/v1/cheek/ring")
+	if err := viper.BindPFlag("suppressLogs", runCmd.PersistentFlags().Lookup("suppress-logs")); err != nil {
+		fmt.Printf("error binding pflag %s", err)
+	}
+
+	if err := viper.BindPFlag("logLevel", runCmd.PersistentFlags().Lookup("log-level")); err != nil {
+		fmt.Printf("error binding pflag %s", err)
+	}
+
+	if err := viper.BindPFlag("pretty", runCmd.PersistentFlags().Lookup("pretty")); err != nil {
+		fmt.Printf("error binding pflag %s", err)
+	}
+
+	if err := viper.BindPFlag("homedir", rootCmd.PersistentFlags().Lookup("homedir")); err != nil {
+		fmt.Printf("error binding pflag %s", err)
+	}
+
+	if err := viper.BindPFlag("no-telemetry", rootCmd.PersistentFlags().Lookup("no-telemetry")); err != nil {
+		fmt.Printf("error binding pflag %s", err)
+	}
 }

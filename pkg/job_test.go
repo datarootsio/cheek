@@ -11,9 +11,10 @@ func TestLoadLogs(t *testing.T) {
 		Cron:    "* * * * *",
 		Name:    "test",
 		Command: []string{"echo", "bar"},
+		cfg:     NewConfig(),
 	}
 
-	j.execCommand("test", true)
+	j.execCommand("test")
 
 	// log loading goes on job name basis
 	// let's recreate
@@ -30,9 +31,10 @@ func TestJobRun(t *testing.T) {
 		Cron:    "* * * * *",
 		Name:    "test",
 		Command: []string{"echo", "bar"},
+		cfg:     NewConfig(),
 	}
 
-	jr := j.execCommand("test", true)
+	jr := j.execCommand("test")
 	assert.Equal(t, jr.Status, 0)
 }
 
@@ -40,9 +42,10 @@ func TestJobRunNoCommand(t *testing.T) {
 	j := &JobSpec{
 		Cron: "* * * * *",
 		Name: "test",
+		cfg:  NewConfig(),
 	}
 
-	jr := j.execCommand("test", true)
+	jr := j.execCommand("test")
 	assert.NotEqual(t, jr.Status, 0)
 }
 
@@ -53,9 +56,10 @@ func TestJobNonZero(t *testing.T) {
 		Command: []string{
 			"la", "--moo",
 		},
+		cfg: NewConfig(),
 	}
 
-	jr := j.execCommand("test", true)
+	jr := j.execCommand("test")
 	assert.NotEqual(t, jr.Status, 0)
 }
 
@@ -65,6 +69,7 @@ func TestJobRunInvalidSchedule(t *testing.T) {
 		Cron:    "MooIAmACow",
 		Name:    "Bertha",
 		Command: []string{"ls"},
+		cfg:     NewConfig(),
 	}
 	s.Jobs = map[string]*JobSpec{}
 	s.Jobs["Bertha"] = j

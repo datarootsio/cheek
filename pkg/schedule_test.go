@@ -22,7 +22,7 @@ func TestScheduleRun(t *testing.T) {
 	b := new(tsBuffer)
 	logger := NewLogger(false, "debug", b)
 	go func() {
-		RunSchedule(logger, "../testdata/jobs1.yaml", false)
+		RunSchedule(logger, Config{}, "../testdata/jobs1.yaml")
 	}()
 
 	time.Sleep(3 * time.Second)

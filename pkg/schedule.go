@@ -14,17 +14,17 @@ import (
 
 	"github.com/adhocore/gronx"
 	"github.com/rs/zerolog"
-	"github.com/spf13/viper"
 )
 
 // Schedule defines specs of a job schedule.
 type Schedule struct {
 	Jobs map[string]*JobSpec `yaml:"jobs" json:"jobs"`
 	log  zerolog.Logger
+	cfg  Config
 }
 
 // Run a Schedule based on its specs.
-func (s *Schedule) Run(surpressLogs bool) {
+func (s *Schedule) Run() {
 	gronx := gronx.New()
 	ticker := time.NewTicker(time.Second)
 	sigs := make(chan os.Signal, 1)
@@ -41,7 +41,7 @@ func (s *Schedule) Run(surpressLogs bool) {
 
 				if due {
 					go func(j *JobSpec) {
-						j.execCommandWithRetry("cron", surpressLogs)
+						j.execCommandWithRetry("cron")
 					}(j)
 				}
 			}
@@ -103,21 +103,23 @@ func (s *Schedule) Validate() error {
 				return fmt.Errorf("cannot find spec of job '%s' that is referenced in job '%s'", t, k)
 			}
 		}
-		// set so metadata / refs to each job struct
+		// set some metadata & refs for each job
 		// for easier retrievability
 		v.Name = k
 		v.globalSchedule = s
 		v.log = s.log
+		v.cfg = s.cfg
 	}
 	return nil
 }
 
-func loadSchedule(log zerolog.Logger, fn string) (Schedule, error) {
+func loadSchedule(log zerolog.Logger, cfg Config, fn string) (Schedule, error) {
 	s, err := readSpecs(fn)
 	if err != nil {
 		return Schedule{}, err
 	}
 	s.log = log
+	s.cfg = cfg
 
 	// run validations
 	if err := s.Validate(); err != nil {
@@ -128,12 +130,7 @@ func loadSchedule(log zerolog.Logger, fn string) (Schedule, error) {
 }
 
 func server(s *Schedule) {
-	if !viper.IsSet("port") {
-		s.log.Fatal().Msg("port value not found and no default set")
-	}
-	httpPort := viper.GetString("port")
-
-	var httpAddr string = fmt.Sprintf(":%s", httpPort)
+	var httpAddr string = fmt.Sprintf(":%s", s.cfg.Port)
 	type Healthz struct {
 		Jobs   int    `json:"jobs"`
 		Status string `json:"status"`
@@ -159,8 +156,8 @@ func server(s *Schedule) {
 }
 
 // RunSchedule is the main entry entrypoint of cheek.
-func RunSchedule(log zerolog.Logger, fn string, suppressLogs bool) {
-	s, err := loadSchedule(log, fn)
+func RunSchedule(log zerolog.Logger, cfg Config, fn string) {
+	s, err := loadSchedule(log, cfg, fn)
 	if err != nil {
 		s.log.Error().Err(err).Msg("")
 		os.Exit(1)
@@ -172,5 +169,5 @@ func RunSchedule(log zerolog.Logger, fn string, suppressLogs bool) {
 		i++
 	}
 	go server(&s)
-	s.Run(suppressLogs)
+	s.Run()
 }

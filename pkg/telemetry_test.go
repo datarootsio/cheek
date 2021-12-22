@@ -6,9 +6,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-
-	"github.com/spf13/viper"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestPhoneHome(t *testing.T) {
@@ -25,22 +22,10 @@ func TestPhoneHome(t *testing.T) {
 
 	defer testServer.Close()
 
-	viper.Set("phoneHomeURL", testServer.URL)
-	viper.Set("noTelemetry", false)
-
 	et := ET{}
-	_, err := et.PhoneHome()
+	_, err := et.PhoneHome(testServer.URL)
 	if err != nil {
 		// no error means success
 		t.Fatal(err)
 	}
-
-	// respect to not phone home
-	viper.Set("noTelemetry", true)
-	resp_body, err := et.PhoneHome()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	assert.Equal(t, resp_body, []byte{})
 }
