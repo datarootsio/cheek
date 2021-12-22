@@ -60,7 +60,6 @@ func TestCheekPath(t *testing.T) {
 	viper.Set("homedir", dirName)
 	assert.True(t, strings.Contains(CheekPath(), "sheep"))
 
-	//cleanup
+	// cleanup
 	os.RemoveAll(dirName)
-
 }
