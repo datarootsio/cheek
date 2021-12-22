@@ -3,7 +3,6 @@ package cheek
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -14,13 +13,14 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/adhocore/gronx"
-	"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
 )
 
 // Schedule defines specs of a job schedule.
 type Schedule struct {
 	Jobs map[string]*JobSpec `yaml:"jobs" json:"jobs"`
+	log  zerolog.Logger
 }
 
 // Run a Schedule based on its specs.
@@ -47,7 +47,7 @@ func (s *Schedule) Run(surpressLogs bool) {
 			}
 
 		case sig := <-sigs:
-			log.Info().Msgf("%s signal received, exiting...", sig.String())
+			s.log.Info().Msgf("%s signal received, exiting...", sig.String())
 			return
 		}
 	}
@@ -74,15 +74,12 @@ func (a *stringArray) UnmarshalYAML(unmarshal func(interface{}) error) error {
 func readSpecs(fn string) (Schedule, error) {
 	yfile, err := ioutil.ReadFile(fn)
 	if err != nil {
-		log.Error().Err(err)
 		return Schedule{}, err
 	}
 
 	specs := Schedule{}
 
 	if err = yaml.Unmarshal(yfile, &specs); err != nil {
-
-		log.Error().Err(err)
 		return Schedule{}, err
 	}
 
@@ -110,15 +107,17 @@ func (s *Schedule) Validate() error {
 		// for easier retrievability
 		v.Name = k
 		v.globalSchedule = s
+		v.log = s.log
 	}
 	return nil
 }
 
-func loadSchedule(fn string) (Schedule, error) {
+func loadSchedule(log zerolog.Logger, fn string) (Schedule, error) {
 	s, err := readSpecs(fn)
 	if err != nil {
 		return Schedule{}, err
 	}
+	s.log = log
 
 	// run validations
 	if err := s.Validate(); err != nil {
@@ -130,8 +129,7 @@ func loadSchedule(fn string) (Schedule, error) {
 
 func server(s *Schedule) {
 	if !viper.IsSet("port") {
-		log.Fatal().Msg("port value not found and no default set")
-		os.Exit(1)
+		s.log.Fatal().Msg("port value not found and no default set")
 	}
 	httpPort := viper.GetString("port")
 
@@ -156,23 +154,23 @@ func server(s *Schedule) {
 		}
 	})
 
-	log.Info().Msgf("Starting HTTP server on %v", httpAddr)
-	log.Fatal().Err(http.ListenAndServe(httpAddr, nil))
+	s.log.Info().Msgf("Starting HTTP server on %v", httpAddr)
+	s.log.Fatal().Err(http.ListenAndServe(httpAddr, nil))
 }
 
 // RunSchedule is the main entry entrypoint of cheek.
-func RunSchedule(fn string, suppressLogs bool, extraLoggers ...io.Writer) {
-	js, err := loadSchedule(fn)
+func RunSchedule(log zerolog.Logger, fn string, suppressLogs bool) {
+	s, err := loadSchedule(log, fn)
 	if err != nil {
-		log.Error().Err(err).Msg("")
+		s.log.Error().Err(err).Msg("")
 		os.Exit(1)
 	}
-	numberJobs := len(js.Jobs)
+	numberJobs := len(s.Jobs)
 	i := 0
-	for _, job := range js.Jobs {
-		log.Info().Msgf("Initializing (%v/%v) job: %s", i, numberJobs, job.Name)
+	for _, job := range s.Jobs {
+		s.log.Info().Msgf("Initializing (%v/%v) job: %s", i, numberJobs, job.Name)
 		i++
 	}
-	go server(&js)
-	js.Run(suppressLogs)
+	go server(&s)
+	s.Run(suppressLogs)
 }

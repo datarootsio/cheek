@@ -6,7 +6,6 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
 )
 
@@ -49,7 +48,6 @@ func (et ET) PhoneHome() ([]byte, error) {
 	if err != nil {
 		return []byte{}, err
 	}
-	log.Debug().Str("telemetry", "ET").Msg("ET phoned home")
 
 	return resp_body, nil
 }

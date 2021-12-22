@@ -10,7 +10,7 @@ import (
 	"path"
 	"sync"
 
-	"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
 )
 
@@ -30,7 +30,7 @@ func CheekPath() string {
 	return p
 }
 
-func readLastJobRuns(filepath string, nRuns int) ([]JobRun, error) {
+func readLastJobRuns(log zerolog.Logger, filepath string, nRuns int) ([]JobRun, error) {
 	lines, err := readLastLines(filepath, nRuns)
 	if err != nil {
 		return []JobRun{}, nil

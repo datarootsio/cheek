@@ -5,8 +5,6 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
-
-	"github.com/rs/zerolog/log"
 )
 
 func JobRunWebhookCall(jr *JobRun, webhookURL string) ([]byte, error) {
@@ -25,7 +23,6 @@ func JobRunWebhookCall(jr *JobRun, webhookURL string) ([]byte, error) {
 	if err != nil {
 		return []byte{}, err
 	}
-	log.Debug().Str("job", jr.Name).Str("webhook_call", "response").Str("webhook_url", webhookURL).Msg(string(resp_body))
 
 	return resp_body, nil
 }

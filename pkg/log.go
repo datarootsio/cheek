@@ -5,28 +5,13 @@ import (
 	"io"
 	"os"
 	"path"
-	"sync"
 
 	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 )
-
-type logConf struct {
-	mu sync.Mutex
-}
-
-var LogConf logConf
-
-func init() {
-	LogConf = logConf{}
-}
 
 // Configures the package's global logger, also allows to pass in custom writers for
 // testing purposes.
-func (lc *logConf) ConfigLogger(prettyLog bool, logLevel string, extraWriters ...io.Writer) {
-	lc.mu.Lock()
-	defer lc.mu.Unlock()
-
+func NewLogger(prettyLog bool, logLevel string, extraWriters ...io.Writer) zerolog.Logger {
 	var multi zerolog.LevelWriter
 
 	const logFile string = "core.cheek.jsonl"
@@ -55,5 +40,5 @@ func (lc *logConf) ConfigLogger(prettyLog bool, logLevel string, extraWriters ..
 		fmt.Printf("Exiting, cannot initialize logger with level '%s'\n", logLevel)
 		os.Exit(1)
 	}
-	log.Logger = zerolog.New(multi).With().Timestamp().Logger().Level(level)
+	return zerolog.New(multi).With().Timestamp().Logger().Level(level)
 }
