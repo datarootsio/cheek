@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alecthomas/assert"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/spf13/viper"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestScheduleRun(t *testing.T) {
