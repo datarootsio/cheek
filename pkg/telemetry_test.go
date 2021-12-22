@@ -13,7 +13,7 @@ import (
 
 func TestPhoneHome(t *testing.T) {
 	b := new(tsBuffer)
-	ConfigLogger(false, "debug", b)
+	LogConf.ConfigLogger(false, "debug", b)
 
 	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer r.Body.Close()

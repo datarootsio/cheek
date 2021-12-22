@@ -5,14 +5,28 @@ import (
 	"io"
 	"os"
 	"path"
+	"sync"
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
+type logConf struct {
+	mu sync.Mutex
+}
+
+var LogConf logConf
+
+func init() {
+	LogConf = logConf{}
+}
+
 // Configures the package's global logger, also allows to pass in custom writers for
 // testing purposes.
-func ConfigLogger(prettyLog bool, logLevel string, extraWriters ...io.Writer) {
+func (lc *logConf) ConfigLogger(prettyLog bool, logLevel string, extraWriters ...io.Writer) {
+	lc.mu.Lock()
+	defer lc.mu.Unlock()
+
 	var multi zerolog.LevelWriter
 
 	const logFile string = "core.cheek.jsonl"

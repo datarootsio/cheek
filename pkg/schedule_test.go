@@ -19,7 +19,7 @@ func TestScheduleRun(t *testing.T) {
 		t.Fatal(err)
 	}
 	b := new(tsBuffer)
-	ConfigLogger(false, "debug", b)
+	LogConf.ConfigLogger(false, "debug", b)
 	go func() {
 		RunSchedule("../testdata/jobs1.yaml", false)
 	}()
