@@ -2,16 +2,17 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 
+	cheek "github.com/datarootsio/cheek/pkg"
 	"github.com/spf13/cobra"
 
 	"github.com/spf13/viper"
 )
 
 var (
-	cfgFile  string
-	httpPort string
+	httpPort  string
+	homeDir   string
+	telemetry bool
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -30,30 +31,46 @@ func Execute() {
 }
 
 func init() {
+	rootCmd.PersistentFlags().StringVar(&httpPort, "port", "8081", "port on which to open the http server for core to ui communication")
+	rootCmd.PersistentFlags().StringVar(&homeDir, "homedir", cheek.CheekPath(), fmt.Sprintf("directory in which to save cheek's core & job logs, defaults to '%s'", cheek.CheekPath()))
+	rootCmd.PersistentFlags().BoolVarP(&telemetry, "no-telemetry", "n", false, "pass this flag if you do not want to report statistics, check the readme for more info")
 	cobra.OnInitialize(initConfig)
-	rootCmd.PersistentFlags().StringVar(&httpPort, "port", "8081", "port on which to open the http server to core to ui communication")
 }
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
-	if cfgFile != "" {
-		// Use config file from the flag.
-		viper.SetConfigFile(cfgFile)
-	} else {
-		// Find home directory.
-		home, err := os.UserHomeDir()
-		cobra.CheckErr(err)
+	viper.SetEnvPrefix("cheek")
+	viper.AutomaticEnv()
 
-		// Search config in home directory with name ".cheek" (without extension).
-		viper.AddConfigPath(home)
-		viper.SetConfigType("yaml")
-		viper.SetConfigName(".cheek")
+	// setting both default value AND bind value
+	// because tests will often be called without flags
+	// being set
+	viper.SetDefault("port", "8081")
+	if err := viper.BindPFlag("port", rootCmd.PersistentFlags().Lookup("port")); err != nil {
+		fmt.Printf("error binding pflag %s", err)
 	}
 
-	viper.AutomaticEnv() // read in environment variables that match
+	if err := viper.BindPFlag("no-telemetry", rootCmd.PersistentFlags().Lookup("no-telemetry")); err != nil {
+		fmt.Printf("error binding pflag %s", err)
+	}
 
-	// If a config file is found, read it in.
-	if err := viper.ReadInConfig(); err == nil {
-		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
+	if err := viper.BindPFlag("suppressLogs", runCmd.PersistentFlags().Lookup("suppress-logs")); err != nil {
+		fmt.Printf("error binding pflag %s", err)
+	}
+
+	if err := viper.BindPFlag("logLevel", runCmd.PersistentFlags().Lookup("log-level")); err != nil {
+		fmt.Printf("error binding pflag %s", err)
+	}
+
+	if err := viper.BindPFlag("pretty", runCmd.PersistentFlags().Lookup("pretty")); err != nil {
+		fmt.Printf("error binding pflag %s", err)
+	}
+
+	if err := viper.BindPFlag("homedir", rootCmd.PersistentFlags().Lookup("homedir")); err != nil {
+		fmt.Printf("error binding pflag %s", err)
+	}
+
+	if err := viper.BindPFlag("no-telemetry", rootCmd.PersistentFlags().Lookup("no-telemetry")); err != nil {
+		fmt.Printf("error binding pflag %s", err)
 	}
 }

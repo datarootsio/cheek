@@ -19,8 +19,8 @@ Alternatively, the '-schedule' flag allows you to provide a path to the specs YA
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		// TODO: allow user to define log level
-		cheek.ConfigLogger("debug")
-		cheek.TUI(httpPort, yamlFile)
+		log := cheek.NewLogger("debug")
+		cheek.TUI(log, yamlFile)
 	},
 }
 

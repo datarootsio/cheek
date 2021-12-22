@@ -13,7 +13,8 @@ import (
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog"
+	"github.com/spf13/viper"
 )
 
 const (
@@ -26,6 +27,7 @@ const (
 var (
 	serverPort   string
 	yamlFile     string
+	logger       zerolog.Logger
 	warningStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#FFA500"))
 	faintStyle   = lipgloss.NewStyle().Faint(true)
 	titleStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("#49f770")).Bold(true)
@@ -56,7 +58,6 @@ type model struct {
 	ready         bool
 	listFocus     bool
 	viewportFocus bool
-	httpPort      string
 	viewport      viewport.Model
 	notification  notification
 }
@@ -112,14 +113,13 @@ func (m model) Init() tea.Cmd {
 
 func refreshState() tea.Msg {
 	schedule := &Schedule{}
-	if err := schedule.getSchedule(serverPort, yamlFile); err != nil {
-		log.Error().Err(err).Msg("Failed to load schedules")
+	if err := schedule.getSchedule(yamlFile); err != nil {
+		logger.Error().Err(err).Msg("Failed to load schedules")
 		return notification{
 			content:          "Can't refresh run info",
 			notificationType: Error,
 		}
 	}
-
 	for _, v := range schedule.Jobs {
 		v.loadRuns()
 	}
@@ -273,15 +273,15 @@ func (m model) View() string {
 	return mv
 }
 
-func (s *Schedule) getSchedule(httpPort string, scheduleFile string) error {
+func (s *Schedule) getSchedule(scheduleFile string) error {
 	// addr should be configurable
-	r, server_err := http.Get(fmt.Sprintf("http://localhost:%s/schedule", httpPort))
+	r, server_err := http.Get(fmt.Sprintf("http://localhost:%s/schedule", serverPort))
 	if server_err == nil {
 		defer r.Body.Close()
 		return json.NewDecoder(r.Body).Decode(s)
 	}
 	if scheduleFile != "" {
-		schedule, err := loadSchedule(scheduleFile)
+		schedule, err := loadSchedule(zerolog.Logger{}, Config{}, scheduleFile)
 		if err != nil {
 			return fmt.Errorf("%w\nError reading YAML: %v", server_err, err.Error())
 		}
@@ -292,12 +292,17 @@ func (s *Schedule) getSchedule(httpPort string, scheduleFile string) error {
 }
 
 // TUI is the main entrypoint for the cheek ui.
-func TUI(httpPort string, scheduleFile string) {
-	serverPort = httpPort
+func TUI(log zerolog.Logger, scheduleFile string) {
+	if !viper.IsSet("port") {
+		fmt.Println("port value not found and no default set")
+		os.Exit(1)
+	}
+	serverPort = viper.GetString("port")
 	yamlFile = scheduleFile
+	logger = log
 	// init schedule schedule
 	schedule := &Schedule{}
-	if err := schedule.getSchedule(httpPort, scheduleFile); err != nil {
+	if err := schedule.getSchedule(scheduleFile); err != nil {
 		fmt.Println(err.Error())
 		os.Exit(1)
 	}
@@ -313,7 +318,7 @@ func TUI(httpPort string, scheduleFile string) {
 	l.SetShowHelp(false)
 	l.SetShowTitle(false)
 
-	m := model{list: l, state: schedule, listFocus: true, httpPort: httpPort}
+	m := model{list: l, state: schedule, listFocus: true}
 
 	if err := tea.NewProgram(m, tea.WithAltScreen(), tea.WithMouseCellMotion()).Start(); err != nil {
 		fmt.Println("Error running program:", err)

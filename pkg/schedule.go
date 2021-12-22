@@ -3,7 +3,6 @@ package cheek
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -14,16 +13,18 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/adhocore/gronx"
-	"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog"
 )
 
 // Schedule defines specs of a job schedule.
 type Schedule struct {
 	Jobs map[string]*JobSpec `yaml:"jobs" json:"jobs"`
+	log  zerolog.Logger
+	cfg  Config
 }
 
 // Run a Schedule based on its specs.
-func (s *Schedule) Run(surpressLogs bool) {
+func (s *Schedule) Run() {
 	gronx := gronx.New()
 	ticker := time.NewTicker(time.Second)
 	sigs := make(chan os.Signal, 1)
@@ -40,13 +41,13 @@ func (s *Schedule) Run(surpressLogs bool) {
 
 				if due {
 					go func(j *JobSpec) {
-						j.execCommandWithRetry("cron", surpressLogs)
+						j.execCommandWithRetry("cron")
 					}(j)
 				}
 			}
 
 		case sig := <-sigs:
-			log.Info().Msgf("%s signal received, exiting...", sig.String())
+			s.log.Info().Msgf("%s signal received, exiting...", sig.String())
 			return
 		}
 	}
@@ -73,15 +74,12 @@ func (a *stringArray) UnmarshalYAML(unmarshal func(interface{}) error) error {
 func readSpecs(fn string) (Schedule, error) {
 	yfile, err := ioutil.ReadFile(fn)
 	if err != nil {
-		log.Error().Err(err)
 		return Schedule{}, err
 	}
 
 	specs := Schedule{}
 
 	if err = yaml.Unmarshal(yfile, &specs); err != nil {
-
-		log.Error().Err(err)
 		return Schedule{}, err
 	}
 
@@ -99,24 +97,29 @@ func (s *Schedule) Validate() error {
 			}
 		}
 		// check if trigger references exist
-		for _, t := range v.Triggers {
+		triggerJobs := append(v.OnSuccess.TriggerJob, v.OnError.TriggerJob...)
+		for _, t := range triggerJobs {
 			if _, ok := s.Jobs[t]; !ok {
 				return fmt.Errorf("cannot find spec of job '%s' that is referenced in job '%s'", t, k)
 			}
 		}
-		// set so metadata / refs to each job struct
+		// set some metadata & refs for each job
 		// for easier retrievability
 		v.Name = k
 		v.globalSchedule = s
+		v.log = s.log
+		v.cfg = s.cfg
 	}
 	return nil
 }
 
-func loadSchedule(fn string) (Schedule, error) {
+func loadSchedule(log zerolog.Logger, cfg Config, fn string) (Schedule, error) {
 	s, err := readSpecs(fn)
 	if err != nil {
 		return Schedule{}, err
 	}
+	s.log = log
+	s.cfg = cfg
 
 	// run validations
 	if err := s.Validate(); err != nil {
@@ -126,8 +129,8 @@ func loadSchedule(fn string) (Schedule, error) {
 	return s, nil
 }
 
-func server(s *Schedule, httpPort string) {
-	var httpAddr string = fmt.Sprintf(":%s", httpPort)
+func server(s *Schedule) {
+	var httpAddr string = fmt.Sprintf(":%s", s.cfg.Port)
 	type Healthz struct {
 		Jobs   int    `json:"jobs"`
 		Status string `json:"status"`
@@ -148,23 +151,23 @@ func server(s *Schedule, httpPort string) {
 		}
 	})
 
-	log.Info().Msgf("Starting HTTP server on %v", httpAddr)
-	log.Fatal().Err(http.ListenAndServe(httpAddr, nil))
+	s.log.Info().Msgf("Starting HTTP server on %v", httpAddr)
+	s.log.Fatal().Err(http.ListenAndServe(httpAddr, nil))
 }
 
 // RunSchedule is the main entry entrypoint of cheek.
-func RunSchedule(fn string, httpPort string, supressLogs bool, extraLoggers ...io.Writer) {
-	js, err := loadSchedule(fn)
+func RunSchedule(log zerolog.Logger, cfg Config, fn string) {
+	s, err := loadSchedule(log, cfg, fn)
 	if err != nil {
-		log.Error().Err(err).Msg("")
+		s.log.Error().Err(err).Msg("")
 		os.Exit(1)
 	}
-	numberJobs := len(js.Jobs)
+	numberJobs := len(s.Jobs)
 	i := 0
-	for _, job := range js.Jobs {
-		log.Info().Msgf("Initializing (%v/%v) job: %s", i, numberJobs, job.Name)
+	for _, job := range s.Jobs {
+		s.log.Info().Msgf("Initializing (%v/%v) job: %s", i, numberJobs, job.Name)
 		i++
 	}
-	go server(&js, httpPort)
-	js.Run(supressLogs)
+	go server(&s)
+	s.Run()
 }

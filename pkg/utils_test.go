@@ -1,9 +1,12 @@
 package cheek
 
 import (
+	"os"
+	"strings"
 	"testing"
 
-	"github.com/magiconair/properties/assert"
+	"github.com/spf13/viper"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestLastLineReader(t *testing.T) {
@@ -47,4 +50,16 @@ func TestHardWrap(t *testing.T) {
 	test := "12345678"
 	assert.Equal(t, hardWrap(test, 5), "12345\n678")
 	assert.Equal(t, hardWrap(test, 2), "12\n34\n56\n78")
+}
+
+func TestCheekPath(t *testing.T) {
+	assert.True(t, strings.Contains(CheekPath(), ".cheek"))
+
+	const dirName = "moo_i_am_sheep"
+
+	viper.Set("homedir", dirName)
+	assert.True(t, strings.Contains(CheekPath(), "sheep"))
+
+	// cleanup
+	os.RemoveAll(dirName)
 }
