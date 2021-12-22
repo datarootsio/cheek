@@ -1,36 +1,46 @@
 package cheek
 
-// func TestPhoneHome(t *testing.T) {
+import (
+	"fmt"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"testing"
 
-// 	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-// 		defer r.Body.Close()
-// 		body, err := io.ReadAll(r.Body)
-// 		if err != nil {
-// 			http.Error(w, err.Error(), http.StatusBadRequest)
-// 		}
-// 		// mirror this
-// 		w.Header().Set("Content-Type", "application/json")
-// 		fmt.Fprintln(w, string(body))
-// 	}))
+	"github.com/spf13/viper"
+	"github.com/stretchr/testify/assert"
+)
 
-// 	defer testServer.Close()
+func TestPhoneHome(t *testing.T) {
+	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer r.Body.Close()
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		}
+		// mirror this
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprintln(w, string(body))
+	}))
 
-// 	viper.Set("phoneHomeURL", testServer.URL)
-// 	viper.Set("noTelemetry", false)
+	defer testServer.Close()
 
-// 	et := ET{}
-// 	_, err := et.PhoneHome()
-// 	if err != nil {
-// 		// no error means success
-// 		t.Fatal(err)
-// 	}
+	viper.Set("phoneHomeURL", testServer.URL)
+	viper.Set("noTelemetry", false)
 
-// 	// respect to not phone home
-// 	viper.Set("noTelemetry", true)
-// 	resp_body, err := et.PhoneHome()
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
+	et := ET{}
+	_, err := et.PhoneHome()
+	if err != nil {
+		// no error means success
+		t.Fatal(err)
+	}
 
-// 	assert.Equal(t, resp_body, []byte{})
-// }
+	// respect to not phone home
+	viper.Set("noTelemetry", true)
+	resp_body, err := et.PhoneHome()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	assert.Equal(t, resp_body, []byte{})
+}
