@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
 	cheek "github.com/datarootsio/cheek/pkg"
 	zl "github.com/rs/zerolog"
@@ -23,7 +24,10 @@ var runCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		c := cheek.NewConfig()
-		viper.Unmarshal(&c)
+		if err := viper.Unmarshal(&c); err != nil {
+			fmt.Println("cannot init configuration")
+			os.Exit(1)
+		}
 		l := cheek.NewLogger(pretty, logLevel)
 		cheek.RunSchedule(l, c, args[0])
 	},
