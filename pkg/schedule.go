@@ -159,7 +159,7 @@ func server(s *Schedule) {
 func RunSchedule(log zerolog.Logger, cfg Config, fn string) {
 	s, err := loadSchedule(log, cfg, fn)
 	if err != nil {
-		s.log.Error().Err(err).Msg("")
+		fmt.Printf("error loading schedule: %s\n", err)
 		os.Exit(1)
 	}
 	numberJobs := len(s.Jobs)
