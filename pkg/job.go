@@ -11,6 +11,7 @@ import (
 	"path"
 	"time"
 
+	"github.com/adhocore/gronx"
 	"github.com/rs/zerolog"
 )
 
@@ -167,6 +168,16 @@ func (j *JobSpec) execCommand(trigger string) JobRun {
 	jr.Status = 0
 
 	return jr
+}
+
+func (j *JobSpec) ValidateCron() error {
+	if j.Cron != "" {
+		gronx := gronx.New()
+		if !gronx.IsValid(j.Cron) {
+			return fmt.Errorf("cron string for job '%s' not valid", j.Name)
+		}
+	}
+	return nil
 }
 
 func (j *JobSpec) OnEvent(jr *JobRun, suppressLogs bool) {

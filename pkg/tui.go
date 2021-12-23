@@ -253,7 +253,7 @@ func (s *Schedule) getSchedule(scheduleFile string) error {
 		*s = schedule
 		return nil
 	}
-	return fmt.Errorf("Error connecting to cheek server and no schedule file specified: %v\n", server_err.Error())
+	return fmt.Errorf("error connecting to cheek server and no schedule file specified: %v", server_err.Error())
 }
 
 // TUI is the main entrypoint for the cheek ui.

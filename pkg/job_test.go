@@ -38,6 +38,42 @@ func TestJobRun(t *testing.T) {
 	assert.Equal(t, jr.Status, 0)
 }
 
+func TestSpecialCron(t *testing.T) {
+	j := &JobSpec{
+		Cron:    "@10minutes",
+		Name:    "test",
+		Command: []string{"echo", "bar"},
+		cfg:     NewConfig(),
+	}
+
+	if err := j.ValidateCron(); err != nil {
+		t.Fatal(err)
+	}
+
+	jr := j.execCommand("test")
+	assert.Equal(t, jr.Status, 0)
+}
+
+func TestInvalidCron(t *testing.T) {
+	j := &JobSpec{
+		Cron:    "INVALID",
+		Name:    "test",
+		Command: []string{"echo", "bar"},
+		cfg:     NewConfig(),
+	}
+
+	assert.Error(t, j.ValidateCron())
+
+	j = &JobSpec{
+		Cron:    "@1minutes",
+		Name:    "test",
+		Command: []string{"echo", "bar"},
+		cfg:     NewConfig(),
+	}
+
+	assert.Error(t, j.ValidateCron())
+}
+
 func TestJobRunNoCommand(t *testing.T) {
 	j := &JobSpec{
 		Cron: "* * * * *",

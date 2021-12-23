@@ -89,13 +89,6 @@ func readSpecs(fn string) (Schedule, error) {
 // Validate Schedule spec and logic.
 func (s *Schedule) Validate() error {
 	for k, v := range s.Jobs {
-		// validate cron string
-		if v.Cron != "" {
-			gronx := gronx.New()
-			if !gronx.IsValid(v.Cron) {
-				return fmt.Errorf("cron string for job '%s' not valid", k)
-			}
-		}
 		// check if trigger references exist
 		triggerJobs := append(v.OnSuccess.TriggerJob, v.OnError.TriggerJob...)
 		for _, t := range triggerJobs {
@@ -109,6 +102,11 @@ func (s *Schedule) Validate() error {
 		v.globalSchedule = s
 		v.log = s.log
 		v.cfg = s.cfg
+
+		// validate cron string
+		if err := v.ValidateCron(); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -123,7 +121,7 @@ func loadSchedule(log zerolog.Logger, cfg Config, fn string) (Schedule, error) {
 
 	// run validations
 	if err := s.Validate(); err != nil {
-		return Schedule{}, nil
+		return Schedule{}, err
 	}
 
 	return s, nil
