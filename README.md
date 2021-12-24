@@ -33,6 +33,9 @@ jobs:
   foo:
     command: date
     cron: "* * * * *"
+    env:
+      my: env_var
+      another: var_in_env
     on_success:
       trigger_job:
         - bar
