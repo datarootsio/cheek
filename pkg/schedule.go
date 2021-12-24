@@ -26,7 +26,7 @@ type Schedule struct {
 // Run a Schedule based on its specs.
 func (s *Schedule) Run() {
 	gronx := gronx.New()
-	ticker := time.NewTicker(time.Second)
+	ticker := time.NewTicker(time.Minute)
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
