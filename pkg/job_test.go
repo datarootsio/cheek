@@ -1,9 +1,11 @@
 package cheek
 
 import (
+	"log"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"gopkg.in/yaml.v3"
 )
 
 func TestLoadLogs(t *testing.T) {
@@ -72,6 +74,33 @@ func TestInvalidCron(t *testing.T) {
 	}
 
 	assert.Error(t, j.ValidateCron())
+}
+
+func TestJobWithEnvVars(t *testing.T) {
+	jobSpec := []byte(`
+cron: "* * * * *"
+command: env
+env: 
+  foo: bar
+  coffee: bar
+`)
+
+	j := JobSpec{}
+	err := yaml.Unmarshal(jobSpec, &j)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	j.ValidateCron()
+
+	_, ok := j.Env["foo"]
+	if !ok {
+		t.Fatal("should contain foo")
+	}
+
+	jr := j.execCommand("test")
+
+	assert.Contains(t, jr.Log, "foo=bar")
 }
 
 func TestJobRunNoCommand(t *testing.T) {

@@ -31,6 +31,7 @@ type JobSpec struct {
 
 	Name           string `json:"name"`
 	Retries        int    `yaml:"retries,omitempty" json:"retries,omitempty"`
+	Env            map[string]string
 	globalSchedule *Schedule
 	runs           []JobRun
 
@@ -134,6 +135,12 @@ func (j *JobSpec) execCommand(trigger string) JobRun {
 
 	outPipe, _ := cmd.StdoutPipe()
 	errPipe, _ := cmd.StderrPipe()
+
+	// add env vars
+	cmd.Env = os.Environ()
+	for k, v := range j.Env {
+		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", k, v))
+	}
 
 	err := cmd.Start()
 	if err != nil {
