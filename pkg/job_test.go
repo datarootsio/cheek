@@ -91,7 +91,9 @@ env:
 		log.Fatal(err)
 	}
 
-	j.ValidateCron()
+	if err := j.ValidateCron(); err != nil {
+		t.Fatal(err)
+	}
 
 	_, ok := j.Env["foo"]
 	if !ok {
