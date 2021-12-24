@@ -25,7 +25,7 @@ func TestScheduleRun(t *testing.T) {
 		RunSchedule(logger, Config{}, "../testdata/jobs1.yaml")
 	}()
 
-	time.Sleep(3 * time.Second)
+	time.Sleep((1 * time.Minute) + (1 * time.Second))
 	if err := proc.Signal(os.Interrupt); err != nil {
 		t.Fatal(err)
 	}
@@ -33,7 +33,7 @@ func TestScheduleRun(t *testing.T) {
 	time.Sleep(1 * time.Second)
 	spew.Dump(b.String())
 	assert.Contains(t, b.String(), "Job triggered")
-	// assert.Contains(t, b.String(), "interrupt signal received")
+	assert.Contains(t, b.String(), "interrupt signal received")
 
 	// check that job gets triggered by other job
 	assert.Contains(t, b.String(), "\"trigger\":\"job[foo]")
