@@ -161,7 +161,7 @@ func RunSchedule(log zerolog.Logger, cfg Config, fn string) {
 		os.Exit(1)
 	}
 	numberJobs := len(s.Jobs)
-	i := 0
+	i := 1
 	for _, job := range s.Jobs {
 		s.log.Info().Msgf("Initializing (%v/%v) job: %s", i, numberJobs, job.Name)
 		i++
