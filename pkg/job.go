@@ -1,7 +1,7 @@
 package cheek
 
 import (
-	"bufio"
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -41,8 +41,12 @@ type JobSpec struct {
 
 // JobRun holds information about a job execution.
 type JobRun struct {
-	Status      int       `json:"status"`
-	Log         string    `json:"log"`
+	Status      int `json:"status"`
+	stdOutBuf   bytes.Buffer
+	stdErrBuf   bytes.Buffer
+	StdOut      string    `json:"stdout,omitempty"`
+	StdErr      string    `json:"stderr,omitempty"`
+	Log         string    `json:"log,omitempty"`
 	Name        string    `json:"name"`
 	TriggeredAt time.Time `json:"triggered_at"`
 	TriggeredBy string    `json:"triggered_by"`
@@ -50,17 +54,13 @@ type JobRun struct {
 	jobRef      *JobSpec
 }
 
-func (j *JobSpec) loadRuns() {
-	const nRuns int = 30
-	logFn := path.Join(CheekPath(), fmt.Sprintf("%s.job.jsonl", j.Name))
-	jrs, err := readLastJobRuns(j.log, logFn, nRuns)
-	if err != nil {
-		j.log.Warn().Str("job", j.Name).Err(err).Msgf("could not load job logs from '%s'", logFn)
-	}
-	j.runs = jrs
+func (jr *JobRun) Close() {
+	jr.StdErr = jr.stdErrBuf.String()
+	jr.StdOut = jr.stdOutBuf.String()
 }
 
 func (j *JobRun) logToDisk() {
+
 	logFn := path.Join(CheekPath(), fmt.Sprintf("%s.job.jsonl", j.Name))
 	f, err := os.OpenFile(logFn,
 		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
@@ -103,6 +103,8 @@ func (j *JobSpec) execCommand(trigger string) JobRun {
 	j.log.Info().Str("job", j.Name).Str("trigger", trigger).Msgf("Job triggered")
 	// init status to non-zero until execution says otherwise
 	jr := JobRun{Name: j.Name, TriggeredAt: time.Now(), TriggeredBy: trigger, Status: -1, jobRef: j}
+	defer jr.Close()
+
 	suppressLogs := j.cfg.SuppressLogs
 
 	if j.cfg.Telemetry {
@@ -121,7 +123,7 @@ func (j *JobSpec) execCommand(trigger string) JobRun {
 	switch len(j.Command) {
 	case 0:
 		err := errors.New("no command specified")
-		jr.Log = fmt.Sprintf("Job unable to start: %v", err.Error())
+		jr.StdErr = fmt.Sprintf("Job unable to start: %v", err.Error())
 		j.log.Warn().Str("job", j.Name).Err(err).Msgf("Job unable to start")
 		if !suppressLogs {
 			fmt.Println(err.Error())
@@ -133,35 +135,30 @@ func (j *JobSpec) execCommand(trigger string) JobRun {
 		cmd = exec.Command(j.Command[0], j.Command[1:]...)
 	}
 
-	outPipe, _ := cmd.StdoutPipe()
-	errPipe, _ := cmd.StderrPipe()
-
 	// add env vars
 	cmd.Env = os.Environ()
 	for k, v := range j.Env {
 		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", k, v))
 	}
 
+	switch j.cfg.SuppressLogs {
+	case true:
+		cmd.Stdout = &jr.stdOutBuf
+		cmd.Stderr = &jr.stdErrBuf
+	default:
+		cmd.Stdout = io.MultiWriter(os.Stdout, &jr.stdOutBuf)
+		cmd.Stderr = io.MultiWriter(os.Stderr, &jr.stdErrBuf)
+	}
+
 	err := cmd.Start()
 	if err != nil {
-		jr.Log = fmt.Sprintf("Job unable to start: %v", err.Error())
+		jr.StdErr = fmt.Sprintf("Job unable to start: %v", err.Error())
 		if !suppressLogs {
 			fmt.Println(err.Error())
 		}
 		j.log.Warn().Str("job", j.Name).Err(err).Msgf("Job unable to start")
+
 		return jr
-	}
-
-	merged := io.MultiReader(outPipe, errPipe)
-	reader := bufio.NewReader(merged)
-	line, err := reader.ReadString('\n')
-
-	for err == nil {
-		if !suppressLogs {
-			fmt.Print(line)
-		}
-		jr.Log += line
-		line, err = reader.ReadString('\n')
 	}
 
 	if err := cmd.Wait(); err != nil {
@@ -169,12 +166,23 @@ func (j *JobSpec) execCommand(trigger string) JobRun {
 			jr.Status = exitError.ExitCode()
 			j.log.Warn().Str("job", j.Name).Msgf("Exit code %v", exitError.ExitCode())
 		}
+
 		return jr
 	}
 
 	jr.Status = 0
 
 	return jr
+}
+
+func (j *JobSpec) loadRuns() {
+	const nRuns int = 30
+	logFn := path.Join(CheekPath(), fmt.Sprintf("%s.job.jsonl", j.Name))
+	jrs, err := readLastJobRuns(j.log, logFn, nRuns)
+	if err != nil {
+		j.log.Warn().Str("job", j.Name).Err(err).Msgf("could not load job logs from '%s'", logFn)
+	}
+	j.runs = jrs
 }
 
 func (j *JobSpec) ValidateCron() error {
