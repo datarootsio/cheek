@@ -60,7 +60,6 @@ func (jr *JobRun) Close() {
 }
 
 func (j *JobRun) logToDisk() {
-
 	logFn := path.Join(CheekPath(), fmt.Sprintf("%s.job.jsonl", j.Name))
 	f, err := os.OpenFile(logFn,
 		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
