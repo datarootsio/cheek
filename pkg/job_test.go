@@ -104,7 +104,7 @@ env:
 
 	jr.Close()
 
-	assert.Contains(t, jr.StdOut, "foo=bar")
+	assert.Contains(t, jr.Log, "foo=bar")
 }
 
 func TestJobRunNoCommand(t *testing.T) {
