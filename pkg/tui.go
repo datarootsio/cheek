@@ -27,6 +27,7 @@ const (
 var (
 	serverPort   string
 	yamlFile     string
+	logger       zerolog.Logger
 	warningStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#FFA500"))
 	faintStyle   = lipgloss.NewStyle().Faint(true)
 	titleStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("#49f770")).Bold(true)
@@ -55,10 +56,22 @@ type model struct {
 	width         int
 	height        int
 	ready         bool
-	hx            string
 	listFocus     bool
 	viewportFocus bool
 	viewport      viewport.Model
+	notification  notification
+}
+
+type notificationType int32
+
+const (
+	Info notificationType = iota
+	Error
+)
+
+type notification struct {
+	content          string
+	notificationType notificationType
 }
 
 func (j *JobSpec) runInfo() string {
@@ -101,10 +114,12 @@ func (m model) Init() tea.Cmd {
 func refreshState() tea.Msg {
 	schedule := &Schedule{}
 	if err := schedule.getSchedule(yamlFile); err != nil {
-		fmt.Print(err.Error())
-		os.Exit(1)
+		logger.Error().Err(err).Msg("Failed to load schedules")
+		return notification{
+			content:          "Can't refresh run info",
+			notificationType: Error,
+		}
 	}
-
 	for _, v := range schedule.Jobs {
 		v.loadRuns()
 	}
@@ -166,12 +181,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "enter":
 			i, ok := m.list.SelectedItem().(item)
 			if ok && i.jobName != m.choice {
-				m.hx = hexComp.Poke()
 				m.choice = i.jobName
 				j := m.state.Jobs[m.choice]
 				m.viewport.SetContent(j.view(m.viewport.Width - 2))
 			}
 		}
+
+	case notification:
+		m.notification = msg
 	}
 
 	if m.viewportFocus {
@@ -184,6 +201,28 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	return m, tea.Batch(cmds...)
+}
+
+func (m model) renderStatusBar() string {
+	logInfo := faintStyle.Align(lipgloss.Right).Render("View (l)ogs")
+	notificationStyle := lipgloss.NewStyle().Width(m.width - lipgloss.Width(logInfo))
+	var notification string
+	switch m.notification.notificationType {
+	case Info:
+		notification = m.notification.content
+	case Error:
+		notification = lipgloss.
+			NewStyle().
+			Foreground(lipgloss.Color("#FFFDF5")).
+			Background(lipgloss.Color("#FF5F87")).
+			Align(lipgloss.Right).
+			Render(m.notification.content)
+	}
+	return lipgloss.JoinHorizontal(
+		lipgloss.Center,
+		notificationStyle.Render(notification),
+		logInfo,
+	)
 }
 
 func (m model) View() string {
@@ -214,11 +253,7 @@ func (m model) View() string {
 	}
 	logBoxHeader := lipgloss.NewStyle().Border(logBoxHeaderBorder).BorderTop(false).MarginBottom(1).Render(lipgloss.JoinHorizontal(lipgloss.Left, jobTitle, jobStatus))
 
-	var hx string
-	if len(j.runs) > 0 && j.runs[0].Status != 0 {
-		hx = lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFDF5")).
-			Background(lipgloss.Color("#FF5F87")).Align(lipgloss.Right).Render(m.hx)
-	}
+	statusBar := m.renderStatusBar()
 
 	// job view
 	vpBox := lipgloss.NewStyle().PaddingLeft(1).PaddingRight(1).Render(m.viewport.View())
@@ -233,7 +268,7 @@ func (m model) View() string {
 	jobBox := jobBoxStyle.Render(
 		lipgloss.JoinVertical(lipgloss.Left, logBoxHeader, vpBox))
 
-	mv := lipgloss.JoinVertical(lipgloss.Left, header, lipgloss.JoinHorizontal(lipgloss.Top, jobList, jobBox), hx)
+	mv := lipgloss.JoinVertical(lipgloss.Left, header, lipgloss.JoinHorizontal(lipgloss.Top, jobList, jobBox), statusBar)
 
 	return mv
 }
@@ -248,26 +283,27 @@ func (s *Schedule) getSchedule(scheduleFile string) error {
 	if scheduleFile != "" {
 		schedule, err := loadSchedule(zerolog.Logger{}, Config{}, scheduleFile)
 		if err != nil {
-			return fmt.Errorf("%w; Error reading from YAML at location '%v': %v", server_err, scheduleFile, err.Error())
+			return fmt.Errorf("%w\nError reading YAML: %v", server_err, err.Error())
 		}
 		*s = schedule
 		return nil
 	}
-	return fmt.Errorf("error connecting to cheek server and no schedule file specified: %v", server_err.Error())
+	return fmt.Errorf("Error connecting to cheek server and -s is not set: %w", server_err)
 }
 
 // TUI is the main entrypoint for the cheek ui.
-func TUI(scheduleFile string) {
+func TUI(log zerolog.Logger, scheduleFile string) {
 	if !viper.IsSet("port") {
 		fmt.Println("port value not found and no default set")
 		os.Exit(1)
 	}
 	serverPort = viper.GetString("port")
 	yamlFile = scheduleFile
+	logger = log
 	// init schedule schedule
 	schedule := &Schedule{}
 	if err := schedule.getSchedule(scheduleFile); err != nil {
-		fmt.Printf("Error connecting with cheek server: %v\n", err.Error())
+		fmt.Println(err.Error())
 		os.Exit(1)
 	}
 

@@ -165,11 +165,11 @@ func (b *tsBuffer) Reset() {
 	b.b.Reset()
 }
 
-// Configures the package's global logger, also allows to pass in custom writers for
-// testing purposes.
-func NewLogger(prettyLog bool, logLevel string, extraWriters ...io.Writer) zerolog.Logger {
-	var multi zerolog.LevelWriter
+func PrettyStdout() io.Writer {
+	return zerolog.ConsoleWriter{Out: os.Stdout}
+}
 
+func CoreJsonLogger() io.Writer {
 	const logFile string = "core.cheek.jsonl"
 	logFn := path.Join(CheekPath(), logFile)
 
@@ -179,16 +179,17 @@ func NewLogger(prettyLog bool, logLevel string, extraWriters ...io.Writer) zerol
 		fmt.Printf("Can't open log file '%s' for writing.", logFile)
 		os.Exit(1)
 	}
+	return f
+}
+
+// Configures the package's global logger, also allows to pass in custom writers for
+// testing purposes.
+func NewLogger(logLevel string, extraWriters ...io.Writer) zerolog.Logger {
+	var multi zerolog.LevelWriter
 
 	var loggers []io.Writer
-	loggers = append(loggers, f)
+	loggers = append(loggers, CoreJsonLogger())
 	loggers = append(loggers, extraWriters...)
-
-	if prettyLog {
-		loggers = append(loggers, zerolog.ConsoleWriter{Out: os.Stdout})
-	} else {
-		loggers = append(loggers, os.Stdout)
-	}
 
 	multi = zerolog.MultiLevelWriter(loggers...)
 	level, err := zerolog.ParseLevel(logLevel)

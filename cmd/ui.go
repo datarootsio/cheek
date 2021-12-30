@@ -18,11 +18,13 @@ By default the UI will communicate with the scheduler to receive the latest stat
 Alternatively, the '-schedule' flag allows you to provide a path to the specs YAML. These will be used as backup if the scheduler is not reachable.
 `,
 	Run: func(cmd *cobra.Command, args []string) {
-		cheek.TUI(yamlFile)
+		// TODO: allow user to define log level
+		log := cheek.NewLogger("debug")
+		cheek.TUI(log, yamlFile)
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(uiCmd)
-	uiCmd.Flags().StringVarP(&yamlFile, "schedule", "s", "", "Define the schedule YAML to use if cheek scheduler is not running.")
+	uiCmd.Flags().StringVarP(&yamlFile, "schedule", "s", "", "Define the schedule file to use if cheek scheduler is not running.")
 }
