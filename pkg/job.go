@@ -101,9 +101,9 @@ func (j *JobSpec) execCommand(trigger string) JobRun {
 
 	suppressLogs := j.cfg.SuppressLogs
 
+	defer j.OnEvent(&jr, suppressLogs)
 	defer jr.logToDisk()
 	defer jr.Close()
-	defer j.OnEvent(&jr, suppressLogs)
 
 	if j.cfg.Telemetry {
 		go func() {
