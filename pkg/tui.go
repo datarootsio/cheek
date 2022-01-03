@@ -288,7 +288,7 @@ func (s *Schedule) getSchedule(scheduleFile string) error {
 		*s = schedule
 		return nil
 	}
-	return fmt.Errorf("Error connecting to cheek server and -s is not set: %w", server_err)
+	return fmt.Errorf("error connecting to cheek server and -s is not set: %w", server_err)
 }
 
 // TUI is the main entrypoint for the cheek ui.

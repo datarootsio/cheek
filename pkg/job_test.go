@@ -107,6 +107,25 @@ env:
 	assert.Contains(t, jr.Log, "foo=bar")
 }
 
+func TestStdErrOut(t *testing.T) {
+	cfg := NewConfig()
+	cfg.SuppressLogs = true
+
+	j := &JobSpec{
+		Cron:    "* * * * *",
+		Name:    "test",
+		Command: []string{"sh", "-c", "echo stdout; echo stderr 1>&2"},
+		//  1>&2 sends to stderr
+		cfg: cfg,
+	}
+
+	jr := j.execCommand("test")
+	jr.Close() // hard close, might not run deferred in testing
+	assert.Contains(t, jr.Log, "stdout")
+	assert.Contains(t, jr.Log, "stderr")
+
+}
+
 func TestJobRunNoCommand(t *testing.T) {
 	j := &JobSpec{
 		Cron: "* * * * *",
