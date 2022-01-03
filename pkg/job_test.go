@@ -123,7 +123,6 @@ func TestStdErrOut(t *testing.T) {
 	jr.Close() // hard close, might not run deferred in testing
 	assert.Contains(t, jr.Log, "stdout")
 	assert.Contains(t, jr.Log, "stderr")
-
 }
 
 func TestJobRunNoCommand(t *testing.T) {
