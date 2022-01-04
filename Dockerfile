@@ -1,8 +1,8 @@
 FROM ubuntu
-# Note: change this url to fetch the
-# binary for your arch (or specify your buid/run platformx)
+ARG CHEEK_ARCH="linux/amd64"
 WORKDIR /app
 RUN apt update; apt install wget -y
-RUN wget https://storage.googleapis.com/better-unified/linux/386/cheek
+RUN wget https://storage.googleapis.com/better-unified/${CHEEK_ARCH}/cheek
 RUN chmod +x cheek
 ENTRYPOINT [ "./cheek" ]
+CMD ["run", "job_spec.yaml"]

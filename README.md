@@ -77,8 +77,6 @@ cheek ui
 
 The UI allows to get a quick overview on jobs that have run, that error'd and their logs. It basically does this by fetching the state of the scheduler and by reading the logs that (per job) get written to `$HOME/.cheek/`. Note that you can ignore these logs, output of jobs will always go to stdout as well.
 
-The UI requires the scheduler to be up and running.
-
 ![](https://storage.googleapis.com/better-unified/ui-screenshot2.png)
 
 ## Configuration
@@ -94,6 +92,7 @@ Check out the `Dockerfile` for an example on how to set up `cheek` within the co
 ## Usage stats
 
 By default `cheek` reports minimal usage stats. Each time a job is triggered a simple request that (only) contains your `cheek` version is send to our servers. Check out the exact implementation [here](https://github.com/datarootsio/cheek/blob/main/pkg/telemetry.go). Note that you can always opt-out of this by passing the `-no-telemetry` or `-n` flag.
+
 ## Acknowledgements
 
 Thanks goes to:
