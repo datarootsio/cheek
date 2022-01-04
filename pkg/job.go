@@ -119,7 +119,7 @@ func (j *JobSpec) execCommand(trigger string) JobRun {
 	case 0:
 		err := errors.New("no command specified")
 		jr.Log = fmt.Sprintf("Job unable to start: %v", err.Error())
-		j.log.Warn().Str("job", j.Name).Err(err).Msgf("Job unable to start")
+		j.log.Warn().Str("job", j.Name).Err(err).Msg("Job unable to start")
 		if !suppressLogs {
 			fmt.Println(err.Error())
 		}
@@ -150,11 +150,11 @@ func (j *JobSpec) execCommand(trigger string) JobRun {
 
 	err := cmd.Start()
 	if err != nil {
-		jr.Log = fmt.Sprintf("Job unable to start: %v", err.Error())
+		w.Write([]byte(fmt.Sprintf("Job unable to start: %v", err.Error())))
 		if !suppressLogs {
 			fmt.Println(err.Error())
 		}
-		j.log.Warn().Str("job", j.Name).Err(err).Msgf("Job unable to start")
+		j.log.Warn().Str("job", j.Name).Err(err).Msg("Job unable to start")
 
 		return jr
 	}

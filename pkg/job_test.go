@@ -125,6 +125,23 @@ func TestStdErrOut(t *testing.T) {
 	assert.Contains(t, jr.Log, "stderr")
 }
 
+func TestFailingLog(t *testing.T) {
+	cfg := NewConfig()
+	cfg.SuppressLogs = true
+
+	j := &JobSpec{
+		Cron:    "* * * * *",
+		Name:    "test",
+		Command: []string{"this fails"},
+		//  1>&2 sends to stderr
+		cfg: cfg,
+	}
+
+	jr := j.execCommand("test")
+	jr.Close() // hard close, might not run deferred in testing
+	assert.Contains(t, jr.Log, "this fails")
+}
+
 func TestJobRunNoCommand(t *testing.T) {
 	j := &JobSpec{
 		Cron: "* * * * *",
