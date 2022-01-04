@@ -27,7 +27,6 @@ const (
 var (
 	serverPort   string
 	yamlFile     string
-	logger       zerolog.Logger
 	warningStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#FFA500"))
 	faintStyle   = lipgloss.NewStyle().Faint(true)
 	titleStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("#49f770")).Bold(true)
@@ -76,12 +75,15 @@ type notification struct {
 
 func (j *JobSpec) runInfo() string {
 	var runInfo string
-	if len(j.runs) == 0 {
+	switch {
+	case j.Name == "core logs":
+		runInfo = ""
+	case len(j.runs) == 0:
 		runInfo = "no run history"
-	} else if j.runs[0].Status == 0 {
+	case j.runs[0].Status == 0:
 		since := time.Since(j.runs[0].TriggeredAt).String()
 		runInfo = "ran " + since + " ago"
-	} else {
+	default:
 		runInfo += warningStyle.Render("error'd")
 	}
 
@@ -114,7 +116,6 @@ func (m model) Init() tea.Cmd {
 func refreshState() tea.Msg {
 	schedule := &Schedule{}
 	if err := schedule.getSchedule(yamlFile); err != nil {
-		logger.Error().Err(err).Msg("Failed to load schedules")
 		return notification{
 			content:          "Can't refresh run info",
 			notificationType: Error,
@@ -123,6 +124,17 @@ func refreshState() tea.Msg {
 	for _, v := range schedule.Jobs {
 		v.loadRuns()
 	}
+
+	logs, err := readFormattedCoreLogs()
+	if err != nil {
+		return notification{
+			content:          "Can't refresh core logs",
+			notificationType: Error,
+		}
+	}
+
+	schedule.logs = logs
+
 	return schedule
 }
 
@@ -131,7 +143,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
-	case *Schedule:
+	case *Schedule: // gets returned after state refresh
 
 		keys := make([]string, 0)
 		for k := range msg.Jobs {
@@ -168,6 +180,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch keypress := msg.String(); keypress {
 		case "r":
 			return m, refreshState
+		case "c":
+			m.choice = coreLogFile
+			m.listFocus = false
+			m.viewportFocus = !m.listFocus
+			m.viewport.SetContent(m.state.logs)
 		case "left":
 			m.listFocus = true
 			m.viewportFocus = !m.listFocus
@@ -204,8 +221,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) renderStatusBar() string {
-	logInfo := faintStyle.Align(lipgloss.Right).Render("View (l)ogs")
-	notificationStyle := lipgloss.NewStyle().Width(m.width - lipgloss.Width(logInfo))
+	notificationStyle := lipgloss.NewStyle().Width(m.width)
 	var notification string
 	switch m.notification.notificationType {
 	case Info:
@@ -221,19 +237,24 @@ func (m model) renderStatusBar() string {
 	return lipgloss.JoinHorizontal(
 		lipgloss.Center,
 		notificationStyle.Render(notification),
-		logInfo,
 	)
 }
 
 func (m model) View() string {
 	var j JobSpec
-	if _, ok := m.state.Jobs[m.choice]; ok {
+
+	_, ok := m.state.Jobs[m.choice]
+	switch {
+	case ok:
 		j = *m.state.Jobs[m.choice]
-	} else {
+	case m.choice == coreLogFile:
+		j = JobSpec{Name: "core logs"}
+		m.list.Select(-1)
+	default:
 		j = JobSpec{}
 	}
 
-	refresh := faintStyle.Align(lipgloss.Right).Render("(r)efresh")
+	refresh := faintStyle.Align(lipgloss.Right).Render("(c)ore logs  (r)efresh")
 	title := titleStyle.Width(m.width - lipgloss.Width(refresh)).Render("cheek |_|>")
 	header := lipgloss.JoinHorizontal(lipgloss.Left, title, refresh)
 
@@ -299,7 +320,6 @@ func TUI(log zerolog.Logger, scheduleFile string) {
 	}
 	serverPort = viper.GetString("port")
 	yamlFile = scheduleFile
-	logger = log
 	// init schedule schedule
 	schedule := &Schedule{}
 	if err := schedule.getSchedule(scheduleFile); err != nil {

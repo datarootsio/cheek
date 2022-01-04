@@ -150,11 +150,15 @@ func (j *JobSpec) execCommand(trigger string) JobRun {
 
 	err := cmd.Start()
 	if err != nil {
-		w.Write([]byte(fmt.Sprintf("Job unable to start: %v", err.Error())))
 		if !suppressLogs {
 			fmt.Println(err.Error())
 		}
 		j.log.Warn().Str("job", j.Name).Err(err).Msg("Job unable to start")
+
+		_, err = w.Write([]byte(fmt.Sprintf("Job unable to start: %v", err.Error())))
+		if err != nil {
+			j.log.Debug().Err(err).Msg("can't write to log buffer")
+		}
 
 		return jr
 	}
