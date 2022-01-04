@@ -109,7 +109,7 @@ func (j *JobSpec) execCommand(trigger string) JobRun {
 		go func() {
 			_, err := ET{}.PhoneHome(j.cfg.PhoneHomeUrl)
 			if err != nil {
-				j.log.Debug().Str("telemetry", "ET").Err(err).Msg("cannot phone home")
+				j.log.Debug().Str("job", j.Name).Str("telemetry", "ET").Err(err).Msg("cannot phone home")
 			}
 		}()
 	}
@@ -157,7 +157,7 @@ func (j *JobSpec) execCommand(trigger string) JobRun {
 
 		_, err = w.Write([]byte(fmt.Sprintf("Job unable to start: %v", err.Error())))
 		if err != nil {
-			j.log.Debug().Err(err).Msg("can't write to log buffer")
+			j.log.Debug().Str("job", j.Name).Err(err).Msg("can't write to log buffer")
 		}
 
 		return jr
