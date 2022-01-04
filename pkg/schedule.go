@@ -19,6 +19,7 @@ import (
 // Schedule defines specs of a job schedule.
 type Schedule struct {
 	Jobs map[string]*JobSpec `yaml:"jobs" json:"jobs"`
+	logs string
 	log  zerolog.Logger
 	cfg  Config
 }

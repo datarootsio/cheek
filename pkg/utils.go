@@ -8,11 +8,14 @@ import (
 	"os"
 	"os/user"
 	"path"
+	"strings"
 	"sync"
 
 	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
 )
+
+const coreLogFile string = "core.cheek.jsonl"
 
 type Config struct {
 	Pretty       bool   `yaml:"pretty"`
@@ -71,6 +74,27 @@ func readLastJobRuns(log zerolog.Logger, filepath string, nRuns int) ([]JobRun, 
 	}
 
 	return jrs, nil
+}
+
+func readFormattedCoreLogs() (string, error) {
+	logs, err := readLastLines(path.Join(CheekPath(), coreLogFile), 60)
+	if err != nil {
+		return "", err
+	}
+
+	var logsBuilder strings.Builder
+	prettyPrint := zerolog.ConsoleWriter{
+		Out: &logsBuilder,
+	}
+
+	for _, l := range logs {
+		_, err = prettyPrint.Write([]byte(l))
+		if err != nil {
+			return "", err
+		}
+	}
+
+	return logsBuilder.String(), nil
 }
 
 func readLastLines(filepath string, nLines int) ([]string, error) {
@@ -165,30 +189,30 @@ func (b *tsBuffer) Reset() {
 	b.b.Reset()
 }
 
-// Configures the package's global logger, also allows to pass in custom writers for
-// testing purposes.
-func NewLogger(prettyLog bool, logLevel string, extraWriters ...io.Writer) zerolog.Logger {
-	var multi zerolog.LevelWriter
+func PrettyStdout() io.Writer {
+	return zerolog.ConsoleWriter{Out: os.Stdout}
+}
 
-	const logFile string = "core.cheek.jsonl"
-	logFn := path.Join(CheekPath(), logFile)
+func CoreJsonLogger() io.Writer {
+	logFn := path.Join(CheekPath(), coreLogFile)
 
 	f, err := os.OpenFile(logFn,
 		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 	if err != nil {
-		fmt.Printf("Can't open log file '%s' for writing.", logFile)
+		fmt.Printf("Can't open log file '%s' for writing.", coreLogFile)
 		os.Exit(1)
 	}
+	return f
+}
+
+// Configures the package's global logger, also allows to pass in custom writers for
+// testing purposes.
+func NewLogger(logLevel string, extraWriters ...io.Writer) zerolog.Logger {
+	var multi zerolog.LevelWriter
 
 	var loggers []io.Writer
-	loggers = append(loggers, f)
+	loggers = append(loggers, CoreJsonLogger())
 	loggers = append(loggers, extraWriters...)
-
-	if prettyLog {
-		loggers = append(loggers, zerolog.ConsoleWriter{Out: os.Stdout})
-	} else {
-		loggers = append(loggers, os.Stdout)
-	}
 
 	multi = zerolog.MultiLevelWriter(loggers...)
 	level, err := zerolog.ParseLevel(logLevel)

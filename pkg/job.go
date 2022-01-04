@@ -1,7 +1,7 @@
 package cheek
 
 import (
-	"bufio"
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -41,7 +41,8 @@ type JobSpec struct {
 
 // JobRun holds information about a job execution.
 type JobRun struct {
-	Status      int       `json:"status"`
+	Status      int `json:"status"`
+	logBuf      bytes.Buffer
 	Log         string    `json:"log"`
 	Name        string    `json:"name"`
 	TriggeredAt time.Time `json:"triggered_at"`
@@ -50,14 +51,8 @@ type JobRun struct {
 	jobRef      *JobSpec
 }
 
-func (j *JobSpec) loadRuns() {
-	const nRuns int = 30
-	logFn := path.Join(CheekPath(), fmt.Sprintf("%s.job.jsonl", j.Name))
-	jrs, err := readLastJobRuns(j.log, logFn, nRuns)
-	if err != nil {
-		j.log.Warn().Str("job", j.Name).Err(err).Msgf("could not load job logs from '%s'", logFn)
-	}
-	j.runs = jrs
+func (jr *JobRun) Close() {
+	jr.Log = jr.logBuf.String()
 }
 
 func (j *JobRun) logToDisk() {
@@ -103,7 +98,12 @@ func (j *JobSpec) execCommand(trigger string) JobRun {
 	j.log.Info().Str("job", j.Name).Str("trigger", trigger).Msgf("Job triggered")
 	// init status to non-zero until execution says otherwise
 	jr := JobRun{Name: j.Name, TriggeredAt: time.Now(), TriggeredBy: trigger, Status: -1, jobRef: j}
+
 	suppressLogs := j.cfg.SuppressLogs
+
+	defer j.OnEvent(&jr, suppressLogs)
+	defer jr.logToDisk()
+	defer jr.Close()
 
 	if j.cfg.Telemetry {
 		go func() {
@@ -114,15 +114,12 @@ func (j *JobSpec) execCommand(trigger string) JobRun {
 		}()
 	}
 
-	defer jr.logToDisk()
-	defer j.OnEvent(&jr, suppressLogs)
-
 	var cmd *exec.Cmd
 	switch len(j.Command) {
 	case 0:
 		err := errors.New("no command specified")
 		jr.Log = fmt.Sprintf("Job unable to start: %v", err.Error())
-		j.log.Warn().Str("job", j.Name).Err(err).Msgf("Job unable to start")
+		j.log.Warn().Str("job", j.Name).Err(err).Msg("Job unable to start")
 		if !suppressLogs {
 			fmt.Println(err.Error())
 		}
@@ -133,35 +130,37 @@ func (j *JobSpec) execCommand(trigger string) JobRun {
 		cmd = exec.Command(j.Command[0], j.Command[1:]...)
 	}
 
-	outPipe, _ := cmd.StdoutPipe()
-	errPipe, _ := cmd.StderrPipe()
-
 	// add env vars
 	cmd.Env = os.Environ()
 	for k, v := range j.Env {
 		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", k, v))
 	}
 
+	var w io.Writer
+	switch j.cfg.SuppressLogs {
+	case true:
+		w = &jr.logBuf
+	default:
+		w = io.MultiWriter(os.Stdout, &jr.logBuf)
+	}
+
+	// merge stdout and stderr to same writer
+	cmd.Stdout = w
+	cmd.Stderr = w
+
 	err := cmd.Start()
 	if err != nil {
-		jr.Log = fmt.Sprintf("Job unable to start: %v", err.Error())
 		if !suppressLogs {
 			fmt.Println(err.Error())
 		}
-		j.log.Warn().Str("job", j.Name).Err(err).Msgf("Job unable to start")
-		return jr
-	}
+		j.log.Warn().Str("job", j.Name).Err(err).Msg("Job unable to start")
 
-	merged := io.MultiReader(outPipe, errPipe)
-	reader := bufio.NewReader(merged)
-	line, err := reader.ReadString('\n')
-
-	for err == nil {
-		if !suppressLogs {
-			fmt.Print(line)
+		_, err = w.Write([]byte(fmt.Sprintf("Job unable to start: %v", err.Error())))
+		if err != nil {
+			j.log.Debug().Err(err).Msg("can't write to log buffer")
 		}
-		jr.Log += line
-		line, err = reader.ReadString('\n')
+
+		return jr
 	}
 
 	if err := cmd.Wait(); err != nil {
@@ -169,12 +168,23 @@ func (j *JobSpec) execCommand(trigger string) JobRun {
 			jr.Status = exitError.ExitCode()
 			j.log.Warn().Str("job", j.Name).Msgf("Exit code %v", exitError.ExitCode())
 		}
+
 		return jr
 	}
 
 	jr.Status = 0
 
 	return jr
+}
+
+func (j *JobSpec) loadRuns() {
+	const nRuns int = 30
+	logFn := path.Join(CheekPath(), fmt.Sprintf("%s.job.jsonl", j.Name))
+	jrs, err := readLastJobRuns(j.log, logFn, nRuns)
+	if err != nil {
+		j.log.Warn().Str("job", j.Name).Err(err).Msgf("could not load job logs from '%s'", logFn)
+	}
+	j.runs = jrs
 }
 
 func (j *JobSpec) ValidateCron() error {
@@ -188,8 +198,17 @@ func (j *JobSpec) ValidateCron() error {
 }
 
 func (j *JobSpec) OnEvent(jr *JobRun, suppressLogs bool) {
-	// trigger jobs
-	jobsToTrigger := append(j.OnError.TriggerJob, j.OnSuccess.TriggerJob...)
+	var jobsToTrigger []string
+	var webhooksToCall []string
+
+	switch jr.Status == 0 {
+	case true: // after success
+		jobsToTrigger = j.OnSuccess.TriggerJob
+		webhooksToCall = j.OnSuccess.NotifyWebhook
+	case false: // after error
+		jobsToTrigger = j.OnError.TriggerJob
+		webhooksToCall = j.OnError.NotifyWebhook
+	}
 
 	for _, tn := range jobsToTrigger {
 		tj := j.globalSchedule.Jobs[tn]
@@ -198,8 +217,6 @@ func (j *JobSpec) OnEvent(jr *JobRun, suppressLogs bool) {
 			tj.execCommandWithRetry(fmt.Sprintf("job[%s]", j.Name))
 		}()
 	}
-
-	webhooksToCall := append(j.OnError.NotifyWebhook, j.OnSuccess.NotifyWebhook...)
 
 	// trigger webhooks
 	for _, wu := range webhooksToCall {

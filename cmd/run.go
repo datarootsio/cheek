@@ -28,7 +28,7 @@ var runCmd = &cobra.Command{
 			fmt.Println("cannot init configuration")
 			os.Exit(1)
 		}
-		l := cheek.NewLogger(pretty, logLevel)
+		l := cheek.NewLogger(logLevel, cheek.PrettyStdout())
 		cheek.RunSchedule(l, c, args[0])
 	},
 }
