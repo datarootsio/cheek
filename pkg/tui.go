@@ -167,13 +167,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.height = msg.Height
 		m.width = msg.Width
-
 		m.viewport = viewport.Model{Width: msg.Width - listWidth, Height: msg.Height - headerHeight - footerHeight - 3}
 		if !m.ready {
 			m.viewport.SetContent("")
 			m.ready = true
 		}
-
 		m.list.SetHeight(msg.Height - footerHeight - headerHeight)
 
 	case tea.KeyMsg:

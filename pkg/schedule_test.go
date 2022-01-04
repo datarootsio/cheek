@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 )
@@ -31,7 +30,6 @@ func TestScheduleRun(t *testing.T) {
 	}
 
 	time.Sleep(1 * time.Second)
-	spew.Dump(b.String())
 	assert.Contains(t, b.String(), "Job triggered")
 	assert.Contains(t, b.String(), "interrupt signal received")
 
