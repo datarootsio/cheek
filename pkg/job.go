@@ -206,9 +206,17 @@ func (j *JobSpec) OnEvent(jr *JobRun, suppressLogs bool) {
 	case true: // after success
 		jobsToTrigger = j.OnSuccess.TriggerJob
 		webhooksToCall = j.OnSuccess.NotifyWebhook
+		if j.globalSchedule != nil {
+			jobsToTrigger = append(jobsToTrigger, j.globalSchedule.OnSuccess.TriggerJob...)
+			webhooksToCall = append(webhooksToCall, j.globalSchedule.OnSuccess.NotifyWebhook...)
+		}
 	case false: // after error
 		jobsToTrigger = j.OnError.TriggerJob
 		webhooksToCall = j.OnError.NotifyWebhook
+		if j.globalSchedule != nil {
+			jobsToTrigger = append(jobsToTrigger, j.globalSchedule.OnError.TriggerJob...)
+			webhooksToCall = append(webhooksToCall, j.globalSchedule.OnError.NotifyWebhook...)
+		}
 	}
 
 	var wg sync.WaitGroup

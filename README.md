@@ -85,6 +85,26 @@ All configuration options are available by checking out `cheek --help` or the he
 
 Configuration can be passed as flags to the `cheek` CLI directly. All configuration flags are also possible to set via environment variables. The following environment variables are available, they will override the default and/or set value of their similarly named CLI flags (without the prefix): `CHEEK_PORT`, `CHEEK_SUPPRESSLOGS`, `CHEEK_LOGLEVEL`, `CHEEK_PRETTY`, `CHEEK_HOMEDIR`, `CHEEK_NOTELEMETRY`.
 
+## Events
+
+There are two types of event you can hook into: `on_success` and `on_error`. Both events materialize after an (attempted) job run. Two types of actions can be taken as a response: `notify_webhook` and `trigger_job`. See the example below. Definition of these event actions can be done on job level or at schedule level, in the latter case it will apply to all jobs.
+
+```yaml
+on_success:
+  notify_webhook:
+    - https://webhook.site/e33464a3-1a4f-4f1a-99d3-743364c6b10f
+jobs:
+  coffee:
+    command: this fails # this will create on_error event
+    cron: "* * * * *"
+    on_error:
+      notify_webhook:
+        - https://webhook.site/e33464a3-1a4f-4f1a-99d3-743364c6b10f
+  beans:
+    command: echo grind # this will create on_success event
+    cron: "* * * * *"
+```
+
 ## Docker
 
 Check out the `Dockerfile` for an example on how to set up `cheek` within the context of a Docker image.

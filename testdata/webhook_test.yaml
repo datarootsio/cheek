@@ -2,7 +2,12 @@ jobs:
   coffee:
     command: this fails
     cron: "* * * * *"
-    retries: 3
     on_error:
       notify_webhook:
-        - https://webhook.site/4b732eb4-ba10-4a84-8f6b-30167b2f2762
+        - https://webhook.site/e33464a3-1a4f-4f1a-99d3-743364c6b10f
+  beans:
+    command: echo grind
+    cron: "* * * * *"
+on_success:
+  notify_webhook:
+    - https://webhook.site/e33464a3-1a4f-4f1a-99d3-743364c6b10f
