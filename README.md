@@ -105,6 +105,8 @@ jobs:
     cron: "* * * * *"
 ```
 
+Webhook are a generic way to push notifications to a plethora of tools. You can use it for instance via Zapier to push messages to a Slack channel.
+
 ## Docker
 
 Check out the `Dockerfile` for an example on how to set up `cheek` within the context of a Docker image.
