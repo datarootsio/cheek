@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"sync"
 	"time"
 
 	"github.com/adhocore/gronx"
@@ -210,25 +211,33 @@ func (j *JobSpec) OnEvent(jr *JobRun, suppressLogs bool) {
 		webhooksToCall = j.OnError.NotifyWebhook
 	}
 
+	var wg sync.WaitGroup
+
 	for _, tn := range jobsToTrigger {
 		tj := j.globalSchedule.Jobs[tn]
 		j.log.Debug().Str("job", j.Name).Str("on_event", "job_trigger").Msg("triggered by parent job")
-		go func() {
+		wg.Add(1)
+		go func(wg *sync.WaitGroup) {
+			defer wg.Done()
 			tj.execCommandWithRetry(fmt.Sprintf("job[%s]", j.Name))
-		}()
+		}(&wg)
 	}
 
 	// trigger webhooks
 	for _, wu := range webhooksToCall {
 		j.log.Debug().Str("job", j.Name).Str("on_event", "webhook_call").Msg("triggered by parent job")
-		go func(webhookURL string) {
+		wg.Add(1)
+		go func(wg *sync.WaitGroup, webhookURL string) {
+			defer wg.Done()
 			resp_body, err := JobRunWebhookCall(jr, webhookURL)
 			if err != nil {
 				j.log.Warn().Str("job", j.Name).Str("on_event", "webhook").Err(err).Msg("webhook notify failed")
 			}
 			j.log.Debug().Str("job", jr.Name).Str("webhook_call", "response").Str("webhook_url", webhookURL).Msg(string(resp_body))
-		}(wu)
+		}(&wg, wu)
 	}
+
+	wg.Wait() // this allows to wait for go routines when running just the job exec
 }
 
 // RunJob allows to run a specific job
