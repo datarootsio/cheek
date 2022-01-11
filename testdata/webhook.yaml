@@ -1,0 +1,9 @@
+jobs:
+  test:
+    cron: "* * * * *"
+    command: 
+      - echo
+      - foo
+    on_success:
+      notify_webhook: 
+        - "https://webhook.site/45bdd7ba-5b6b-42fe-a1bc-46964061ce52"
