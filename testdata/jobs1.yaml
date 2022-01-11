@@ -19,3 +19,5 @@ jobs:
     command: this fails
     cron: "* * * * *"
     retries: 3
+  string_command:
+    command: echo foo bar

@@ -11,7 +11,7 @@ import (
 
 // triggerCmd represents the trigger command
 var triggerCmd = &cobra.Command{
-	Use:   "trigger",
+	Use:   "trigger {schedule.yaml} {job_name}",
 	Short: "Trigger a specific job by name",
 	Long: `Trigger a specific job by name
 
