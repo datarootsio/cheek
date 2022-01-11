@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -65,7 +66,7 @@ func (a *stringArray) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		if err != nil {
 			return err
 		}
-		*a = []string{single}
+		*a = strings.Fields(single)
 	} else {
 		*a = multi
 	}

@@ -185,3 +185,36 @@ func TestJobRunInvalidSchedule(t *testing.T) {
 
 	assert.Error(t, s.Validate())
 }
+
+func TestStringArray(t *testing.T) {
+	type testCase struct {
+		yamlString         string
+		expectedStatus     int
+		expectedLogContent string
+	}
+
+	for _, scenario := range []testCase{
+		{
+			yamlString:     `command: echo foo`,
+			expectedStatus: 0, expectedLogContent: "foo",
+		},
+		{
+			yamlString: `command:
+- echo
+- foo`,
+			expectedStatus: 0, expectedLogContent: "foo",
+		},
+	} {
+		j := JobSpec{}
+		err := yaml.Unmarshal([]byte(scenario.yamlString), &j)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		j.cfg = NewConfig()
+		jr := j.execCommand("test")
+		jr.Close()
+		assert.Equal(t, jr.Status, scenario.expectedStatus)
+		assert.Contains(t, jr.Log, scenario.expectedLogContent)
+	}
+}
