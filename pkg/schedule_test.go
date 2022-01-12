@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 )
@@ -35,4 +36,30 @@ func TestScheduleRun(t *testing.T) {
 
 	// check that job gets triggered by other job
 	assert.Contains(t, b.String(), "\"trigger\":\"job[foo]")
+}
+
+func TestTZInfo(t *testing.T) {
+	s := Schedule{
+		Jobs:       map[string]*JobSpec{},
+		TZLocation: "Africa/Bangui",
+		log:        zerolog.Logger{},
+		cfg:        NewConfig(),
+	}
+	if err := s.Validate(); err != nil {
+		t.Fatal(err)
+	}
+	time1 := s.now()
+
+	s = Schedule{
+		Jobs:       map[string]*JobSpec{},
+		TZLocation: "Europe/Amsterdam",
+		log:        zerolog.Logger{},
+		cfg:        NewConfig(),
+	}
+	if err := s.Validate(); err != nil {
+		t.Fatal(err)
+	}
+
+	time2 := s.now()
+	assert.NotEqual(t, time1.Sub(time2).Hours(), 0.0)
 }

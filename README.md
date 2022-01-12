@@ -29,21 +29,19 @@ chmod +x cheek
 Create a schedule specification using the below YAML structure:
 
 ```yaml
+tz_location: Europe/Brussels
 jobs:
   foo:
     command: date
     cron: "* * * * *"
-    env:
-      my: env_var
-      another: var_in_env
     on_success:
       trigger_job:
         - bar
   bar:
     command:
-      - /bin/bash
-      - -c
-      - "echo bar_foo"
+      - echo
+      - bar
+      - foo
   coffee:
     command: this fails
     cron: "* * * * *"
@@ -54,6 +52,8 @@ jobs:
 ```
 
 If your `command` requires arguments, please make sure to pass them as an array like in `foo_job`.
+
+Note that you can set `tz_location` if the system time of where you run your service is not to your liking.
 
 ## Scheduler
 
