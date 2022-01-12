@@ -29,21 +29,19 @@ chmod +x cheek
 Create a schedule specification using the below YAML structure:
 
 ```yaml
+tz_location: Europe/Brussels
 jobs:
   foo:
     command: date
     cron: "* * * * *"
-    env:
-      my: env_var
-      another: var_in_env
     on_success:
       trigger_job:
         - bar
   bar:
     command:
-      - /bin/bash
-      - -c
-      - "echo bar_foo"
+      - echo
+      - bar
+      - foo
   coffee:
     command: this fails
     cron: "* * * * *"

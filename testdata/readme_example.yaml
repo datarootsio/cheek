@@ -1,3 +1,4 @@
+tz_location: Europe/Brussels
 jobs:
   foo:
     command: date
@@ -7,9 +8,9 @@ jobs:
         - bar
   bar:
     command:
-      - /bin/bash
-      - -c
-      - "echo bar_foo"
+      - echo
+      - bar
+      - foo
   coffee:
     command: this fails
     cron: "* * * * *"
