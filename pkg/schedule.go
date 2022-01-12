@@ -19,12 +19,14 @@ import (
 
 // Schedule defines specs of a job schedule.
 type Schedule struct {
-	Jobs      map[string]*JobSpec `yaml:"jobs" json:"jobs"`
-	OnSuccess OnEvent             `yaml:"on_success,omitempty" json:"on_success,omitempty"`
-	OnError   OnEvent             `yaml:"on_error,omitempty" json:"on_error,omitempty"`
-	logs      string
-	log       zerolog.Logger
-	cfg       Config
+	Jobs       map[string]*JobSpec `yaml:"jobs" json:"jobs"`
+	OnSuccess  OnEvent             `yaml:"on_success,omitempty" json:"on_success,omitempty"`
+	OnError    OnEvent             `yaml:"on_error,omitempty" json:"on_error,omitempty"`
+	TZLocation string              `yaml:"tz_location,omitempty" json:"tz_location,omitempty"`
+	loc        *time.Location
+	logs       string
+	log        zerolog.Logger
+	cfg        Config
 }
 
 // Run a Schedule based on its specs.
@@ -41,7 +43,7 @@ func (s *Schedule) Run() {
 				if j.Cron == "" {
 					continue
 				}
-				due, _ := gronx.IsDue(j.Cron)
+				due, _ := gronx.IsDue(j.Cron, s.now())
 
 				if due {
 					go func(j *JobSpec) {
@@ -111,8 +113,24 @@ func (s *Schedule) Validate() error {
 		if err := v.ValidateCron(); err != nil {
 			return err
 		}
+
 	}
+	// validate tz location
+	if s.TZLocation == "" {
+		s.TZLocation = "Local"
+	}
+
+	loc, err := time.LoadLocation(s.TZLocation)
+	if err != nil {
+		return err
+	}
+	s.loc = loc
+
 	return nil
+}
+
+func (s *Schedule) now() time.Time {
+	return time.Now().In(s.loc)
 }
 
 func loadSchedule(log zerolog.Logger, cfg Config, fn string) (Schedule, error) {
