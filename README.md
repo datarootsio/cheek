@@ -53,6 +53,8 @@ jobs:
 
 If your `command` requires arguments, please make sure to pass them as an array like in `foo_job`.
 
+Note that you can set `tz_location` if the system time of where you run your service is not to your liking.
+
 ## Scheduler
 
 The core of `cheek` consists of a scheduler that uses a schedule specified in a `yaml` file to triggers jobs when they are due.
