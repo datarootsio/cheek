@@ -30,22 +30,25 @@ jobs:
         with:
           files: ./cover.out
 
-  version-tag:
+  version_tag:
     needs: tests
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
+    outputs:
+      new_tag: ${{ steps.tag_action.outputs.new_tag }}
     steps:
       - uses: actions/checkout@v2
         with:
           fetch-depth: '0'
       - name: Bump version and push tag
+        id: tag_action
         uses: anothrNick/github-tag-action@1.36.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           WITH_V: true
 
   build:
-    needs: version-tag
+    needs: version_tag
     runs-on: ubuntu-latest
     ## need decent versioning strategy in future
     if: github.ref == 'refs/heads/main'
@@ -70,6 +73,7 @@ jobs:
       - run: mkdir -p ${{ matrix.goos }}/${{ matrix.goarch }}
       - run: env GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -ldflags="-X 'github.com/datarootsio/cheek/pkg.Version=${{ steps.vars.outputs.sha_short }}'" -o ${{ matrix.goos }}/${{ matrix.goarch }}
       - run: cp ${{ matrix.goos }}/${{ matrix.goarch }}/cheek ${{ matrix.goos }}/${{ matrix.goarch }}/cheek-${{ steps.vars.outputs.sha_short }}
+      - run: cp ${{ matrix.goos }}/${{ matrix.goarch }}/cheek ${{ matrix.goos }}/${{ matrix.goarch }}/cheek- ${{ needs.version_tag.outputs.new_tag }}
       ## upload binary to google storage
       - id: auth
         uses: google-github-actions/auth@v0.4.4
