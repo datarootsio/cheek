@@ -3,7 +3,7 @@ module github.com/datarootsio/cheek
 go 1.17
 
 require (
-	github.com/charmbracelet/bubbles v0.9.0
+	github.com/charmbracelet/bubbles v0.10.0
 	github.com/stretchr/testify v1.7.0
 )
 
