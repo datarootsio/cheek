@@ -1,13 +1,14 @@
 name: ci
 on: 
   push:
-  pull_request:
 
 jobs:
   tests:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+        with:
+          fetch-depth: '0'
       - uses: actions/setup-go@v2
         with:
           go-version: "^1.16"
@@ -29,8 +30,22 @@ jobs:
         with:
           files: ./cover.out
 
-  build:
+  version-tag:
     needs: tests
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: '0'
+      - name: Bump version and push tag
+        uses: anothrNick/github-tag-action@1.36.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          WITH_V: true
+
+  build:
+    needs: version-tag
     runs-on: ubuntu-latest
     ## need decent versioning strategy in future
     if: github.ref == 'refs/heads/main'
@@ -43,6 +58,8 @@ jobs:
             goos: darwin
     steps:
       - uses: actions/checkout@v2
+        with:
+          fetch-depth: '0'
       - uses: actions/setup-go@v2
         with:
           go-version: "^1.16"
