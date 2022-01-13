@@ -2,6 +2,7 @@
 
 # cheek
 
+![GitHub tag (latest SemVer)](https://img.shields.io/github/v/tag/datarootsio/cheek?label=version)
 [![dataroots](https://dataroots.io/maintained.svg)](https://dataroots.io/) [![codecov](https://codecov.io/gh/datarootsio/cheek/branch/main/graph/badge.svg?token=011KCCGPE6)](https://codecov.io/gh/datarootsio/cheek) ![example workflow](https://github.com/datarootsio/cheek/actions/workflows/ci.yml/badge.svg) [![Go Report Card](https://goreportcard.com/badge/github.com/datarootsio/cheek)](https://goreportcard.com/report/github.com/datarootsio/cheek) [![Go Reference](https://pkg.go.dev/badge/github.com/datarootsio/cheek.svg)](https://pkg.go.dev/github.com/datarootsio/cheek) ![triggers](https://img.shields.io/badge/dynamic/json?color=blueviolet&label=jobs-triggered&query=%24.triggered&url=https%3A%2F%2Fapi.dataroots.io%2Fv1%2Fcheek%2Ftriggered&style=flat-square)
 
 `cheek`, of course, stands for `C`rontab-like sc`H`eduler for `E`ffective `E`xecution of tas`K`s. `cheek` is a KISS approach to crontab-like job scheduling. It was born out of a (/my?) frustration about the big gap between a lightweight crontab and full-fledged solutions like Airflow.
