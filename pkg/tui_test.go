@@ -6,6 +6,7 @@ import (
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rs/zerolog"
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -36,11 +37,13 @@ func TestUIBasics(t *testing.T) {
 
 func TestJobView(t *testing.T) {
 	// add a bit of history
-	j := JobSpec{Command: []string{"echo", "foo"}}
+	j := JobSpec{Command: []string{"echo", "foo"}, Name: "blaat"}
 	jr := j.execCommand("testrun")
 	j.finalize(&jr)
 	j.runs = append(j.runs, jr)
 	assert.Contains(t, j.view(120), "foo")
+
+	assert.Contains(t, j.getTitle(), j.Name)
 }
 
 func TestRefreshState(t *testing.T) {
@@ -53,4 +56,12 @@ func TestRefreshState(t *testing.T) {
 	n = refreshState()
 
 	assert.IsType(t, &Schedule{}, n)
+}
+
+func TestUIEntrypoint(t *testing.T) {
+	viper.Set("port", 9999)
+	err := TUI(zerolog.Logger{}, "../testdata/jobs1.yaml")
+
+	// should execute correctly until starts complaining about interface
+	assert.Error(t, err, "device not configured")
 }
