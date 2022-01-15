@@ -176,8 +176,8 @@ func server(s *Schedule) {
 }
 
 // RunSchedule is the main entry entrypoint of cheek.
-func RunSchedule(log zerolog.Logger, cfg Config, fn string) {
-	s, err := loadSchedule(log, cfg, fn)
+func RunSchedule(log zerolog.Logger, cfg Config, scheduleFn string) {
+	s, err := loadSchedule(log, cfg, scheduleFn)
 	if err != nil {
 		fmt.Printf("error loading schedule: %s\n", err)
 		os.Exit(1)

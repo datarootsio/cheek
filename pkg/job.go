@@ -52,7 +52,7 @@ type JobRun struct {
 	jobRef      *JobSpec
 }
 
-func (jr *JobRun) Close() {
+func (jr *JobRun) flushLogBuffer() {
 	jr.Log = jr.logBuf.String()
 }
 
@@ -71,6 +71,15 @@ func (j *JobRun) logToDisk() {
 	}
 }
 
+func (j *JobSpec) finalize(jr *JobRun) {
+	// flush logbuf to string
+	jr.flushLogBuffer()
+	// write logs to disk
+	jr.logToDisk()
+	// launch on_events
+	j.OnEvent(jr)
+}
+
 func (j *JobSpec) execCommandWithRetry(trigger string) {
 	tries := 0
 	var jr JobRun
@@ -84,6 +93,9 @@ func (j *JobSpec) execCommandWithRetry(trigger string) {
 		default:
 			jr = j.execCommand(fmt.Sprintf("%s[retry=%v]", trigger, tries))
 		}
+
+		// finalise logging etc
+		j.finalize(&jr)
 
 		if jr.Status == 0 {
 			break
@@ -101,10 +113,6 @@ func (j *JobSpec) execCommand(trigger string) JobRun {
 	jr := JobRun{Name: j.Name, TriggeredAt: time.Now(), TriggeredBy: trigger, Status: -1, jobRef: j}
 
 	suppressLogs := j.cfg.SuppressLogs
-
-	defer j.OnEvent(&jr, suppressLogs)
-	defer jr.logToDisk()
-	defer jr.Close()
 
 	if j.cfg.Telemetry {
 		go func() {
@@ -198,7 +206,7 @@ func (j *JobSpec) ValidateCron() error {
 	return nil
 }
 
-func (j *JobSpec) OnEvent(jr *JobRun, suppressLogs bool) {
+func (j *JobSpec) OnEvent(jr *JobRun) {
 	var jobsToTrigger []string
 	var webhooksToCall []string
 
@@ -249,17 +257,20 @@ func (j *JobSpec) OnEvent(jr *JobRun, suppressLogs bool) {
 }
 
 // RunJob allows to run a specific job
-func RunJob(log zerolog.Logger, cfg Config, fn string, jobName string) {
-	s, err := loadSchedule(log, cfg, fn)
+func RunJob(log zerolog.Logger, cfg Config, scheduleFn string, jobName string) JobRun {
+	s, err := loadSchedule(log, cfg, scheduleFn)
 	if err != nil {
 		fmt.Printf("error loading schedule: %s\n", err)
 		os.Exit(1)
 	}
 	for _, job := range s.Jobs {
 		if job.Name == jobName {
-			job.execCommand("manual")
-			return
+			jr := job.execCommand("manual")
+			job.finalize(&jr)
+			return jr
 		}
 	}
+
 	log.Fatal().Msg("Cannot find job")
+	return JobRun{}
 }
