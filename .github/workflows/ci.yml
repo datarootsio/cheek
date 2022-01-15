@@ -3,6 +3,17 @@ on:
   push:
 
 jobs:
+  golangci:
+    runs-on: ubuntu-latest
+      steps: 
+        - uses: actions/checkout@v2
+          with:
+            fetch-depth: '0'
+        - uses: actions/setup-go@v2
+          with:
+            go-version: "^1.16"
+        - uses: golangci/golangci-lint-action@v2
+
   tests:
     runs-on: ubuntu-latest
     steps:
@@ -17,9 +28,6 @@ jobs:
         run: test -z $(gofumpt -l .)
       - name: run go vet
         run: go vet ./...
-      - uses: golangci/golangci-lint-action@v2
-      - name: golangci-lint
-        run: golangci-lint run ./...
       - name: staticcheck install
         run: go install honnef.co/go/tools/cmd/staticcheck@latest
       - name: run staticcheck
@@ -31,7 +39,9 @@ jobs:
           files: ./cover.out
 
   version_tag:
-    needs: tests
+    needs: 
+      - tests
+      - golangci
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
     outputs:
