@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestPhoneHome(t *testing.T) {
@@ -28,4 +30,10 @@ func TestPhoneHome(t *testing.T) {
 		// no error means success
 		t.Fatal(err)
 	}
+
+	_, err = et.PhoneHome("http://non-existtant-host")
+	assert.Error(t, err)
+
+	_, err = et.PhoneHome("httx://non-existtant-protocol")
+	assert.Error(t, err)
 }

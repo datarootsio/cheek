@@ -1,7 +1,12 @@
 package cheek
 
 import (
+	"fmt"
+	"io"
 	"log"
+	"net/http"
+	"net/http/httptest"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -16,7 +21,8 @@ func TestLoadLogs(t *testing.T) {
 		cfg:     NewConfig(),
 	}
 
-	j.execCommand("test")
+	jr := j.execCommand("test")
+	jr.logToDisk()
 
 	// log loading goes on job name basis
 	// let's recreate
@@ -102,7 +108,7 @@ env:
 
 	jr := j.execCommand("test")
 
-	jr.Close()
+	jr.flushLogBuffer()
 
 	assert.Contains(t, jr.Log, "foo=bar")
 }
@@ -120,7 +126,7 @@ func TestStdErrOut(t *testing.T) {
 	}
 
 	jr := j.execCommand("test")
-	jr.Close() // hard close, might not run deferred in testing
+	jr.flushLogBuffer()
 	assert.Contains(t, jr.Log, "stdout")
 	assert.Contains(t, jr.Log, "stderr")
 }
@@ -138,7 +144,7 @@ func TestFailingLog(t *testing.T) {
 	}
 
 	jr := j.execCommand("test")
-	jr.Close() // hard close, might not run deferred in testing
+	jr.flushLogBuffer()
 	assert.Contains(t, jr.Log, "this fails")
 }
 
@@ -186,6 +192,31 @@ func TestJobRunInvalidSchedule(t *testing.T) {
 	assert.Error(t, s.Validate())
 }
 
+func TestOnEventWebhook(t *testing.T) {
+	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer r.Body.Close()
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		}
+		// mirror this
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprintln(w, string(body))
+	}))
+
+	defer testServer.Close()
+
+	j := &JobSpec{
+		Command: []string{"echo"},
+		cfg:     NewConfig(),
+		OnSuccess: OnEvent{
+			NotifyWebhook: []string{testServer.URL},
+		},
+	}
+	jr := j.execCommand("test")
+	j.OnEvent(&jr)
+}
+
 func TestStringArray(t *testing.T) {
 	type testCase struct {
 		yamlString         string
@@ -213,8 +244,20 @@ func TestStringArray(t *testing.T) {
 
 		j.cfg = NewConfig()
 		jr := j.execCommand("test")
-		jr.Close()
+
+		jr.flushLogBuffer()
 		assert.Equal(t, jr.Status, scenario.expectedStatus)
 		assert.Contains(t, jr.Log, scenario.expectedLogContent)
 	}
+}
+
+func TestStandaloneJobRun(t *testing.T) {
+	b := new(tsBuffer)
+	log := NewLogger("debug", b, os.Stdout)
+	cfg := NewConfig()
+
+	jr, err := RunJob(log, cfg, "../testdata/jobs1.yaml", "bar")
+	assert.NoError(t, err)
+	assert.Contains(t, b.String(), "\"job\":\"bar\",\"trigger\":\"manual\"")
+	assert.Contains(t, jr.Log, "bar_foo")
 }

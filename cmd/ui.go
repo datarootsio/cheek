@@ -17,10 +17,10 @@ By default the UI will communicate with the scheduler to receive the latest stat
 
 Alternatively, the '-schedule' flag allows you to provide a path to the specs YAML. These will be used as backup if the scheduler is not reachable.
 `,
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		// TODO: allow user to define log level
 		log := cheek.NewLogger("debug")
-		cheek.TUI(log, yamlFile)
+		return (cheek.TUI(log, yamlFile))
 	},
 }
 
