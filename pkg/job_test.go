@@ -21,7 +21,8 @@ func TestLoadLogs(t *testing.T) {
 		cfg:     NewConfig(),
 	}
 
-	j.execCommand("test")
+	jr := j.execCommand("test")
+	jr.logToDisk()
 
 	// log loading goes on job name basis
 	// let's recreate
