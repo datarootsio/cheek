@@ -27,4 +27,30 @@ func TestUIBasics(t *testing.T) {
 
 	// assert another always on screen value
 	assert.Contains(t, tm.View(), "efresh")
+
+	// test a job view
+	j, ok := s.Jobs["bar"]
+	assert.True(t, ok)
+	assert.Contains(t, j.view(40), "no run history")
+}
+
+func TestJobView(t *testing.T) {
+	// add a bit of history
+	j := JobSpec{Command: []string{"echo", "foo"}}
+	jr := j.execCommand("testrun")
+	j.finalize(&jr)
+	j.runs = append(j.runs, jr)
+	assert.Contains(t, j.view(120), "foo")
+}
+
+func TestRefreshState(t *testing.T) {
+	n := refreshState()
+	assert.IsType(t, notification{}, n)
+	assert.Contains(t, n.(notification).content, "Can't refresh")
+
+	// provide path to schedule
+	yamlFile = "../testdata/jobs1.yaml"
+	n = refreshState()
+
+	assert.IsType(t, &Schedule{}, n)
 }

@@ -2,9 +2,9 @@ package cheek
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
-	"os"
 	"sort"
 	"strings"
 	"time"
@@ -311,18 +311,16 @@ func (s *Schedule) getSchedule(scheduleFile string) error {
 }
 
 // TUI is the main entrypoint for the cheek ui.
-func TUI(log zerolog.Logger, scheduleFile string) {
+func TUI(log zerolog.Logger, scheduleFile string) error {
 	if !viper.IsSet("port") {
-		fmt.Println("port value not found and no default set")
-		os.Exit(1)
+		return errors.New("port value not found and no default set")
 	}
 	serverPort = viper.GetString("port")
 	yamlFile = scheduleFile
 	// init schedule schedule
 	schedule := &Schedule{}
 	if err := schedule.getSchedule(scheduleFile); err != nil {
-		fmt.Println(err.Error())
-		os.Exit(1)
+		return err
 	}
 
 	items := []list.Item{}
@@ -339,7 +337,7 @@ func TUI(log zerolog.Logger, scheduleFile string) {
 	m := model{list: l, state: schedule, listFocus: true}
 
 	if err := tea.NewProgram(m, tea.WithAltScreen(), tea.WithMouseCellMotion()).Start(); err != nil {
-		fmt.Println("Error running program:", err)
-		os.Exit(1)
+		return err
 	}
+	return nil
 }
