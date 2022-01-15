@@ -19,14 +19,15 @@ The name should be defined in your schedule specs. Usage:
 'cheek trigger my_schedule.yaml my_job'
 `,
 	Args: cobra.ExactArgs(2),
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		c := cheek.NewConfig()
 		if err := viper.Unmarshal(&c); err != nil {
 			fmt.Println("cannot init configuration")
 			os.Exit(1)
 		}
 		l := cheek.NewLogger(logLevel, cheek.PrettyStdout())
-		cheek.RunJob(l, c, args[0], args[1])
+		_, err := cheek.RunJob(l, c, args[0], args[1])
+		return err
 	},
 }
 
