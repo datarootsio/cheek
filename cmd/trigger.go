@@ -1,9 +1,6 @@
 package cmd
 
 import (
-	"fmt"
-	"os"
-
 	cheek "github.com/datarootsio/cheek/pkg"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -22,8 +19,7 @@ The name should be defined in your schedule specs. Usage:
 	RunE: func(cmd *cobra.Command, args []string) error {
 		c := cheek.NewConfig()
 		if err := viper.Unmarshal(&c); err != nil {
-			fmt.Println("cannot init configuration")
-			os.Exit(1)
+			return err
 		}
 		l := cheek.NewLogger(logLevel, cheek.PrettyStdout())
 		_, err := cheek.RunJob(l, c, args[0], args[1])

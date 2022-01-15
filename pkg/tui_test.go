@@ -23,8 +23,12 @@ func TestUIBasics(t *testing.T) {
 	// just some simple assertions for now
 	assert.Contains(t, tm.View(), "cheek")
 
-	// try a key press
-	tm, _ = m.Update(tea.Key{Type: tea.KeyRunes, Runes: []rune("r")})
+	// try key presses
+	_, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("r")})
+	_, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("c")})
+	_, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("left")})
+	_, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("right")})
+	_, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("enter")})
 
 	// assert another always on screen value
 	assert.Contains(t, tm.View(), "efresh")
@@ -33,6 +37,13 @@ func TestUIBasics(t *testing.T) {
 	j, ok := s.Jobs["bar"]
 	assert.True(t, ok)
 	assert.Contains(t, j.view(40), "no run history")
+
+	// refresh state
+	yamlFile = "../testdata/jobs1.yaml"
+	n := refreshState()
+	assert.IsType(t, &Schedule{}, n)
+
+	m.Update(n)
 }
 
 func TestJobView(t *testing.T) {
@@ -47,6 +58,7 @@ func TestJobView(t *testing.T) {
 }
 
 func TestRefreshState(t *testing.T) {
+	yamlFile = ""
 	n := refreshState()
 	assert.IsType(t, notification{}, n)
 	assert.Contains(t, n.(notification).content, "Can't refresh")
