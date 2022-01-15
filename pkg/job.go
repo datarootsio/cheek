@@ -257,7 +257,7 @@ func (j *JobSpec) OnEvent(jr *JobRun) {
 }
 
 // RunJob allows to run a specific job
-func RunJob(log zerolog.Logger, cfg Config, scheduleFn string, jobName string) JobRun {
+func RunJob(log zerolog.Logger, cfg Config, scheduleFn string, jobName string) (JobRun, error) {
 	s, err := loadSchedule(log, cfg, scheduleFn)
 	if err != nil {
 		fmt.Printf("error loading schedule: %s\n", err)
@@ -267,10 +267,9 @@ func RunJob(log zerolog.Logger, cfg Config, scheduleFn string, jobName string) J
 		if job.Name == jobName {
 			jr := job.execCommand("manual")
 			job.finalize(&jr)
-			return jr
+			return jr, nil
 		}
 	}
 
-	log.Fatal().Msg("Cannot find job")
-	return JobRun{}
+	return JobRun{}, fmt.Errorf("cannot find job %s in schedule %s", jobName, scheduleFn)
 }

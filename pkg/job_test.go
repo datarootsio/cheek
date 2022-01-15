@@ -255,7 +255,8 @@ func TestStandaloneJobRun(t *testing.T) {
 	log := NewLogger("debug", b, os.Stdout)
 	cfg := NewConfig()
 
-	jr := RunJob(log, cfg, "../testdata/jobs1.yaml", "bar")
+	jr, err := RunJob(log, cfg, "../testdata/jobs1.yaml", "bar")
+	assert.NoError(t, err)
 	assert.Contains(t, b.String(), "\"job\":\"bar\",\"trigger\":\"manual\"")
 	assert.Contains(t, jr.Log, "bar_foo")
 }

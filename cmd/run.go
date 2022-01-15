@@ -22,14 +22,14 @@ var runCmd = &cobra.Command{
 	Short: "Schedule & run jobs",
 	Long:  "Schedule & run jobs",
 	Args:  cobra.ExactArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		c := cheek.NewConfig()
 		if err := viper.Unmarshal(&c); err != nil {
 			fmt.Println("cannot init configuration")
 			os.Exit(1)
 		}
 		l := cheek.NewLogger(logLevel, cheek.PrettyStdout())
-		cheek.RunSchedule(l, c, args[0])
+		return cheek.RunSchedule(l, c, args[0])
 	},
 }
 
