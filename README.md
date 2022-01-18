@@ -113,6 +113,20 @@ Webhook are a generic way to push notifications to a plethora of tools. You can 
 
 Check out the `Dockerfile` for an example on how to set up `cheek` within the context of a Docker image.
 
+## Available versions
+
+If you want to pin your setup to a specific version of `cheek` you can use the following template to fetch your `cheek` binary:
+
+- latest version: https://storage.googleapis.com/better-unified/{os}/{arch}/cheek
+- tagged version: https://storage.googleapis.com/better-unified/{os}/{arch}/cheek-{tag}
+- `main` branch builds: https://storage.googleapis.com/better-unified/{os}/{arch}/cheek-{shortsha}
+
+Where:
+- `os` is one of `linux`, `darwin`
+- `arch` is one of `amd64`, `arm64`, `386`
+- `tag` is one the [available tags](https://github.com/datarootsio/cheek/tags)
+- `shortsha` is a 7-char SHA and most commits on `main` will be available
+
 ## Usage stats
 
 By default `cheek` reports minimal usage stats. Each time a job is triggered a simple request that (only) contains your `cheek` version is send to our servers. Check out the exact implementation [here](https://github.com/datarootsio/cheek/blob/main/pkg/telemetry.go). Note that you can always opt-out of this by passing the `-no-telemetry` or `-n` flag.
