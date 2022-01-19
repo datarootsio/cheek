@@ -3,7 +3,7 @@ module github.com/datarootsio/cheek
 go 1.17
 
 require (
-	github.com/charmbracelet/bubbles v0.10.0
+	github.com/charmbracelet/bubbles v0.10.1
 	github.com/stretchr/testify v1.7.0
 )
 
@@ -30,7 +30,7 @@ require (
 )
 
 require (
-	github.com/atotto/clipboard v0.1.2 // indirect
+	github.com/atotto/clipboard v0.1.4 // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
