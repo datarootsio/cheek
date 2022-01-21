@@ -100,7 +100,7 @@ func (j *JobSpec) execCommandWithRetry(trigger string) {
 		if jr.Status == 0 {
 			break
 		}
-		j.log.Debug().Str("job", j.Name).Msgf("Job exited unsuccessfully, launching retry after %v timeout.", timeOut)
+		j.log.Debug().Str("job", j.Name).Int("exitcode", jr.Status).Msgf("job exited unsuccessfully, launching retry after %v timeout.", timeOut)
 		tries++
 		time.Sleep(timeOut)
 
@@ -162,9 +162,9 @@ func (j *JobSpec) execCommand(trigger string) JobRun {
 		if !suppressLogs {
 			fmt.Println(err.Error())
 		}
-		j.log.Warn().Str("job", j.Name).Err(err).Msg("Job unable to start")
-
-		_, err = w.Write([]byte(fmt.Sprintf("Job unable to start: %v", err.Error())))
+		j.log.Warn().Str("job", j.Name).Int("exitcode", jr.Status).Err(err).Msg("job unable to start")
+		// also send this to terminal output
+		_, err = w.Write([]byte(fmt.Sprintf("job unable to start: %v", err.Error())))
 		if err != nil {
 			j.log.Debug().Str("job", j.Name).Err(err).Msg("can't write to log buffer")
 		}
@@ -182,6 +182,7 @@ func (j *JobSpec) execCommand(trigger string) JobRun {
 	}
 
 	jr.Status = 0
+	j.log.Debug().Str("job", j.Name).Int("exitcode", jr.Status).Msgf("job exited status: %v", jr.Status)
 
 	return jr
 }
