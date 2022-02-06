@@ -1,28 +1,30 @@
 package cheek
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
+
+	"github.com/rs/zerolog/log"
 )
 
 type ET struct{}
 
 func (et ET) PhoneHome(phoneHomeUrl string) ([]byte, error) {
-	client := &http.Client{}
-	req, err := http.NewRequest("GET", phoneHomeUrl, nil)
+	values := map[string]string{"version": Version}
+	jsonBody, err := json.Marshal(values)
 	if err != nil {
 		return []byte{}, err
 	}
-	q := req.URL.Query()
-	q.Add("version", Version)
-	req.URL.RawQuery = q.Encode()
 
-	resp, err := client.Do(req)
+	resp, err := http.Post(phoneHomeUrl, "application/json", bytes.NewBuffer(jsonBody))
 	if err != nil {
 		return []byte{}, err
 	}
+
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
@@ -34,6 +36,7 @@ func (et ET) PhoneHome(phoneHomeUrl string) ([]byte, error) {
 	if err != nil {
 		return []byte{}, err
 	}
+	log.Debug().Str("telemetry", "ET").Msg("ET phoned home")
 
 	return resp_body, nil
 }

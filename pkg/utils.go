@@ -35,7 +35,7 @@ func NewConfig() Config {
 		HomeDir:      CheekPath(),
 		Port:         "8081",
 		Telemetry:    true,
-		PhoneHomeUrl: "https://api.dataroots.io/v1/cheek/ring",
+		PhoneHomeUrl: "https://api.phonehome.dev/datarootsio/cheek",
 	}
 }
 
