@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/charmbracelet/bubbles v0.10.2
-	github.com/stretchr/testify v1.7.0
+	github.com/stretchr/testify v1.7.1
 )
 
 require github.com/pmezard/go-difflib v1.0.0 // indirect
