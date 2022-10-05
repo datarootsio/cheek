@@ -6,7 +6,7 @@ jobs:
   golangci:
     runs-on: ubuntu-latest
     steps: 
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3.1.0
         with:
           fetch-depth: '0'
       - uses: actions/setup-go@v2
@@ -17,7 +17,7 @@ jobs:
   tests:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3.1.0
         with:
           fetch-depth: '0'
       - uses: actions/setup-go@v2
@@ -47,7 +47,7 @@ jobs:
     outputs:
       new_tag: ${{ steps.tag_action.outputs.new_tag }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3.1.0
         with:
           fetch-depth: '0'
       - name: Bump version and push tag
@@ -71,7 +71,7 @@ jobs:
           - goarch: "386"
             goos: darwin
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3.1.0
         with:
           fetch-depth: '0'
       - uses: actions/setup-go@v2
