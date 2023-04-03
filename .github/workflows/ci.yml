@@ -33,7 +33,7 @@ jobs:
       - name: run staticcheck
         run: staticcheck ./...
       - name: run tests
-        run: go test ./... -race -coverprofile=cover.out -covermode=atomic
+        run: go test ./... -timeout 120s -race -coverprofile=cover.out -covermode=atomic
       - uses: codecov/codecov-action@v2
         with:
           files: ./cover.out

@@ -336,7 +336,7 @@ func TUI(log zerolog.Logger, scheduleFile string) error {
 
 	m := model{list: l, state: schedule, listFocus: true}
 
-	if err := tea.NewProgram(m, tea.WithAltScreen(), tea.WithMouseCellMotion()).Start(); err != nil {
+	if _, err := tea.NewProgram(m, tea.WithAltScreen(), tea.WithMouseCellMotion()).Run(); err != nil {
 		return err
 	}
 	return nil
