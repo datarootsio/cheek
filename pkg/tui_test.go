@@ -16,7 +16,7 @@ func TestUIBasics(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := model{list: list.NewModel([]list.Item{}, list.NewDefaultDelegate(), listWidth, 10), state: &s, ready: false}
+	m := model{list: list.New([]list.Item{}, list.NewDefaultDelegate(), listWidth, 10), state: &s, ready: false}
 
 	// fetch initial model with dummy keymsg
 	tm, _ = m.Update(tea.WindowSizeMsg{Width: 30, Height: 20})

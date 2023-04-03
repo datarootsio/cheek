@@ -328,7 +328,7 @@ func TUI(log zerolog.Logger, scheduleFile string) error {
 	id.ShowDescription = false
 	id.SetSpacing(0)
 
-	l := list.NewModel(items, id, listWidth, 10)
+	l := list.New(items, id, listWidth, 10)
 	l.SetShowStatusBar(false)
 	l.SetFilteringEnabled(false)
 	l.SetShowHelp(false)
