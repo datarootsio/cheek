@@ -3,7 +3,7 @@ module github.com/datarootsio/cheek
 go 1.17
 
 require (
-	github.com/charmbracelet/bubbles v0.10.2
+	github.com/charmbracelet/bubbles v0.15.0
 	github.com/stretchr/testify v1.8.2
 )
 
@@ -18,7 +18,7 @@ require (
 require (
 	github.com/adhocore/gronx v0.2.6
 	github.com/charmbracelet/bubbletea v0.23.2
-	github.com/charmbracelet/lipgloss v0.4.0
+	github.com/charmbracelet/lipgloss v0.6.0
 	github.com/containerd/console v1.0.3 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
