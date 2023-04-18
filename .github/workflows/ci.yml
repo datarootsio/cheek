@@ -63,6 +63,8 @@ jobs:
     runs-on: ubuntu-latest
     ## need decent versioning strategy in future
     if: github.ref == 'refs/heads/main'
+    env:
+      CGO_ENABLED: 0
     strategy:
       matrix:
         goos: [linux, darwin]
@@ -80,7 +82,6 @@ jobs:
       ## above is fine to get latest for now, also save a copy with short sha
       - id: vars
         run: echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
-
       - run: mkdir -p ${{ matrix.goos }}/${{ matrix.goarch }}
       - run: env GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -ldflags="-X 'github.com/datarootsio/cheek/pkg.Version=${{ steps.vars.outputs.sha_short }}'" -o ${{ matrix.goos }}/${{ matrix.goarch }}
       - run: cp ${{ matrix.goos }}/${{ matrix.goarch }}/cheek ${{ matrix.goos }}/${{ matrix.goarch }}/cheek-${{ steps.vars.outputs.sha_short }}
