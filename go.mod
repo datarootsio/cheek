@@ -16,7 +16,7 @@ require (
 )
 
 require (
-	github.com/adhocore/gronx v0.2.6
+	github.com/adhocore/gronx v1.6.2
 	github.com/charmbracelet/bubbletea v0.23.2
 	github.com/charmbracelet/lipgloss v0.4.0
 	github.com/containerd/console v1.0.3 // indirect
