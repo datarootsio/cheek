@@ -114,15 +114,6 @@ func (j *JobSpec) execCommand(trigger string) JobRun {
 
 	suppressLogs := j.cfg.SuppressLogs
 
-	if j.cfg.Telemetry {
-		go func() {
-			_, err := ET{}.PhoneHome(j.cfg.PhoneHomeUrl)
-			if err != nil {
-				j.log.Debug().Str("job", j.Name).Str("telemetry", "ET").Err(err).Msg("cannot phone home")
-			}
-		}()
-	}
-
 	var cmd *exec.Cmd
 	switch len(j.Command) {
 	case 0:

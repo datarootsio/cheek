@@ -85,7 +85,7 @@ The UI allows to get a quick overview on jobs that have run, that error'd and th
 
 All configuration options are available by checking out `cheek --help` or the help of its subcommands (e.g. `cheek run --help`).
 
-Configuration can be passed as flags to the `cheek` CLI directly. All configuration flags are also possible to set via environment variables. The following environment variables are available, they will override the default and/or set value of their similarly named CLI flags (without the prefix): `CHEEK_PORT`, `CHEEK_SUPPRESSLOGS`, `CHEEK_LOGLEVEL`, `CHEEK_PRETTY`, `CHEEK_HOMEDIR`, `CHEEK_NOTELEMETRY`.
+Configuration can be passed as flags to the `cheek` CLI directly. All configuration flags are also possible to set via environment variables. The following environment variables are available, they will override the default and/or set value of their similarly named CLI flags (without the prefix): `CHEEK_PORT`, `CHEEK_SUPPRESSLOGS`, `CHEEK_LOGLEVEL`, `CHEEK_PRETTY`, `CHEEK_HOMEDIR`.
 
 ## Events
 
@@ -127,9 +127,6 @@ Where:
 - `tag` is one the [available tags](https://github.com/datarootsio/cheek/tags)
 - `shortsha` is a 7-char SHA and most commits on `main` will be available
 
-## Usage stats
-
-By default `cheek` reports minimal usage stats. Each time a job is triggered a simple request that (only) contains your `cheek` version is send to our servers. Check out the exact implementation [here](https://github.com/datarootsio/cheek/blob/main/pkg/telemetry.go). Note that you can always opt-out of this by passing the `-no-telemetry` or `-n` flag.
 
 ## Acknowledgements
 

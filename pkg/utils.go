@@ -23,8 +23,6 @@ type Config struct {
 	LogLevel     string `yaml:"logLevel"`
 	HomeDir      string `yaml:"homedir"`
 	Port         string `yaml:"port"`
-	Telemetry    bool   `yaml:"telemetry"`
-	PhoneHomeUrl string `yaml:"phoneHomeUrl"`
 }
 
 func NewConfig() Config {
@@ -34,8 +32,6 @@ func NewConfig() Config {
 		LogLevel:     "info",
 		HomeDir:      CheekPath(),
 		Port:         "8081",
-		Telemetry:    true,
-		PhoneHomeUrl: "https://api.phonehome.dev/datarootsio/cheek",
 	}
 }
 
