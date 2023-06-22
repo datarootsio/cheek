@@ -37,7 +37,7 @@ type item struct {
 }
 
 func (j *JobSpec) getTitle() string {
-	if len(j.runs) > 0 && j.runs[0].Status != 0 {
+	if len(j.Runs) > 0 && j.Runs[0].Status != 0 {
 		return j.Name + " " + warningStyle.Bold(true).Render("!")
 	}
 	return j.Name
@@ -78,10 +78,10 @@ func (j *JobSpec) runInfo() string {
 	switch {
 	case j.Name == "core logs":
 		runInfo = ""
-	case len(j.runs) == 0:
+	case len(j.Runs) == 0:
 		runInfo = "no run history"
-	case j.runs[0].Status == 0:
-		since := time.Since(j.runs[0].TriggeredAt).String()
+	case j.Runs[0].Status == 0:
+		since := time.Since(j.Runs[0].TriggeredAt).String()
 		runInfo = "ran " + since + " ago"
 	default:
 		runInfo += warningStyle.Render("error'd")
@@ -93,12 +93,12 @@ func (j *JobSpec) runInfo() string {
 func (j *JobSpec) view(maxWidth int) string {
 	var sb strings.Builder
 
-	if len(j.runs) == 0 {
+	if len(j.Runs) == 0 {
 		sb.WriteString("no run history")
 		return sb.String()
 	}
 
-	for _, jr := range j.runs {
+	for _, jr := range j.Runs {
 		sb.WriteString(faintStyle.Render(jr.TriggeredAt.String()))
 		sb.WriteString("\n")
 		sb.WriteString(hardWrap(jr.Log, maxWidth))

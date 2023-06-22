@@ -1,10 +1,8 @@
 package cheek
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"net/http"
 	"os"
 	"os/signal"
 	"strings"
@@ -147,32 +145,6 @@ func loadSchedule(log zerolog.Logger, cfg Config, fn string) (Schedule, error) {
 	}
 
 	return s, nil
-}
-
-func server(s *Schedule) {
-	var httpAddr string = fmt.Sprintf(":%s", s.cfg.Port)
-	type Healthz struct {
-		Jobs   int    `json:"jobs"`
-		Status string `json:"status"`
-	}
-
-	http.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
-		status := Healthz{Jobs: len(s.Jobs), Status: "ok"}
-		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(status); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
-	})
-
-	http.HandleFunc("/schedule", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(s); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
-	})
-
-	s.log.Info().Msgf("Starting HTTP server on %v", httpAddr)
-	s.log.Fatal().Err(http.ListenAndServe(httpAddr, nil))
 }
 
 // RunSchedule is the main entry entrypoint of cheek.

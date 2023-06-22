@@ -31,7 +31,7 @@ func TestLoadLogs(t *testing.T) {
 	}
 
 	j.loadRuns()
-	assert.Greater(t, len(j.runs), 0)
+	assert.Greater(t, len(j.Runs), 0)
 }
 
 func TestJobRun(t *testing.T) {

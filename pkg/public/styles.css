@@ -1,0 +1,30 @@
+@import url("chota.css");
+
+:root {
+    --grid-maxWidth: 80rem;
+    --font-size: 1rem;
+}
+
+body.dark {
+  --bg-color: #000;
+  --bg-secondary-color: #131316;
+  --font-color: #f5f5f5;
+  --color-grey: #ccc;
+  --color-darkGrey: #777;
+}
+
+.button.icon-only {
+  padding: .3rem;
+}
+
+.button {
+  margin: .3rem !important;
+}
+
+.pad {
+  padding: .2rem;
+}
+
+#title {
+  font-size: 2rem;
+}

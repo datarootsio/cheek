@@ -51,7 +51,7 @@ func TestJobView(t *testing.T) {
 	j := JobSpec{Command: []string{"echo", "foo"}, Name: "blaat"}
 	jr := j.execCommand("testrun")
 	j.finalize(&jr)
-	j.runs = append(j.runs, jr)
+	j.Runs = append(j.Runs, jr)
 	assert.Contains(t, j.view(120), "foo")
 
 	assert.Contains(t, j.getTitle(), j.Name)

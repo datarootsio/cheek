@@ -34,7 +34,7 @@ type JobSpec struct {
 	Retries        int    `yaml:"retries,omitempty" json:"retries,omitempty"`
 	Env            map[string]string
 	globalSchedule *Schedule
-	runs           []JobRun
+	Runs           []JobRun
 
 	log zerolog.Logger
 	cfg Config
@@ -179,13 +179,13 @@ func (j *JobSpec) execCommand(trigger string) JobRun {
 }
 
 func (j *JobSpec) loadRuns() {
-	const nRuns int = 30
+	const nRuns int = 10
 	logFn := path.Join(CheekPath(), fmt.Sprintf("%s.job.jsonl", j.Name))
 	jrs, err := readLastJobRuns(j.log, logFn, nRuns)
 	if err != nil {
 		j.log.Warn().Str("job", j.Name).Err(err).Msgf("could not load job logs from '%s'", logFn)
 	}
-	j.runs = jrs
+	j.Runs = jrs
 }
 
 func (j *JobSpec) ValidateCron() error {
