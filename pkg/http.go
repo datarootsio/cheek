@@ -86,6 +86,7 @@ func ui(s *Schedule) func(w http.ResponseWriter, r *http.Request) {
 		tmpl, err := template.ParseFS(fsys(), "*.html")
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 
 		data := struct {

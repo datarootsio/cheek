@@ -1,46 +1,50 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>cheek</title>
-    <link rel="stylesheet" href="/static/styles.css" />
-  </head>
-  <body>
-    <div class="container">
-      <div id="title">
-          <a class="brand text-primary" href="/">cheek</a>
-        </div>
-      {{range .JobNames}}<a
-        class="{{if eq . $.SelectedJob}}text-primary{{else}}text-light{{end}} pad"
-        href="/job/{{.}}"
-        >{{.}}</a
-      >{{end}}
-      <div id="logView">
-        {{ if .SelectedJob}}
-        <button class="button icon-only outline" onClick="window.location.reload();">
-          <img src="https://icongr.am/feather/play.svg?size=8&color=ffffff">
-        </button>
-        <button class="button icon-only outline" onClick="window.location.reload();">
-          <img src="https://icongr.am/feather/refresh-ccw.svg?size=8&color=ffffff">
-        </button>
-        <pre><code>
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>cheek</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+
+<body>
+  <div class="container">
+    <div id="title">
+      <a class="brand text-primary" href="/">cheek</a>
+    </div>
+    {{range .JobNames}}<a class="{{if eq . $.SelectedJob}}text-primary{{else}}text-light{{end}} pad"
+      href="/job/{{.}}">{{.}}</a>{{end}}
+    <div id="logView">
+      {{ if .SelectedJob}}
+      <button class="button icon-only outline" onClick="window.location.reload();">
+        <img src="https://icongr.am/feather/play.svg?size=8&color=ffffff">
+      </button>
+      <button class="button icon-only outline" onClick="window.location.reload();">
+        <img src="https://icongr.am/feather/refresh-ccw.svg?size=8&color=ffffff">
+      </button>
+      <h4 class="pull-right">JobSpec</h4>
+      <pre>
+{{ .JobSpec.ToYAML false }}</pre>
+      <h4 class="pull-right">Logs</h4>
+      <pre><code>
 {{range .JobSpec.Runs}}{{.TriggeredAt}} | triggered by: {{ .TriggeredBy }} | exit code: {{.Status}}
 ---
 {{.Log}}
 {{end}}
       </pre></code>
-        {{end}}
-      </div>
+      {{end}}
     </div>
-  </body>
+  </div>
+</body>
 
-  <script>
-    if (
-      window.matchMedia &&
-      window.matchMedia("(prefers-color-scheme: dark)").matches
-    ) {
-      document.body.classList.add("dark");
-    }
-  </script>
+<script>
+  if (
+    window.matchMedia &&
+    window.matchMedia("(prefers-color-scheme: dark)").matches
+  ) {
+    document.body.classList.add("dark");
+  }
+</script>
+
 </html>

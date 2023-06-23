@@ -14,6 +14,7 @@ import (
 
 	"github.com/adhocore/gronx"
 	"github.com/rs/zerolog"
+	"gopkg.in/yaml.v3"
 )
 
 // OnEvent contains specs on what needs to happen after a job event.
@@ -30,11 +31,11 @@ type JobSpec struct {
 	OnSuccess OnEvent `yaml:"on_success,omitempty" json:"on_success,omitempty"`
 	OnError   OnEvent `yaml:"on_error,omitempty" json:"on_error,omitempty"`
 
-	Name           string `json:"name"`
-	Retries        int    `yaml:"retries,omitempty" json:"retries,omitempty"`
-	Env            map[string]string
+	Name           string            `json:"name"`
+	Retries        int               `yaml:"retries,omitempty" json:"retries,omitempty"`
+	Env            map[string]string `yaml:"env,omitempty"`
 	globalSchedule *Schedule
-	Runs           []JobRun
+	Runs           []JobRun `yaml:"runs,omitempty"`
 
 	log zerolog.Logger
 	cfg Config
@@ -246,6 +247,18 @@ func (j *JobSpec) OnEvent(jr *JobRun) {
 	}
 
 	wg.Wait() // this allows to wait for go routines when running just the job exec
+}
+
+func (j JobSpec) ToYAML(includeRuns bool) (string, error) {
+	if !includeRuns {
+		j.Runs = []JobRun{}
+	}
+
+	yData, err := yaml.Marshal(j)
+	if err != nil {
+		return "", err
+	}
+	return string(yData), nil
 }
 
 // RunJob allows to run a specific job
