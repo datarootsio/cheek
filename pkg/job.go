@@ -261,6 +261,14 @@ func (j JobSpec) ToYAML(includeRuns bool) (string, error) {
 	return string(yData), nil
 }
 
+func (j JobSpec) GetStatusCodes() []int {
+	var r []int
+	for _, run := range j.Runs {
+		r = append(r, run.Status)
+	}
+	return r
+}
+
 // RunJob allows to run a specific job
 func RunJob(log zerolog.Logger, cfg Config, scheduleFn string, jobName string) (JobRun, error) {
 	s, err := loadSchedule(log, cfg, scheduleFn)

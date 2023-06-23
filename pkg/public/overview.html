@@ -1,0 +1,22 @@
+{{ define "overview"}} 
+{{range .JobNames}}
+{{ $spec := index $.JobSpecs .}}
+<div class="inline">
+  <a
+    class="text-light pad"
+    href="/job/{{$spec.Name}}"
+    >{{$spec.Name}}</a
+  >
+  {{ range $i, $e := $spec.GetStatusCodes }}
+  <a href="/job/{{$spec.Name}}#log{{$i}}">
+    {{ if eq . 0 }}
+
+    <img src="https://icongr.am/fontawesome/circle.svg?size=8&color=12824c" />
+
+    {{else}}
+    <img src="https://icongr.am/fontawesome/circle-o.svg?size=8&color=FF0000" />
+    {{end}}
+  </a>
+  {{end}}
+</div>
+{{end}} {{ end }}

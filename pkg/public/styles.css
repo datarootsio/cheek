@@ -1,8 +1,8 @@
 @import url("chota.css");
 
 :root {
-    --grid-maxWidth: 80rem;
-    --font-size: 1rem;
+  --grid-maxWidth: 80rem;
+  --font-size: 1rem;
 }
 
 body.dark {
@@ -14,17 +14,32 @@ body.dark {
 }
 
 .button.icon-only {
-  padding: .3rem;
+  padding: 0.3rem;
 }
 
 .button {
-  margin: .3rem !important;
+  margin: 0.3rem !important;
+}
+
+.margin-zero {
+  margin: 0 !important;
 }
 
 .pad {
-  padding: .2rem;
+  padding: 0.2rem;
 }
 
 #title {
   font-size: 2rem;
+}
+
+.view-container {
+  position: relative;
+}
+
+.view-header {
+  position: absolute;
+  top: 0px;
+  right: 0px;
+  padding: 1rem;
 }

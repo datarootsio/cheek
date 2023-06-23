@@ -3,6 +3,7 @@ package cheek
 import (
 	"embed"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"html/template"
 	"io/fs"
@@ -11,6 +12,12 @@ import (
 	"sort"
 	"strings"
 )
+
+type Response struct {
+	Job    string `json:"jobs,omitempty"`
+	Status string `json:"status,omitempty"`
+	Type   string `json:"type,omitempty"`
+}
 
 //go:embed public
 var files embed.FS
@@ -26,26 +33,23 @@ func fsys() fs.FS {
 
 func server(s *Schedule) {
 	var httpAddr string = fmt.Sprintf(":%s", s.cfg.Port)
-	type Healthz struct {
-		Jobs   int    `json:"jobs"`
-		Status string `json:"status"`
-	}
 
-	http.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
-		status := Healthz{Jobs: len(s.Jobs), Status: "ok"}
+	http.HandleFunc("/healthz/", func(w http.ResponseWriter, r *http.Request) {
+		status := Response{Status: "ok"}
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(status); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	})
 
-	http.HandleFunc("/schedule", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/schedule/", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(s); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	})
 
+	http.HandleFunc("/trigger/", trigger(s))
 	http.HandleFunc("/", ui(s))
 
 	fs := http.FileServer(http.FS(fsys()))
@@ -53,6 +57,27 @@ func server(s *Schedule) {
 
 	s.log.Info().Msgf("Starting HTTP server on %v", httpAddr)
 	s.log.Fatal().Err(http.ListenAndServe(httpAddr, nil))
+}
+
+func trigger(s *Schedule) func(w http.ResponseWriter, r *http.Request) {
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		jobId := strings.TrimPrefix(r.URL.Path, "/trigger/")
+		job, ok := s.Jobs[jobId]
+
+		if !ok {
+			http.Error(w, errors.New("cant find job to trigger").Error(), http.StatusNotFound)
+			return
+		}
+
+		job.execCommandWithRetry("ui") // trigger
+
+		status := Response{Job: jobId, Status: "ok", Type: "trigger"}
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(status); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	}
 }
 
 func ui(s *Schedule) func(w http.ResponseWriter, r *http.Request) {
@@ -90,10 +115,20 @@ func ui(s *Schedule) func(w http.ResponseWriter, r *http.Request) {
 		}
 
 		data := struct {
-			SelectedJob string
-			JobNames    []string
-			JobSpec     JobSpec
-		}{SelectedJob: jobId, JobNames: jobNames, JobSpec: *job}
+			SelectedJobName string
+			JobNames        []string
+			JobSpecs        map[string]*JobSpec
+			SelectedJobSpec JobSpec
+		}{SelectedJobName: jobId, JobNames: jobNames, SelectedJobSpec: *job}
+
+		if jobId == "" {
+			// pass along all job specs only when in overview
+			// takes a lot of I/O
+			for _, j := range s.Jobs {
+				j.loadRuns()
+			}
+			data.JobSpecs = s.Jobs
+		}
 
 		err = tmpl.Execute(w, data)
 		if err != nil {
