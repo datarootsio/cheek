@@ -3,12 +3,14 @@
 # cheek
 
 ![GitHub tag (latest SemVer)](https://img.shields.io/github/v/tag/datarootsio/cheek?label=version)
-[![dataroots](https://dataroots.io/maintained.svg)](https://dataroots.io/) [![codecov](https://codecov.io/gh/datarootsio/cheek/branch/main/graph/badge.svg?token=011KCCGPE6)](https://codecov.io/gh/datarootsio/cheek) ![example workflow](https://github.com/datarootsio/cheek/actions/workflows/ci.yml/badge.svg) [![Go Report Card](https://goreportcard.com/badge/github.com/datarootsio/cheek)](https://goreportcard.com/report/github.com/datarootsio/cheek) [![Go Reference](https://pkg.go.dev/badge/github.com/datarootsio/cheek.svg)](https://pkg.go.dev/github.com/datarootsio/cheek) ![triggers](https://img.shields.io/badge/dynamic/json?color=blueviolet&label=jobs-triggered&query=%24.triggered&url=https%3A%2F%2Fapi.dataroots.io%2Fv1%2Fcheek%2Ftriggered&style=flat-square)
+[![dataroots](https://dataroots.io/maintained.svg)](https://dataroots.io/) [![codecov](https://codecov.io/gh/datarootsio/cheek/branch/main/graph/badge.svg?token=011KCCGPE6)](https://codecov.io/gh/datarootsio/cheek) 
+![workflow](https://github.com/datarootsio/cheek/actions/workflows/ci.yml/badge.svg) 
+[![Go Report Card](https://goreportcard.com/badge/github.com/datarootsio/cheek)](https://goreportcard.com/report/github.com/datarootsio/cheek) 
+[![Go Reference](https://pkg.go.dev/badge/github.com/datarootsio/cheek.svg)](https://pkg.go.dev/github.com/datarootsio/cheek)
 [![Awesome](https://cdn.rawgit.com/sindresorhus/awesome/d7305f38d29fed78fa85652e3a63e154dd8e8829/media/badge.svg)](https://github.com/avelino/awesome-go)
+![love](https://img.shields.io/badge/made_with-%E2%9D%A4%EF%B8%8F-blue)
 
-`cheek`, of course, stands for `C`rontab-like sc`H`eduler for `E`ffective `E`xecution of tas`K`s. `cheek` is a KISS approach to crontab-like job scheduling. It was born out of a (/my?) frustration about the big gap between a lightweight crontab and full-fledged solutions like Airflow.
-
-`cheek` aims to be a KISS approach to job scheduling. Focus is on the KISS approach not to necessarily do this in the most robust way possible.
+`cheek` is a pico sized declarative job scheduler designed to excel on a single node environment. `cheek` aims to be lightweight and simple, not to be the most robust.
 
 ## Getting started
 
@@ -71,15 +73,14 @@ Check out `cheek run --help` for configuration options.
 
 ## UI
 
-`cheek` ships with a terminal ui you can launch via:
+`cheek` ships with a web UI that by default gets launched on port `8081`. You can define the port on which it is accessible via the `--port` flag.
 
-```sh
-cheek ui
-```
+You can access the UI by navigating to `http://localhost:8081`. When `cheek` is deployed you are recommended to NOT make this port publicly accessible, instead navigate to the UI via an SSH tunnel.
+
 
 The UI allows to get a quick overview on jobs that have run, that error'd and their logs. It basically does this by fetching the state of the scheduler and by reading the logs that (per job) get written to `$HOME/.cheek/`. Note that you can ignore these logs, output of jobs will always go to stdout as well.
 
-![](https://storage.googleapis.com/better-unified/ui-screenshot2.png)
+Note, `cheek` originally used to boast a TUI, which has been removed.
 
 ## Configuration
 
@@ -107,7 +108,7 @@ jobs:
     cron: "* * * * *"
 ```
 
-Webhook are a generic way to push notifications to a plethora of tools. You can use it for instance via Zapier to push messages to a Slack channel.
+Webhooks are a generic way to push notifications to a plethora of tools. You can use it for instance via Zapier to push messages to a Slack channel.
 
 ## Docker
 
@@ -133,7 +134,6 @@ Where:
 Thanks goes to:
 
 - [gronx](https://github.com/adhocore/gronx): for allowing me not to worry about CRON strings.
-- [Charm](https://www.charm.sh/): for their bubble-icious TUI libraries.
 - [Sam](https://github.com/sdebruyn) & [Frederik](https://github.com/frederikdesmedt): for valuable code reviews / feedback.
 
 <br/>
