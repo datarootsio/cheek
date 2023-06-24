@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/user"
 	"path"
-	"strings"
 	"sync"
 
 	"github.com/rs/zerolog"
@@ -70,27 +69,6 @@ func readLastJobRuns(log zerolog.Logger, filepath string, nRuns int) ([]JobRun, 
 	}
 
 	return jrs, nil
-}
-
-func readFormattedCoreLogs() (string, error) {
-	logs, err := readLastLines(path.Join(CheekPath(), coreLogFile), 60)
-	if err != nil {
-		return "", err
-	}
-
-	var logsBuilder strings.Builder
-	prettyPrint := zerolog.ConsoleWriter{
-		Out: &logsBuilder,
-	}
-
-	for _, l := range logs {
-		_, err = prettyPrint.Write([]byte(l))
-		if err != nil {
-			return "", err
-		}
-	}
-
-	return logsBuilder.String(), nil
 }
 
 func readLastLines(filepath string, nLines int) ([]string, error) {

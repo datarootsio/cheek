@@ -3,7 +3,6 @@ package cheek
 import (
 	"embed"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"html/template"
 	"io/fs"
@@ -31,10 +30,11 @@ func fsys() fs.FS {
 	return fsys
 }
 
-func server(s *Schedule) {
-	var httpAddr string = fmt.Sprintf(":%s", s.cfg.Port)
+func setupMux(s *Schedule) *http.ServeMux {
 
-	http.HandleFunc("/healthz/", func(w http.ResponseWriter, r *http.Request) {
+	mux := http.NewServeMux()
+
+	mux.HandleFunc("/healthz/", func(w http.ResponseWriter, r *http.Request) {
 		status := Response{Status: "ok"}
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(status); err != nil {
@@ -42,21 +42,31 @@ func server(s *Schedule) {
 		}
 	})
 
-	http.HandleFunc("/schedule/", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/schedule/", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(s); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	})
 
-	http.HandleFunc("/trigger/", trigger(s))
-	http.HandleFunc("/", ui(s))
+	mux.HandleFunc("/trigger/", trigger(s))
+	mux.HandleFunc("/", ui(s))
 
 	fs := http.FileServer(http.FS(fsys()))
-	http.Handle("/static/", http.StripPrefix("/static/", fs))
+	mux.Handle("/static/", http.StripPrefix("/static/", fs))
+
+	return mux
+
+}
+
+func server(s *Schedule) {
+	var httpAddr string = fmt.Sprintf(":%s", s.cfg.Port)
+
+	mux := setupMux(s)
 
 	s.log.Info().Msgf("Starting HTTP server on %v", httpAddr)
-	s.log.Fatal().Err(http.ListenAndServe(httpAddr, nil))
+	s.log.Fatal().Err(http.ListenAndServe(httpAddr, mux))
+
 }
 
 func trigger(s *Schedule) func(w http.ResponseWriter, r *http.Request) {
@@ -66,7 +76,12 @@ func trigger(s *Schedule) func(w http.ResponseWriter, r *http.Request) {
 		job, ok := s.Jobs[jobId]
 
 		if !ok {
-			http.Error(w, errors.New("cant find job to trigger").Error(), http.StatusNotFound)
+			status := Response{Job: jobId, Status: "error: can't find job to trigger", Type: "trigger"}
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusNotFound)
+			if err := json.NewEncoder(w).Encode(status); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+			}
 			return
 		}
 
@@ -94,7 +109,8 @@ func ui(s *Schedule) func(w http.ResponseWriter, r *http.Request) {
 			jobId = strings.TrimPrefix(r.URL.Path, "/job/")
 			job, ok = s.Jobs[jobId]
 			if !ok {
-				jobId = ""
+				http.Error(w, fmt.Errorf("job %s not found", jobId).Error(), http.StatusNotFound)
+				return
 			} else {
 				job.loadRuns()
 			}
