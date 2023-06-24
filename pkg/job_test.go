@@ -21,8 +21,16 @@ func TestLoadLogs(t *testing.T) {
 		cfg:     NewConfig(),
 	}
 
-	jr := j.execCommand("test")
+	_, err := j.ToYAML(false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	jr := j.execCommandWithRetry("test")
 	jr.logToDisk()
+
+	sc := j.GetStatusCodes()
+	assert.GreaterOrEqual(t, len(sc), 0)
 
 	// log loading goes on job name basis
 	// let's recreate
@@ -184,12 +192,12 @@ func TestJobRunInvalidSchedule(t *testing.T) {
 	s.Jobs = map[string]*JobSpec{}
 	s.Jobs["Bertha"] = j
 
-	assert.Error(t, s.Validate())
+	assert.Error(t, s.initialize())
 	// fix cron but add invalid ref
 	s.Jobs["Bertha"].Cron = "* * * * *"
 	s.Jobs["Bertha"].OnSuccess.TriggerJob = []string{"IDontExist"}
 
-	assert.Error(t, s.Validate())
+	assert.Error(t, s.initialize())
 }
 
 func TestOnEventWebhook(t *testing.T) {

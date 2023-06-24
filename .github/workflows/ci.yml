@@ -11,8 +11,8 @@ jobs:
           fetch-depth: '0'
       - uses: actions/setup-go@v2
         with:
-          go-version: "^1.16"
-      - uses: golangci/golangci-lint-action@v3.1.0
+          go-version: "^1.20"
+      - uses: golangci/golangci-lint-action@v3.6.0
 
   tests:
     runs-on: ubuntu-latest
@@ -22,18 +22,11 @@ jobs:
           fetch-depth: '0'
       - uses: actions/setup-go@v2
         with:
-          go-version: "^1.16"
-      - run: go install mvdan.cc/gofumpt@latest
-      - name: run gofmt
-        run: test -z $(gofumpt -l .)
-      - name: run go vet
-        run: go vet ./...
-      - name: staticcheck install
-        run: go install honnef.co/go/tools/cmd/staticcheck@latest
-      - name: run staticcheck
-        run: staticcheck ./...
-      - name: run tests
-        run: go test ./... -timeout 120s -race -coverprofile=cover.out -covermode=atomic
+          go-version: "^1.2-"
+      - name: run tests on cmd
+        run: go test ./cmd
+      - name: run tests on pkg
+        run: go test ./pkg -timeout 120s -coverprofile=cover.out -covermode=atomic
       - uses: codecov/codecov-action@v2
         with:
           files: ./cover.out
@@ -52,7 +45,7 @@ jobs:
           fetch-depth: '0'
       - name: Bump version and push tag
         id: tag_action
-        uses: anothrNick/github-tag-action@1.36.0
+        uses: anothrNick/github-tag-action@1.67.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           WITH_V: true

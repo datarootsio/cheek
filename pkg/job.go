@@ -37,8 +37,9 @@ type JobSpec struct {
 	globalSchedule *Schedule
 	Runs           []JobRun `yaml:"runs,omitempty"`
 
-	log zerolog.Logger
-	cfg Config
+	nextTick time.Time
+	log      zerolog.Logger
+	cfg      Config
 }
 
 // JobRun holds information about a job execution.
@@ -81,7 +82,7 @@ func (j *JobSpec) finalize(jr *JobRun) {
 	j.OnEvent(jr)
 }
 
-func (j *JobSpec) execCommandWithRetry(trigger string) {
+func (j *JobSpec) execCommandWithRetry(trigger string) JobRun {
 	tries := 0
 	var jr JobRun
 	const timeOut = 5 * time.Second
@@ -106,6 +107,7 @@ func (j *JobSpec) execCommandWithRetry(trigger string) {
 		time.Sleep(timeOut)
 
 	}
+	return jr
 }
 
 func (j *JobSpec) execCommand(trigger string) JobRun {
@@ -120,7 +122,7 @@ func (j *JobSpec) execCommand(trigger string) JobRun {
 	case 0:
 		err := errors.New("no command specified")
 		jr.Log = fmt.Sprintf("Job unable to start: %v", err.Error())
-		j.log.Warn().Str("job", j.Name).Err(err).Msg("Job unable to start")
+		j.log.Warn().Str("job", j.Name).Str("trigger", trigger).Err(err).Msg(jr.Log)
 		if !suppressLogs {
 			fmt.Println(err.Error())
 		}
@@ -154,7 +156,7 @@ func (j *JobSpec) execCommand(trigger string) JobRun {
 		if !suppressLogs {
 			fmt.Println(err.Error())
 		}
-		j.log.Warn().Str("job", j.Name).Int("exitcode", jr.Status).Err(err).Msg("job unable to start")
+		j.log.Warn().Str("job", j.Name).Str("trigger", trigger).Int("exitcode", jr.Status).Err(err).Msg("job unable to start")
 		// also send this to terminal output
 		_, err = w.Write([]byte(fmt.Sprintf("job unable to start: %v", err.Error())))
 		if err != nil {
@@ -187,6 +189,15 @@ func (j *JobSpec) loadRuns() {
 		j.log.Warn().Str("job", j.Name).Err(err).Msgf("could not load job logs from '%s'", logFn)
 	}
 	j.Runs = jrs
+}
+
+func (j *JobSpec) setNextTick(refTime time.Time, includeRefTime bool) error {
+	if j.Cron != "" {
+		t, err := gronx.NextTickAfter(j.Cron, refTime, includeRefTime)
+		j.nextTick = t
+		return err
+	}
+	return nil
 }
 
 func (j *JobSpec) ValidateCron() error {
