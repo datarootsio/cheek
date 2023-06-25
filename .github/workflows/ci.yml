@@ -9,7 +9,7 @@ jobs:
       - uses: actions/checkout@v2
         with:
           fetch-depth: '0'
-      - uses: actions/setup-go@v2
+      - uses: actions/setup-go@v4
         with:
           go-version: "^1.20"
       - uses: golangci/golangci-lint-action@v3.6.0
@@ -20,14 +20,14 @@ jobs:
       - uses: actions/checkout@v2
         with:
           fetch-depth: '0'
-      - uses: actions/setup-go@v2
+      - uses: actions/setup-go@v4
         with:
           go-version: "^1.20"
       - name: run tests on cmd
         run: go test ./cmd
       - name: run tests on pkg
         run: go test ./pkg -timeout 120s -coverprofile=cover.out -covermode=atomic
-      - uses: codecov/codecov-action@v2
+      - uses: codecov/codecov-action@v3
         with:
           files: ./cover.out
 
@@ -69,7 +69,7 @@ jobs:
       - uses: actions/checkout@v2
         with:
           fetch-depth: '0'
-      - uses: actions/setup-go@v2
+      - uses: actions/setup-go@v4
         with:
           go-version: "^1.16"
       ## above is fine to get latest for now, also save a copy with short sha
