@@ -1,0 +1,26 @@
+{{ define "jobview"}}
+<button class="button icon-only outline" onClick="triggerJob({{.SelectedJobSpec.Name}})">
+  <img src="/static/img/play.svg">
+</button>
+<button class="button icon-only outline" onClick="window.location.reload();">
+  <img src="/static/img/refresh-ccw.svg">
+</button>
+</div>
+</div>
+
+
+<div class="view-container">
+  <h4 class="is-marginless view-header text-primary">JobSpec</h4>
+  <pre>
+{{ .SelectedJobSpec.ToYAML false }}</pre>
+
+</div>
+<div class="view-container">
+  <h4 class="is-marginless view-header text-primary">Logs</h4>
+  <pre ><code class="text-light">{{range $i, $j := .SelectedJobSpec.Runs}}<span id="log{{$i}}"></span>{{.TriggeredAt}} | triggered by: {{ .TriggeredBy }} | exit code: {{.Status}}
+---
+{{.Log}}
+{{end}}
+</pre></code>
+</div>
+{{end}}

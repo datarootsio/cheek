@@ -1,0 +1,53 @@
+@import url("chota.css");
+
+:root {
+  --grid-maxWidth: 80rem;
+  --font-size: 1rem;
+}
+
+body.dark {
+  --bg-color: #000;
+  --bg-secondary-color: #131316;
+  --font-color: #f5f5f5;
+  --color-grey: #ccc;
+  --color-darkGrey: #777;
+}
+
+.button.icon-only {
+  padding: 0.3rem;
+}
+
+.button {
+  margin: 0.3rem !important;
+}
+
+.pad {
+  padding: 0.2rem;
+}
+
+#title {
+  font-size: 2rem;
+}
+
+.view-container {
+  position: relative;
+}
+
+.view-header {
+  position: absolute;
+  top: 0px;
+  right: 0px;
+  padding: 1rem;
+}
+
+.icon-ahref {
+  overflow: hidden;
+  height: 16px;
+  width: 16px;
+}
+
+.no-underline {
+  border-bottom: none !important;
+  cursor: inherit !important;
+  text-decoration: none !important;
+}

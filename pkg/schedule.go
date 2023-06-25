@@ -1,10 +1,7 @@
 package cheek
 
 import (
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"net/http"
 	"os"
 	"os/signal"
 	"strings"
@@ -13,7 +10,6 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/adhocore/gronx"
 	"github.com/rs/zerolog"
 )
 
@@ -24,28 +20,36 @@ type Schedule struct {
 	OnError    OnEvent             `yaml:"on_error,omitempty" json:"on_error,omitempty"`
 	TZLocation string              `yaml:"tz_location,omitempty" json:"tz_location,omitempty"`
 	loc        *time.Location
-	logs       string
 	log        zerolog.Logger
 	cfg        Config
 }
 
 // Run a Schedule based on its specs.
 func (s *Schedule) Run() {
-	gronx := gronx.New()
-	ticker := time.NewTicker(time.Minute)
+	var currentTickTime time.Time
+	s.log.Info().Msg("Scheduler started")
+	ticker := time.NewTicker(15 * time.Second) // could be longer
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
 	for {
 		select {
 		case <-ticker.C:
+			s.log.Debug().Msg("tick")
+			currentTickTime = time.Now()
+
 			for _, j := range s.Jobs {
 				if j.Cron == "" {
 					continue
 				}
-				due, _ := gronx.IsDue(j.Cron, s.now())
 
-				if due {
+				if j.nextTick.Before(currentTickTime) {
+					s.log.Debug().Msgf("%v is due", j.Name)
+					// first set nextTick
+					if err := j.setNextTick(currentTickTime, false); err != nil {
+						s.log.Fatal().Err(err).Msg("error determining next tick")
+					}
+
 					go func(j *JobSpec) {
 						j.execCommandWithRetry("cron")
 					}(j)
@@ -78,7 +82,7 @@ func (a *stringArray) UnmarshalYAML(unmarshal func(interface{}) error) error {
 }
 
 func readSpecs(fn string) (Schedule, error) {
-	yfile, err := ioutil.ReadFile(fn)
+	yfile, err := os.ReadFile(fn)
 	if err != nil {
 		return Schedule{}, err
 	}
@@ -92,8 +96,10 @@ func readSpecs(fn string) (Schedule, error) {
 	return specs, nil
 }
 
-// Validate Schedule spec and logic.
-func (s *Schedule) Validate() error {
+// initialize Schedule spec and logic.
+func (s *Schedule) initialize() error {
+	initTime := time.Now()
+
 	for k, v := range s.Jobs {
 		// check if trigger references exist
 		triggerJobs := append(v.OnSuccess.TriggerJob, v.OnError.TriggerJob...)
@@ -111,6 +117,11 @@ func (s *Schedule) Validate() error {
 
 		// validate cron string
 		if err := v.ValidateCron(); err != nil {
+			return err
+		}
+
+		// init nextTick
+		if err := v.setNextTick(initTime, true); err != nil {
 			return err
 		}
 
@@ -142,37 +153,11 @@ func loadSchedule(log zerolog.Logger, cfg Config, fn string) (Schedule, error) {
 	s.cfg = cfg
 
 	// run validations
-	if err := s.Validate(); err != nil {
+	if err := s.initialize(); err != nil {
 		return Schedule{}, err
 	}
-
+	s.log.Info().Msg("Scheduled loaded and validated")
 	return s, nil
-}
-
-func server(s *Schedule) {
-	var httpAddr string = fmt.Sprintf(":%s", s.cfg.Port)
-	type Healthz struct {
-		Jobs   int    `json:"jobs"`
-		Status string `json:"status"`
-	}
-
-	http.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
-		status := Healthz{Jobs: len(s.Jobs), Status: "ok"}
-		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(status); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
-	})
-
-	http.HandleFunc("/schedule", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(s); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
-	})
-
-	s.log.Info().Msgf("Starting HTTP server on %v", httpAddr)
-	s.log.Fatal().Err(http.ListenAndServe(httpAddr, nil))
 }
 
 // RunSchedule is the main entry entrypoint of cheek.
@@ -183,8 +168,8 @@ func RunSchedule(log zerolog.Logger, cfg Config, scheduleFn string) error {
 	}
 	numberJobs := len(s.Jobs)
 	i := 1
-	for _, job := range s.Jobs {
-		s.log.Info().Msgf("Initializing (%v/%v) job: %s", i, numberJobs, job.Name)
+	for k := range s.Jobs {
+		s.log.Info().Msgf("Initializing (%v/%v) job: %s", i, numberJobs, k)
 		i++
 	}
 	go server(&s)

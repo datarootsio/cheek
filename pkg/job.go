@@ -14,6 +14,7 @@ import (
 
 	"github.com/adhocore/gronx"
 	"github.com/rs/zerolog"
+	"gopkg.in/yaml.v3"
 )
 
 // OnEvent contains specs on what needs to happen after a job event.
@@ -30,14 +31,15 @@ type JobSpec struct {
 	OnSuccess OnEvent `yaml:"on_success,omitempty" json:"on_success,omitempty"`
 	OnError   OnEvent `yaml:"on_error,omitempty" json:"on_error,omitempty"`
 
-	Name           string `json:"name"`
-	Retries        int    `yaml:"retries,omitempty" json:"retries,omitempty"`
-	Env            map[string]string
+	Name           string            `json:"name"`
+	Retries        int               `yaml:"retries,omitempty" json:"retries,omitempty"`
+	Env            map[string]string `yaml:"env,omitempty"`
 	globalSchedule *Schedule
-	runs           []JobRun
+	Runs           []JobRun `yaml:"runs,omitempty"`
 
-	log zerolog.Logger
-	cfg Config
+	nextTick time.Time
+	log      zerolog.Logger
+	cfg      Config
 }
 
 // JobRun holds information about a job execution.
@@ -80,7 +82,7 @@ func (j *JobSpec) finalize(jr *JobRun) {
 	j.OnEvent(jr)
 }
 
-func (j *JobSpec) execCommandWithRetry(trigger string) {
+func (j *JobSpec) execCommandWithRetry(trigger string) JobRun {
 	tries := 0
 	var jr JobRun
 	const timeOut = 5 * time.Second
@@ -105,6 +107,7 @@ func (j *JobSpec) execCommandWithRetry(trigger string) {
 		time.Sleep(timeOut)
 
 	}
+	return jr
 }
 
 func (j *JobSpec) execCommand(trigger string) JobRun {
@@ -114,21 +117,12 @@ func (j *JobSpec) execCommand(trigger string) JobRun {
 
 	suppressLogs := j.cfg.SuppressLogs
 
-	if j.cfg.Telemetry {
-		go func() {
-			_, err := ET{}.PhoneHome(j.cfg.PhoneHomeUrl)
-			if err != nil {
-				j.log.Debug().Str("job", j.Name).Str("telemetry", "ET").Err(err).Msg("cannot phone home")
-			}
-		}()
-	}
-
 	var cmd *exec.Cmd
 	switch len(j.Command) {
 	case 0:
 		err := errors.New("no command specified")
 		jr.Log = fmt.Sprintf("Job unable to start: %v", err.Error())
-		j.log.Warn().Str("job", j.Name).Err(err).Msg("Job unable to start")
+		j.log.Warn().Str("job", j.Name).Str("trigger", trigger).Err(err).Msg(jr.Log)
 		if !suppressLogs {
 			fmt.Println(err.Error())
 		}
@@ -162,7 +156,7 @@ func (j *JobSpec) execCommand(trigger string) JobRun {
 		if !suppressLogs {
 			fmt.Println(err.Error())
 		}
-		j.log.Warn().Str("job", j.Name).Int("exitcode", jr.Status).Err(err).Msg("job unable to start")
+		j.log.Warn().Str("job", j.Name).Str("trigger", trigger).Int("exitcode", jr.Status).Err(err).Msg("job unable to start")
 		// also send this to terminal output
 		_, err = w.Write([]byte(fmt.Sprintf("job unable to start: %v", err.Error())))
 		if err != nil {
@@ -188,13 +182,22 @@ func (j *JobSpec) execCommand(trigger string) JobRun {
 }
 
 func (j *JobSpec) loadRuns() {
-	const nRuns int = 30
+	const nRuns int = 10
 	logFn := path.Join(CheekPath(), fmt.Sprintf("%s.job.jsonl", j.Name))
 	jrs, err := readLastJobRuns(j.log, logFn, nRuns)
 	if err != nil {
 		j.log.Warn().Str("job", j.Name).Err(err).Msgf("could not load job logs from '%s'", logFn)
 	}
-	j.runs = jrs
+	j.Runs = jrs
+}
+
+func (j *JobSpec) setNextTick(refTime time.Time, includeRefTime bool) error {
+	if j.Cron != "" {
+		t, err := gronx.NextTickAfter(j.Cron, refTime, includeRefTime)
+		j.nextTick = t
+		return err
+	}
+	return nil
 }
 
 func (j *JobSpec) ValidateCron() error {
@@ -255,6 +258,18 @@ func (j *JobSpec) OnEvent(jr *JobRun) {
 	}
 
 	wg.Wait() // this allows to wait for go routines when running just the job exec
+}
+
+func (j JobSpec) ToYAML(includeRuns bool) (string, error) {
+	if !includeRuns {
+		j.Runs = []JobRun{}
+	}
+
+	yData, err := yaml.Marshal(j)
+	if err != nil {
+		return "", err
+	}
+	return string(yData), nil
 }
 
 // RunJob allows to run a specific job

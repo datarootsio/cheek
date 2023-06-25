@@ -10,18 +10,15 @@ import (
 )
 
 var (
-	httpPort  string
-	homeDir   string
-	telemetry bool
+	httpPort string
+	homeDir  string
 )
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "cheek",
-	Short: "Crontab-like scHeduler for Effective Execution of tasKs",
-	Long: `Crontab-like scHeduler for Effective Execution of tasKs
-
-A KISS approach to job scheduling.`,
+	Short: "Cheek",
+	Long:  `cheek: the pico sized declarative job scheduler`,
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -33,7 +30,6 @@ func Execute() {
 func init() {
 	rootCmd.PersistentFlags().StringVar(&httpPort, "port", "8081", "port on which to open the http server for core to ui communication")
 	rootCmd.PersistentFlags().StringVar(&homeDir, "homedir", cheek.CheekPath(), fmt.Sprintf("directory in which to save cheek's core & job logs, defaults to '%s'", cheek.CheekPath()))
-	rootCmd.PersistentFlags().BoolVarP(&telemetry, "no-telemetry", "n", false, "pass this flag if you do not want to report statistics, check the readme for more info")
 	cobra.OnInitialize(initConfig)
 }
 
@@ -50,10 +46,6 @@ func initConfig() {
 		fmt.Printf("error binding pflag %s", err)
 	}
 
-	if err := viper.BindPFlag("no-telemetry", rootCmd.PersistentFlags().Lookup("no-telemetry")); err != nil {
-		fmt.Printf("error binding pflag %s", err)
-	}
-
 	if err := viper.BindPFlag("suppressLogs", runCmd.PersistentFlags().Lookup("suppress-logs")); err != nil {
 		fmt.Printf("error binding pflag %s", err)
 	}
@@ -67,10 +59,6 @@ func initConfig() {
 	}
 
 	if err := viper.BindPFlag("homedir", rootCmd.PersistentFlags().Lookup("homedir")); err != nil {
-		fmt.Printf("error binding pflag %s", err)
-	}
-
-	if err := viper.BindPFlag("no-telemetry", rootCmd.PersistentFlags().Lookup("no-telemetry")); err != nil {
 		fmt.Printf("error binding pflag %s", err)
 	}
 }
