@@ -134,10 +134,10 @@ Where:
 
 ## Acknowledgements
 
-Thanks goes to:
+`cheek` is build on top ofmany  great OSS assets. Noteable thanks goes to:
 
+- [chota](https://jenil.github.io/chota/): for a pico sized css framework
 - [gronx](https://github.com/adhocore/gronx): for allowing me not to worry about CRON strings.
-- [Sam](https://github.com/sdebruyn) & [Frederik](https://github.com/frederikdesmedt): for valuable code reviews / feedback.
 
 <br/>
  
