@@ -10,7 +10,7 @@
 [![Awesome](https://cdn.rawgit.com/sindresorhus/awesome/d7305f38d29fed78fa85652e3a63e154dd8e8829/media/badge.svg)](https://github.com/avelino/awesome-go)
 ![love](https://img.shields.io/badge/made_with-%E2%9D%A4%EF%B8%8F-blue)
 
-`cheek` is a pico-sized declarative job scheduler designed to excel in a single-node environment. `cheek` aims to be lightweight and simple, not to be the most robust.
+`cheek` is a pico-sized declarative job scheduler designed to excel in a single-node environment. `cheek` aims to be lightweight, stand-alone and simple. It does not compete for robustness.
 
 ## Getting started
 
@@ -71,13 +71,17 @@ cheek run ./path/to/my-schedule.yaml
 
 Check out `cheek run --help` for configuration options.
 
-## UI
+## Web UI
 
 `cheek` ships with a web UI that by default gets launched on port `8081`. You can define the port on which it is accessible via the `--port` flag.
 
-|                    overview                     |                 job detail                 |
-| :---------------------------------------------: | :----------------------------------------: |
-| ![main-screen](https://i.imgur.com/hq0Zxjb.png) | ![detail](https://i.imgur.com/jc9wBQJ.png) |
+| ![main-screen](https://i.imgur.com/hq0Zxjb.png) |
+| :---------------------------------------------: |
+|                  main overview                  |
+
+| ![detail](https://i.imgur.com/jc9wBQJ.png) |
+| :----------------------------------------: |
+|                 job detail                 |
 
 You can access the UI by navigating to `http://localhost:8081`. When `cheek` is deployed you are recommended to NOT make this port publicly accessible, instead navigate to the UI via an SSH tunnel.
 
@@ -134,7 +138,7 @@ Where:
 
 ## Acknowledgements
 
-`cheek` is build on top ofmany  great OSS assets. Noteable thanks goes to:
+`cheek` is building on top of many great OSS assets. Noteable thanks goes to:
 
 - [chota](https://jenil.github.io/chota/): for a pico sized css framework
 - [gronx](https://github.com/adhocore/gronx): for allowing me not to worry about CRON strings.
