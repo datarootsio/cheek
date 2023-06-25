@@ -21,10 +21,6 @@ body.dark {
   margin: 0.3rem !important;
 }
 
-.margin-zero {
-  margin: 0 !important;
-}
-
 .pad {
   padding: 0.2rem;
 }
@@ -42,4 +38,16 @@ body.dark {
   top: 0px;
   right: 0px;
   padding: 1rem;
+}
+
+.icon-ahref {
+  overflow: hidden;
+  height: 16px;
+  width: 16px;
+}
+
+.no-underline {
+  border-bottom: none !important;
+  cursor: inherit !important;
+  text-decoration: none !important;
 }

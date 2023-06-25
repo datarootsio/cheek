@@ -1,4 +1,4 @@
-<img src="https://storage.googleapis.com/better-unified/cheek265.png" alt="cheek" width="128" />
+<img src="https://storage.googleapis.com/cheek-scheduler/cheek-64.png" alt="cheek" />
 
 # cheek
 

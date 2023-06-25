@@ -1,22 +1,18 @@
-{{ define "overview"}} 
-{{range .JobNames}}
-{{ $spec := index $.JobSpecs .}}
+{{ define "overview"}} {{range .JobNames}} {{ $spec := index $.JobSpecs .}}
 <div class="inline">
-  <a
-    class="text-light pad"
-    href="/job/{{$spec.Name}}"
-    >{{$spec.Name}}</a
-  >
+  <a class="text-light pad" href="/job/{{$spec.Name}}">{{$spec.Name}}</a>
   {{ range $i, $e := $spec.GetStatusCodes }}
-  <a href="/job/{{$spec.Name}}#log{{$i}}">
-    {{ if eq . 0 }}
-
-    <img src="https://icongr.am/fontawesome/circle.svg?size=8&color=12824c" />
-
-    {{else}}
-    <img src="https://icongr.am/fontawesome/circle-o.svg?size=8&color=FF0000" />
-    {{end}}
+  <a href="/job/{{$spec.Name}}#log{{$i}}"
+    ><abbr class="no-underline" title="exit code: {{.}}"
+      >{{ if eq . 0 }}
+      <img src="/static/img/circle.svg" />
+      {{else}}
+      <img src="/static/img/circle-o.svg" />
+      {{end}}</abbr
+    >
   </a>
   {{end}}
 </div>
-{{end}} {{ end }}
+{{end}}
+<p class="text-dark">Shows statuses up until the last 10 runs.</p>
+{{ end }}
