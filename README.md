@@ -10,7 +10,7 @@
 [![Awesome](https://cdn.rawgit.com/sindresorhus/awesome/d7305f38d29fed78fa85652e3a63e154dd8e8829/media/badge.svg)](https://github.com/avelino/awesome-go)
 ![love](https://img.shields.io/badge/made_with-%E2%9D%A4%EF%B8%8F-blue)
 
-`cheek` is a pico sized declarative job scheduler designed to excel on a single node environment. `cheek` aims to be lightweight and simple, not to be the most robust.
+`cheek` is a pico-sized declarative job scheduler designed to excel in a single-node environment. `cheek` aims to be lightweight and simple, not to be the most robust.
 
 ## Getting started
 
@@ -83,7 +83,7 @@ You can access the UI by navigating to `http://localhost:8081`. When `cheek` is 
 
 The UI allows to get a quick overview on jobs that have run, that error'd and their logs. It basically does this by fetching the state of the scheduler and by reading the logs that (per job) get written to `$HOME/.cheek/`. Note that you can ignore these logs, output of jobs will always go to stdout as well.
 
-Note, `cheek` prior to version `0.3.0` originally used to boast a TUI, which has been removed.
+Note, `cheek` prior to version `0.3.0` originally used to boast a TUI, which has since been removed.
 
 ## Configuration
 
