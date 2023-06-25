@@ -3,9 +3,9 @@
 # cheek
 
 ![GitHub tag (latest SemVer)](https://img.shields.io/github/v/tag/datarootsio/cheek?label=version)
-[![dataroots](https://dataroots.io/maintained.svg)](https://dataroots.io/) [![codecov](https://codecov.io/gh/datarootsio/cheek/branch/main/graph/badge.svg?token=011KCCGPE6)](https://codecov.io/gh/datarootsio/cheek) 
-![workflow](https://github.com/datarootsio/cheek/actions/workflows/ci.yml/badge.svg) 
-[![Go Report Card](https://goreportcard.com/badge/github.com/datarootsio/cheek)](https://goreportcard.com/report/github.com/datarootsio/cheek) 
+[![dataroots](https://dataroots.io/maintained.svg)](https://dataroots.io/) [![codecov](https://codecov.io/gh/datarootsio/cheek/branch/main/graph/badge.svg?token=011KCCGPE6)](https://codecov.io/gh/datarootsio/cheek)
+![workflow](https://github.com/datarootsio/cheek/actions/workflows/ci.yml/badge.svg)
+[![Go Report Card](https://goreportcard.com/badge/github.com/datarootsio/cheek)](https://goreportcard.com/report/github.com/datarootsio/cheek)
 [![Go Reference](https://pkg.go.dev/badge/github.com/datarootsio/cheek.svg)](https://pkg.go.dev/github.com/datarootsio/cheek)
 [![Awesome](https://cdn.rawgit.com/sindresorhus/awesome/d7305f38d29fed78fa85652e3a63e154dd8e8829/media/badge.svg)](https://github.com/avelino/awesome-go)
 ![love](https://img.shields.io/badge/made_with-%E2%9D%A4%EF%B8%8F-blue)
@@ -16,21 +16,21 @@
 
 Fetch the latest version for your system below.
 
-[darwin-arm64](https://storage.googleapis.com/better-unified/darwin/arm64/cheek) |
-[darwin-amd64](https://storage.googleapis.com/better-unified/darwin/amd64/cheek) |
-[linux-386](https://storage.googleapis.com/better-unified/linux/386/cheek) |
-[linux-arm64](https://storage.googleapis.com/better-unified/linux/arm64/cheek) |
-[linux-amd64](https://storage.googleapis.com/better-unified/linux/amd64/cheek)
+[darwin-arm64](https://storage.googleapis.com/cheek-scheduler/darwin/arm64/cheek) |
+[darwin-amd64](https://storage.googleapis.com/cheek-scheduler/darwin/amd64/cheek) |
+[linux-386](https://storage.googleapis.com/cheek-scheduler/linux/386/cheek) |
+[linux-arm64](https://storage.googleapis.com/cheek-scheduler/linux/arm64/cheek) |
+[linux-amd64](https://storage.googleapis.com/cheek-scheduler/linux/amd64/cheek)
 
 You can (for example) fetch it like below, make it executable and run it. Optionally put the `cheek` on your `PATH`.
 
 ```sh
-curl https://storage.googleapis.com/better-unified/darwin/amd64/cheek -o cheek
+curl https://storage.googleapis.com/cheek-scheduler/darwin/amd64/cheek -o cheek
 chmod +x cheek
 ./cheek
 ```
 
-Create a schedule specification using the below YAML structure:
+Everything about how you want the scheduler to function is defined in a schedule specification written in YAML. Start by creating this specification using the below example. Note, this structure should be more or less self-explanatory, if it is not, create an [issue](https://github.com/datarootsio/cheek/issues).
 
 ```yaml
 tz_location: Europe/Brussels
@@ -61,7 +61,7 @@ Note that you can set `tz_location` if the system time of where you run your ser
 
 ## Scheduler
 
-The core of `cheek` consists of a scheduler that uses a schedule specified in a `yaml` file to triggers jobs when they are due.
+The core of `cheek` consists of a scheduler that uses the schedule specs defined in your `yaml` file to trigger jobs when they are due.
 
 You can launch the scheduler via:
 
@@ -75,12 +75,15 @@ Check out `cheek run --help` for configuration options.
 
 `cheek` ships with a web UI that by default gets launched on port `8081`. You can define the port on which it is accessible via the `--port` flag.
 
-You can access the UI by navigating to `http://localhost:8081`. When `cheek` is deployed you are recommended to NOT make this port publicly accessible, instead navigate to the UI via an SSH tunnel.
+|                    overview                     |                 job detail                 |
+| :---------------------------------------------: | :----------------------------------------: |
+| ![main-screen](https://i.imgur.com/hq0Zxjb.png) | ![detail](https://i.imgur.com/jc9wBQJ.png) |
 
+You can access the UI by navigating to `http://localhost:8081`. When `cheek` is deployed you are recommended to NOT make this port publicly accessible, instead navigate to the UI via an SSH tunnel.
 
 The UI allows to get a quick overview on jobs that have run, that error'd and their logs. It basically does this by fetching the state of the scheduler and by reading the logs that (per job) get written to `$HOME/.cheek/`. Note that you can ignore these logs, output of jobs will always go to stdout as well.
 
-Note, `cheek` originally used to boast a TUI, which has been removed.
+Note, `cheek` prior to version `0.3.0` originally used to boast a TUI, which has been removed.
 
 ## Configuration
 
@@ -118,16 +121,16 @@ Check out the `Dockerfile` for an example on how to set up `cheek` within the co
 
 If you want to pin your setup to a specific version of `cheek` you can use the following template to fetch your `cheek` binary:
 
-- latest version: https://storage.googleapis.com/better-unified/{os}/{arch}/cheek
-- tagged version: https://storage.googleapis.com/better-unified/{os}/{arch}/cheek-{tag}
-- `main` branch builds: https://storage.googleapis.com/better-unified/{os}/{arch}/cheek-{shortsha}
+- latest version: https://storage.googleapis.com/cheek-scheduler/{os}/{arch}/cheek
+- tagged version: https://storage.googleapis.com/cheek-scheduler/{os}/{arch}/cheek-{tag}
+- `main` branch builds: https://storage.googleapis.com/cheek-scheduler/{os}/{arch}/cheek-{shortsha}
 
 Where:
+
 - `os` is one of `linux`, `darwin`
 - `arch` is one of `amd64`, `arm64`, `386`
 - `tag` is one the [available tags](https://github.com/datarootsio/cheek/tags)
 - `shortsha` is a 7-char SHA and most commits on `main` will be available
-
 
 ## Acknowledgements
 
