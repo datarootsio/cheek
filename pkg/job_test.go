@@ -29,9 +29,6 @@ func TestLoadLogs(t *testing.T) {
 	jr := j.execCommandWithRetry("test")
 	jr.logToDisk()
 
-	sc := j.GetStatusCodes()
-	assert.GreaterOrEqual(t, len(sc), 0)
-
 	// log loading goes on job name basis
 	// let's recreate
 	j = &JobSpec{
