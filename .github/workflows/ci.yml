@@ -87,5 +87,5 @@ jobs:
       - id: upload-files
         uses: google-github-actions/upload-cloud-storage@v1.0.3
         with:
-          path: ${{ matrix.goos }}/${{ matrix.goarch }}/
-          destination: cheek-scheduler/${{ matrix.goos }}/${{ matrix.goarch }}/
+          path: ${{ matrix.goos }}/${{ matrix.goarch }}
+          destination: cheek-scheduler/${{ matrix.goos }}/
