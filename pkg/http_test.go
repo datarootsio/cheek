@@ -18,6 +18,21 @@ func TestMux(t *testing.T) {
 		cfg:        NewConfig(),
 	}
 
+	s2 := Schedule{
+		Jobs:       map[string]*JobSpec{},
+		TZLocation: "Europe/Amsterdam",
+		log:        zerolog.Logger{},
+		cfg:        NewConfig(),
+	}
+
+	j := &JobSpec{
+		Cron:    "MooIAmACow",
+		Name:    "bertha",
+		Command: []string{"ls"},
+		cfg:     NewConfig(),
+	}
+	s2.Jobs[j.Name] = j
+
 	type args struct {
 		req *http.Request
 	}
@@ -73,6 +88,21 @@ func TestMux(t *testing.T) {
 			},
 			wantCode: http.StatusNotFound,
 			wantBody: "error:",
+		},
+		{
+			schedule: &s2,
+			name:     "/trigger/ must return 200",
+			args: func(*testing.T) args {
+				req, err := http.NewRequest("GET", "/trigger/bertha", nil)
+				if err != nil {
+					t.Fatalf("fail to create request: %s", err.Error())
+				}
+				return args{
+					req: req,
+				}
+			},
+			wantCode: http.StatusOK,
+			wantBody: "\"status\":\"ok\",\"type\":\"trigger\"",
 		},
 		{
 			schedule: &s1,
