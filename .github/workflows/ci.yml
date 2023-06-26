@@ -97,6 +97,10 @@ jobs:
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
     steps:
+      - name: Check out the repo
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: '0'
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
       - name: Set up Docker Buildx
