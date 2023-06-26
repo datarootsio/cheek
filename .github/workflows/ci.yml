@@ -117,5 +117,5 @@ jobs:
           context: .
           push: true
           tags: |
-            cheek:latest
-            cheek:${{ needs.version_tag.outputs.new_tag }}
+            ghcr.io/datarootsio/cheek:latest
+            ghcr.io/datarootsio/cheek:${{ needs.version_tag.outputs.new_tag }}
