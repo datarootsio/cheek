@@ -46,6 +46,10 @@ jobs:
       - echo
       - bar
       - foo
+    env:
+      FOO: bar
+      coffee: bar
+    working_directory: /tmp
   coffee:
     command: this fails
     cron: "* * * * *"
