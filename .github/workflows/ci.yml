@@ -111,5 +111,5 @@ jobs:
           context: .
           push: true
           tags: |
-            datarootsio/cheek:latest
-            datarootsio/cheek:${{ needs.version_tag.outputs.new_tag }}
+            cheek:latest
+            cheek:${{ needs.version_tag.outputs.new_tag }}
