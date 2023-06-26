@@ -1,5 +1,7 @@
 FROM ghcr.io/datarootsio/cheek:latest
 EXPOSE 8081
 WORKDIR /schedule
+# ADD your application files here
 ADD testdata/jobs1.yaml .
+# point to your schedule yaml here
 CMD ["/schedule/jobs1.yaml"]

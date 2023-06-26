@@ -119,7 +119,7 @@ Webhooks are a generic way to push notifications to a plethora of tools. You can
 
 ## Docker
 
-Check out the `Dockerfile.example` for an example on how to set up `cheek` within the context of a Docker image. Note that this builds upon a published Ubuntu-based image build using `Dockerfile`.
+Check out the `Dockerfile.example` for an example on how to use `cheek` within the context of a Docker container. Note that this builds upon a published Ubuntu-based image build that you can find in the base [Dockerfile](https://github.com/datarootsio/cheek/blob/main/Dockerfile).
 
 ## Available versions
 
