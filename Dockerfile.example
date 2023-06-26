@@ -1,9 +1,5 @@
-FROM ubuntu
-ARG CHEEK_ARCH="linux/amd64"
+FROM ghcr.io/datarootsio/cheek:latest
 EXPOSE 8081
-WORKDIR /app
-RUN apt update; apt install wget -y
-RUN wget https://storage.googleapis.com/cheek-scheduler/${CHEEK_ARCH}/cheek
-RUN chmod +x cheek
-ENTRYPOINT [ "./cheek" ]
-CMD ["run", "job_spec.yaml"]
+WORKDIR /schedule
+ADD testdata/jobs1.yaml .
+CMD ["/schedule/jobs1.yaml"]
