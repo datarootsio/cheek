@@ -91,7 +91,9 @@ jobs:
           destination: cheek-scheduler/${{ matrix.goos }}/
 
   docker-build:
-    needs: build
+    needs: 
+      - build
+      - version_tag
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
     steps:
