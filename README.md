@@ -46,10 +46,10 @@ jobs:
       - echo
       - $foo
     env: # you can pass env variables
-      - foo: bar
+      foo: bar
   other_workingdir:
     command: pwd
-    working-dir: ./testdata
+    working_directory: ../testdata # specify the working directory of the job
   coffee:
     command: this fails
     cron: "* * * * *"
