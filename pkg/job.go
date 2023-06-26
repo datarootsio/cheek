@@ -31,11 +31,12 @@ type JobSpec struct {
 	OnSuccess OnEvent `yaml:"on_success,omitempty" json:"on_success,omitempty"`
 	OnError   OnEvent `yaml:"on_error,omitempty" json:"on_error,omitempty"`
 
-	Name           string            `json:"name"`
-	Retries        int               `yaml:"retries,omitempty" json:"retries,omitempty"`
-	Env            map[string]string `yaml:"env,omitempty"`
-	globalSchedule *Schedule
-	Runs           []JobRun `yaml:"runs,omitempty"`
+	Name             string            `json:"name"`
+	Retries          int               `yaml:"retries,omitempty" json:"retries,omitempty"`
+	Env              map[string]string `yaml:"env,omitempty"`
+	WorkingDirectory string            `yaml:"working_directory,omitempty" json:"working_directory,omitempty"`
+	globalSchedule   *Schedule
+	Runs             []JobRun          `yaml:"runs,omitempty"`
 
 	nextTick time.Time
 	log      zerolog.Logger
@@ -138,6 +139,8 @@ func (j *JobSpec) execCommand(trigger string) JobRun {
 	for k, v := range j.Env {
 		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", k, v))
 	}
+
+	cmd.Dir = j.WorkingDirectory
 
 	var w io.Writer
 	switch j.cfg.SuppressLogs {
