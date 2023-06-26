@@ -33,29 +33,29 @@ chmod +x cheek
 Everything about how you want the scheduler to function is defined in a schedule specification written in YAML. Start by creating this specification using the below example. Note, this structure should be more or less self-explanatory, if it is not, create an [issue](https://github.com/datarootsio/cheek/issues).
 
 ```yaml
-tz_location: Europe/Brussels
+tz_location: Europe/Brussels # optionally set timezone to adhere to
 jobs:
   foo:
     command: date
-    cron: "* * * * *"
+    cron: "* * * * *" # a cron string to specify when to run
     on_success:
-      trigger_job:
+      trigger_job: # trigger something on run
         - bar
   bar:
-    command:
+    command: # command to run, use a list if you want to pass args
       - echo
-      - bar
-      - foo
-    env:
-      FOO: bar
-      coffee: bar
-    working_directory: /tmp
+      - $foo
+    env: # you can pass env variables
+      - foo: bar
+  other_workingdir:
+    command: pwd
+    working-dir: ./testdata
   coffee:
     command: this fails
     cron: "* * * * *"
     retries: 3
     on_error:
-      notify_webhook:
+      notify_webhook: # notify something on error
         - https://webhook.site/4b732eb4-ba10-4a84-8f6b-30167b2f2762
 ```
 

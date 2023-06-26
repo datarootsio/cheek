@@ -266,3 +266,13 @@ func TestStandaloneJobRun(t *testing.T) {
 	assert.Contains(t, b.String(), "\"job\":\"bar\",\"trigger\":\"manual\"")
 	assert.Contains(t, jr.Log, "bar_foo")
 }
+
+func TestWorkingDir(t *testing.T) {
+	b := new(tsBuffer)
+	log := NewLogger("debug", b, os.Stdout)
+	cfg := NewConfig()
+
+	jr, err := RunJob(log, cfg, "../testdata/readme_example.yaml", "other_workingdir")
+	assert.NoError(t, err)
+	assert.Contains(t, jr.Log, "/testdata")
+}
