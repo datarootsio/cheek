@@ -55,3 +55,8 @@ body.dark {
   cursor: inherit !important;
   text-decoration: none !important;
 }
+
+.flex-container {
+  display: flex;
+  flex-wrap: wrap;
+}

@@ -13,24 +13,26 @@
 <body>
   <div class="container">
     <div class="row">
-      
-    <div id="title" class="col is-vertical-align">
-      <a class="brand text-primary" href="/">cheek</a>
-    </div>
-    <div class="col is-vertical-align is-right">
-      <a class="icon-ahref" href="https://github.com/datarootsio/cheek">
-        <picture>
-          <source srcset="/static/img/github-light.svg" media="(prefers-color-scheme: dark)">
-          <img src="/static/img/github-dark.svg">
-        </picture>
-      </a>
 
+      <div id="title" class="col is-vertical-align">
+        <a class="brand text-primary" href="/">cheek</a>
+      </div>
+      <div class="col is-vertical-align is-right">
+        <a class="icon-ahref" href="https://github.com/datarootsio/cheek">
+          <picture>
+            <source srcset="/static/img/github-light.svg" media="(prefers-color-scheme: dark)">
+            <img src="/static/img/github-dark.svg">
+          </picture>
+        </a>
+
+      </div>
     </div>
-  </div>
     <div class="row">
       <div class="col-12">
-        {{range .JobNames}}<a class="{{if eq . $.SelectedJobName}}text-primary{{else}}text-grey{{end}} pad"
-          href="/job/{{.}}">{{.}}</a>{{end}}
+        <div class="flex-container">
+          {{range .JobNames}}<a class="{{if eq . $.SelectedJobName}}text-primary{{else}}text-grey{{end}} pad"
+            href="/job/{{.}}">{{.}}</a>{{end}}
+        </div>
       </div>
     </div>
     <div id="jobView">
