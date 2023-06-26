@@ -25,6 +25,10 @@ body.dark {
   padding: 0.2rem;
 }
 
+.pad-top {
+  padding-top: 0.5rem;
+}
+
 #title {
   font-size: 2rem;
 }

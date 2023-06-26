@@ -29,7 +29,7 @@
   </div>
     <div class="row">
       <div class="col-12">
-        {{range .JobNames}}<a class="{{if eq . $.SelectedJobName}}text-primary{{else}}text-light{{end}} pad"
+        {{range .JobNames}}<a class="{{if eq . $.SelectedJobName}}text-primary{{else}}text-grey{{end}} pad"
           href="/job/{{.}}">{{.}}</a>{{end}}
       </div>
     </div>

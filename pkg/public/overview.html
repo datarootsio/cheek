@@ -1,6 +1,6 @@
 {{ define "overview"}} {{range .JobNames}} {{ $spec := index $.JobSpecs .}}
 <div class="inline">
-  <a class="text-light pad" href="/job/{{$spec.Name}}">{{$spec.Name}}</a>
+  <a class="text-grey pad" href="/job/{{$spec.Name}}">{{$spec.Name}}</a>
   {{ range $i, $r := $spec.Runs }}
   <a href="/job/{{$spec.Name}}#log{{$i}}"
     ><abbr class="no-underline" title="{{$r.TriggeredAt.Format "2006-01-02T15:04:05"}}&#10;exit code: {{$r.Status}}"
@@ -14,5 +14,5 @@
   {{end}}
 </div>
 {{end}}
-<p class="text-dark">Shows statuses up until the last 10 runs.</p>
+<p class="text-grey pad-top"><small>shows statuses up until the last 10 runs</small></p>
 {{ end }}
