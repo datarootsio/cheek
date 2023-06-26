@@ -1,9 +1,15 @@
 {{ define "jobview"}}
 <button class="button icon-only outline" onClick="triggerJob({{.SelectedJobSpec.Name}})">
-  <img src="/static/img/play.svg">
+  <picture>
+    <source srcset="/static/img/play-light.svg" media="(prefers-color-scheme: dark)">
+    <img src="/static/img/play-dark.svg">
+  </picture>
 </button>
 <button class="button icon-only outline" onClick="window.location.reload();">
-  <img src="/static/img/refresh-ccw.svg">
+  <picture>
+    <source srcset="/static/img/refresh-ccw-light.svg" media="(prefers-color-scheme: dark)">
+    <img src="/static/img/refresh-ccw-dark.svg">
+  </picture>
 </button>
 </div>
 </div>
