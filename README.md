@@ -125,6 +125,8 @@ Webhooks are a generic way to push notifications to a plethora of tools. You can
 
 Check out the `Dockerfile.example` for an example on how to use `cheek` within the context of a Docker container. Note that this builds upon a published Ubuntu-based image build that you can find in the base [Dockerfile](https://github.com/datarootsio/cheek/blob/main/Dockerfile).
 
+Prebuilt images are available at `ghcr.io/datarootsio/cheek:latest` where `latest` can be replaced by a version tag. Check out the [available images](https://github.com/datarootsio/cheek/pkgs/container/cheek) for an overview on available tags.
+
 ## Available versions
 
 If you want to pin your setup to a specific version of `cheek` you can use the following template to fetch your `cheek` binary:
