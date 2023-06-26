@@ -89,3 +89,27 @@ jobs:
         with:
           path: ${{ matrix.goos }}/${{ matrix.goarch }}
           destination: cheek-scheduler/${{ matrix.goos }}/
+
+  docker-build:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          tags: |
+            datarootsio/cheek:latest
+            datarootsio/cheek:${{ needs.version_tag.outputs.new_tag }}
