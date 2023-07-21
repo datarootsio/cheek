@@ -11,7 +11,7 @@ require (
 )
 
 require (
-	github.com/adhocore/gronx v1.6.3
+	github.com/adhocore/gronx v1.6.4
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/mattn/go-isatty v0.0.19 // indirect
 	github.com/rs/zerolog v1.29.1
