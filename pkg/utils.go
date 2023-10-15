@@ -1,6 +1,7 @@
 package cheek
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -79,43 +80,25 @@ func readLastLines(filepath string, nLines int) ([]string, error) {
 	defer fileHandle.Close()
 
 	var lines []string
-	line := ""
-	var cursor int64 = 0
-	stat, _ := fileHandle.Stat()
-	filesize := stat.Size()
+	reader := bufio.NewReader(fileHandle)
+
 	for {
-		cursor--
-		_, err := fileHandle.Seek(cursor, io.SeekEnd)
+		s, err := reader.ReadString('\n')
 		if err != nil {
-			return []string{}, err
-		}
-
-		char := make([]byte, 1)
-		_, err = fileHandle.Read(char)
-		if err != nil {
-			return []string{}, err
-		}
-
-		// nts: char 10 is newline, char 13 is carriage return
-		if cursor != -1 && (char[0] == 10 || char[0] == 13) {
-			// break
-			lines = append(lines, line)
-			if nLines > 0 && len(lines) == nLines {
+			if err == io.EOF {
 				break
 			}
-			line = ""
-
+			return []string{}, err
 		}
 
-		line = fmt.Sprintf("%s%s", string(char), line)
+		lines = append([]string{s}, lines...)
 
-		if cursor == -filesize { // at beginning of file
-			lines = append(lines, line)
-			break
+		if nLines > 0 && len(lines) > nLines {
+			lines = lines[:nLines]
 		}
 	}
 
-	return lines, err
+	return lines, nil
 }
 
 func hardWrap(in string, width int) string {
