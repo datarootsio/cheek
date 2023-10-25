@@ -52,4 +52,9 @@ func TestJobRunWebhookCall(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Contains(t, string(resp_body), "text\":\"test (exitcode 0)")
 
+	sl := slackPayload{}
+	err = json.NewDecoder(bytes.NewBuffer(resp_body)).Decode(&sl)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, sl.Text)
+
 }
