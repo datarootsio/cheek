@@ -36,7 +36,7 @@ func (s *Schedule) Run() {
 		select {
 		case <-ticker.C:
 			s.log.Debug().Msg("tick")
-			currentTickTime = time.Now()
+			currentTickTime = s.now()
 
 			for _, j := range s.Jobs {
 				if j.Cron == "" {
@@ -98,7 +98,16 @@ func readSpecs(fn string) (Schedule, error) {
 
 // initialize Schedule spec and logic.
 func (s *Schedule) initialize() error {
-	initTime := time.Now()
+	// validate tz location
+	if s.TZLocation == "" {
+		s.TZLocation = "Local"
+	}
+
+	loc, err := time.LoadLocation(s.TZLocation)
+	if err != nil {
+		return err
+	}
+	s.loc = loc
 
 	for k, v := range s.Jobs {
 		// check if trigger references exist
@@ -121,21 +130,11 @@ func (s *Schedule) initialize() error {
 		}
 
 		// init nextTick
-		if err := v.setNextTick(initTime, true); err != nil {
+		if err := v.setNextTick(s.now(), true); err != nil {
 			return err
 		}
 
 	}
-	// validate tz location
-	if s.TZLocation == "" {
-		s.TZLocation = "Local"
-	}
-
-	loc, err := time.LoadLocation(s.TZLocation)
-	if err != nil {
-		return err
-	}
-	s.loc = loc
 
 	return nil
 }

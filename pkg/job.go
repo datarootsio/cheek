@@ -112,10 +112,18 @@ func (j *JobSpec) execCommandWithRetry(trigger string) JobRun {
 	return jr
 }
 
+func (j JobSpec) now() time.Time {
+	// defer for if schedule doesn't exist, allows fore easy testing
+	if j.globalSchedule != nil {
+		return j.globalSchedule.now()
+	}
+	return time.Now()
+}
+
 func (j *JobSpec) execCommand(trigger string) JobRun {
 	j.log.Info().Str("job", j.Name).Str("trigger", trigger).Msgf("Job triggered")
 	// init status to non-zero until execution says otherwise
-	jr := JobRun{Name: j.Name, TriggeredAt: time.Now(), TriggeredBy: trigger, Status: -1, jobRef: j}
+	jr := JobRun{Name: j.Name, TriggeredAt: j.now(), TriggeredBy: trigger, Status: -1, jobRef: j}
 
 	suppressLogs := j.cfg.SuppressLogs
 
