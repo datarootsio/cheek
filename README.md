@@ -57,6 +57,8 @@ jobs:
     on_error:
       notify_webhook: # notify something on error
         - https://webhook.site/4b732eb4-ba10-4a84-8f6b-30167b2f2762
+      notify_slack_webhook: # notify slack via a slack compatible webhook
+        - https://webhook.site/048ff47f-9ef5-43fb-9375-a795a8c5cbf5
 ```
 
 If your `command` requires arguments, please make sure to pass them as an array like in `foo_job`.
@@ -99,9 +101,9 @@ All configuration options are available by checking out `cheek --help` or the he
 
 Configuration can be passed as flags to the `cheek` CLI directly. All configuration flags are also possible to set via environment variables. The following environment variables are available, they will override the default and/or set value of their similarly named CLI flags (without the prefix): `CHEEK_PORT`, `CHEEK_SUPPRESSLOGS`, `CHEEK_LOGLEVEL`, `CHEEK_PRETTY`, `CHEEK_HOMEDIR`.
 
-## Events
+## Events & Notifications
 
-There are two types of event you can hook into: `on_success` and `on_error`. Both events materialize after an (attempted) job run. Two types of actions can be taken as a response: `notify_webhook` and `trigger_job`. See the example below. Definition of these event actions can be done on job level or at schedule level, in the latter case it will apply to all jobs.
+There are two types of event you can hook into: `on_success` and `on_error`. Both events materialize after an (attempted) job run. Three types of actions can be taken as a response: `notify_webhook`, `notify_slack_webhook` and `trigger_job`. See the example below. Definition of these event actions can be done on job level or at schedule level, in the latter case it will apply to all jobs.
 
 ```yaml
 on_success:
@@ -119,7 +121,29 @@ jobs:
     cron: "* * * * *"
 ```
 
-Webhooks are a generic way to push notifications to a plethora of tools. You can use it for instance via Zapier to push messages to a Slack channel.
+Webhooks are a generic way to push notifications to a plethora of tools. There is a generic way to do this via the `notify_webhook` option or a Slack-compatible one via `notify_slack_webhook`.
+
+The `notify_webhook` sends a JSON payload to your webhook url with the following structure:
+
+```json
+{
+	"status": 0,
+	"log": "I'm a teapot, not a coffee machine!",
+	"name": "TeapotTask",
+	"triggered_at": "2023-04-01T12:00:00Z",
+	"triggered_by": "CoffeeRequestButton",
+	"triggered": ["CoffeeMachine"] // this job triggered another one
+}
+```
+
+The `notify_slack_webhook` sends a JSON payload to your Slack webhook url with the following structure (which is Slack app compatible):
+
+```json
+{
+	"text": "TeapotTask (exitcode 0):\nI'm a teapot, not a coffee machine!"
+}
+```
+
 
 ## Docker
 

@@ -13,6 +13,9 @@ import (
 )
 
 func TestJobRunWebhookCall(t *testing.T) {
+	var err error
+	var resp_body []byte
+
 	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer r.Body.Close()
 		body, err := io.ReadAll(r.Body)
@@ -22,25 +25,36 @@ func TestJobRunWebhookCall(t *testing.T) {
 		// mirror this
 		w.Header().Set("Content-Type", "application/json")
 		fmt.Fprintln(w, string(body))
+		t.Log(string(body))
 	}))
 
 	defer testServer.Close()
 
+	// test generic webhook
 	jr := JobRun{
 		Status:      0,
 		Name:        "test",
 		TriggeredBy: "cron",
+		Log:         "this is a random log statement\nwith multiple lines\nand stuff",
 	}
 
-	resp_body, err := JobRunWebhookCall(&jr, testServer.URL)
-	if err != nil {
-		t.Fatal(err)
-	}
+	resp_body, err = JobRunWebhookCall(&jr, testServer.URL, "generic")
+	assert.NoError(t, err)
 
 	jr2 := JobRun{}
-	if err := json.NewDecoder(bytes.NewBuffer(resp_body)).Decode(&jr2); err != nil {
-		t.Fatal(err)
-	}
+	err = json.NewDecoder(bytes.NewBuffer(resp_body)).Decode(&jr2)
+	assert.NoError(t, err)
 
 	assert.Equal(t, jr, jr2)
+
+	// test slack webhook
+	resp_body, err = JobRunWebhookCall(&jr, testServer.URL, "slack")
+	assert.NoError(t, err)
+	assert.Contains(t, string(resp_body), "text\":\"test (exitcode 0)")
+
+	sl := slackPayload{}
+	err = json.NewDecoder(bytes.NewBuffer(resp_body)).Decode(&sl)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, sl.Text)
+
 }

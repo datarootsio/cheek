@@ -19,8 +19,9 @@ import (
 
 // OnEvent contains specs on what needs to happen after a job event.
 type OnEvent struct {
-	TriggerJob    []string `yaml:"trigger_job,omitempty" json:"trigger_job,omitempty"`
-	NotifyWebhook []string `yaml:"notify_webhook,omitempty" json:"notify_webhook,omitempty"`
+	TriggerJob         []string `yaml:"trigger_job,omitempty" json:"trigger_job,omitempty"`
+	NotifyWebhook      []string `yaml:"notify_webhook,omitempty" json:"notify_webhook,omitempty"`
+	NotifySlackWebhook []string `yaml:"notify_slack_webhook,omitempty" json:"notify_slack_webhook,omitempty"`
 }
 
 // JobSpec holds specifications and metadata of a job.
@@ -36,7 +37,7 @@ type JobSpec struct {
 	Env              map[string]string `yaml:"env,omitempty"`
 	WorkingDirectory string            `yaml:"working_directory,omitempty" json:"working_directory,omitempty"`
 	globalSchedule   *Schedule
-	Runs             []JobRun          `yaml:"runs,omitempty"`
+	Runs             []JobRun `yaml:"runs,omitempty"`
 
 	nextTick time.Time
 	log      zerolog.Logger
@@ -47,11 +48,12 @@ type JobSpec struct {
 type JobRun struct {
 	Status      int `json:"status"`
 	logBuf      bytes.Buffer
-	Log         string    `json:"log"`
-	Name        string    `json:"name"`
-	TriggeredAt time.Time `json:"triggered_at"`
-	TriggeredBy string    `json:"triggered_by"`
-	Triggered   []string  `json:"triggered,omitempty"`
+	Log         string        `json:"log"`
+	Name        string        `json:"name"`
+	TriggeredAt time.Time     `json:"triggered_at"`
+	TriggeredBy string        `json:"triggered_by"`
+	Triggered   []string      `json:"triggered,omitempty"`
+	Duration    time.Duration `json:"duration,omitempty"`
 	jobRef      *JobSpec
 }
 
@@ -111,10 +113,18 @@ func (j *JobSpec) execCommandWithRetry(trigger string) JobRun {
 	return jr
 }
 
+func (j JobSpec) now() time.Time {
+	// defer for if schedule doesn't exist, allows fore easy testing
+	if j.globalSchedule != nil {
+		return j.globalSchedule.now()
+	}
+	return time.Now()
+}
+
 func (j *JobSpec) execCommand(trigger string) JobRun {
 	j.log.Info().Str("job", j.Name).Str("trigger", trigger).Msgf("Job triggered")
 	// init status to non-zero until execution says otherwise
-	jr := JobRun{Name: j.Name, TriggeredAt: time.Now(), TriggeredBy: trigger, Status: -1, jobRef: j}
+	jr := JobRun{Name: j.Name, TriggeredAt: j.now(), TriggeredBy: trigger, Status: -1, jobRef: j}
 
 	suppressLogs := j.cfg.SuppressLogs
 
@@ -178,6 +188,7 @@ func (j *JobSpec) execCommand(trigger string) JobRun {
 		return jr
 	}
 
+	jr.Duration = time.Since(jr.TriggeredAt)
 	jr.Status = 0
 	j.log.Debug().Str("job", j.Name).Int("exitcode", jr.Status).Msgf("job exited status: %v", jr.Status)
 
@@ -216,21 +227,26 @@ func (j *JobSpec) ValidateCron() error {
 func (j *JobSpec) OnEvent(jr *JobRun) {
 	var jobsToTrigger []string
 	var webhooksToCall []string
+	var slackWebhooksToCall []string
 
 	switch jr.Status == 0 {
 	case true: // after success
 		jobsToTrigger = j.OnSuccess.TriggerJob
 		webhooksToCall = j.OnSuccess.NotifyWebhook
+		slackWebhooksToCall = j.OnSuccess.NotifySlackWebhook
 		if j.globalSchedule != nil {
 			jobsToTrigger = append(jobsToTrigger, j.globalSchedule.OnSuccess.TriggerJob...)
 			webhooksToCall = append(webhooksToCall, j.globalSchedule.OnSuccess.NotifyWebhook...)
+			slackWebhooksToCall = append(slackWebhooksToCall, j.globalSchedule.OnSuccess.NotifySlackWebhook...)
 		}
 	case false: // after error
 		jobsToTrigger = j.OnError.TriggerJob
 		webhooksToCall = j.OnError.NotifyWebhook
+		slackWebhooksToCall = j.OnError.NotifySlackWebhook
 		if j.globalSchedule != nil {
 			jobsToTrigger = append(jobsToTrigger, j.globalSchedule.OnError.TriggerJob...)
 			webhooksToCall = append(webhooksToCall, j.globalSchedule.OnError.NotifyWebhook...)
+			slackWebhooksToCall = append(slackWebhooksToCall, j.globalSchedule.OnError.NotifySlackWebhook...)
 		}
 	}
 
@@ -252,7 +268,21 @@ func (j *JobSpec) OnEvent(jr *JobRun) {
 		wg.Add(1)
 		go func(wg *sync.WaitGroup, webhookURL string) {
 			defer wg.Done()
-			resp_body, err := JobRunWebhookCall(jr, webhookURL)
+			resp_body, err := JobRunWebhookCall(jr, webhookURL, "generic")
+			if err != nil {
+				j.log.Warn().Str("job", j.Name).Str("on_event", "webhook").Err(err).Msg("webhook notify failed")
+			}
+			j.log.Debug().Str("job", jr.Name).Str("webhook_call", "response").Str("webhook_url", webhookURL).Msg(string(resp_body))
+		}(&wg, wu)
+	}
+
+	// trigger slack webhooks - this feels like a lot of duplication
+	for _, wu := range slackWebhooksToCall {
+		j.log.Debug().Str("job", j.Name).Str("on_event", "slack_webhook_call").Msg("triggered by parent job")
+		wg.Add(1)
+		go func(wg *sync.WaitGroup, webhookURL string) {
+			defer wg.Done()
+			resp_body, err := JobRunWebhookCall(jr, webhookURL, "slack")
 			if err != nil {
 				j.log.Warn().Str("job", j.Name).Str("on_event", "webhook").Err(err).Msg("webhook notify failed")
 			}

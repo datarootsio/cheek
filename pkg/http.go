@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"sort"
 	"strings"
+	"time"
 )
 
 type Response struct {
@@ -123,8 +124,15 @@ func ui(s *Schedule) func(w http.ResponseWriter, r *http.Request) {
 		}
 		sort.Strings(jobNames)
 
+		// add custom functions to template
+		funcMap := template.FuncMap{
+			"roundToSeconds": func(d time.Duration) int {
+				return int(d.Seconds())
+			},
+		}
+
 		// parse template files
-		tmpl, err := template.ParseFS(fsys(), "*.html")
+		tmpl, err := template.New("index.html").Funcs(funcMap).ParseFS(fsys(), "*.html")
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
