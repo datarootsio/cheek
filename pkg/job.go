@@ -48,11 +48,12 @@ type JobSpec struct {
 type JobRun struct {
 	Status      int `json:"status"`
 	logBuf      bytes.Buffer
-	Log         string    `json:"log"`
-	Name        string    `json:"name"`
-	TriggeredAt time.Time `json:"triggered_at"`
-	TriggeredBy string    `json:"triggered_by"`
-	Triggered   []string  `json:"triggered,omitempty"`
+	Log         string        `json:"log"`
+	Name        string        `json:"name"`
+	TriggeredAt time.Time     `json:"triggered_at"`
+	TriggeredBy string        `json:"triggered_by"`
+	Triggered   []string      `json:"triggered,omitempty"`
+	Duration    time.Duration `json:"duration,omitempty"`
 	jobRef      *JobSpec
 }
 
@@ -187,6 +188,7 @@ func (j *JobSpec) execCommand(trigger string) JobRun {
 		return jr
 	}
 
+	jr.Duration = time.Since(jr.TriggeredAt)
 	jr.Status = 0
 	j.log.Debug().Str("job", j.Name).Int("exitcode", jr.Status).Msgf("job exited status: %v", jr.Status)
 
