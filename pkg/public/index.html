@@ -30,7 +30,7 @@
     <div class="row">
       <div class="col-12">
         <div class="flex-container">
-          {{range .JobNames}}<a class="{{if eq . $.SelectedJobName}}text-primary{{else}}text-grey{{end}} pad"
+          {{range .JobNames}}<a class="{{if eq . $.SelectedJobName}}text-primary{{else}}text-dark{{end}} pad"
             href="/job/{{.}}">{{.}}</a>{{end}}
         </div>
       </div>

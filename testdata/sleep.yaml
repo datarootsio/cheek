@@ -1,0 +1,4 @@
+jobs:
+  sleep_3_command:
+    cron: "* * * * *"
+    command: sleep 3

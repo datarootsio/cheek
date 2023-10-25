@@ -8,9 +8,9 @@
 body.dark {
   --bg-color: #000;
   --bg-secondary-color: #131316;
-  --font-color: #f5f5f5;
+  --font-color: #d3d7cf;
   --color-grey: #ccc;
-  --color-darkGrey: #777;
+  --color-darkGrey: #d3d7cf;
 }
 
 .button.icon-only {
