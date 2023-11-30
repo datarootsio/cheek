@@ -27,7 +27,7 @@ func TestLoadLogs(t *testing.T) {
 	}
 
 	jr := j.execCommandWithRetry("test")
-	jr.logToDisk()
+	jr.logToDb()
 
 	// log loading goes on job name basis
 	// let's recreate

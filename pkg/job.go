@@ -61,6 +61,16 @@ func (jr *JobRun) flushLogBuffer() {
 	jr.Log = jr.logBuf.String()
 }
 
+func (jr *JobRun) logToDb() {
+	if jr.jobRef.globalSchedule.db == nil {
+		return
+	}
+	_, err := jr.jobRef.globalSchedule.db.Exec("INSERT INTO log (job, message) VALUES (?, ?)", jr.Name, jr.Log)
+	if err != nil {
+		jr.jobRef.log.Warn().Str("job", jr.Name).Err(err).Msg("Couldn't save job log to db.")
+	}
+}
+
 func (j *JobRun) logToDisk() {
 	logFn := path.Join(CheekPath(), fmt.Sprintf("%s.job.jsonl", j.Name))
 	f, err := os.OpenFile(logFn,
@@ -77,10 +87,8 @@ func (j *JobRun) logToDisk() {
 }
 
 func (j *JobSpec) finalize(jr *JobRun) {
-	// flush logbuf to string
-	jr.flushLogBuffer()
 	// write logs to disk
-	jr.logToDisk()
+	jr.logToDb()
 	// launch on_events
 	j.OnEvent(jr)
 }

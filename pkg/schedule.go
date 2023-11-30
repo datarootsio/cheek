@@ -1,6 +1,7 @@
 package cheek
 
 import (
+	"database/sql"
 	"fmt"
 	"os"
 	"os/signal"
@@ -21,6 +22,7 @@ type Schedule struct {
 	TZLocation string              `yaml:"tz_location,omitempty" json:"tz_location,omitempty"`
 	loc        *time.Location
 	log        zerolog.Logger
+	db         *sql.DB
 	cfg        Config
 }
 
@@ -143,13 +145,14 @@ func (s *Schedule) now() time.Time {
 	return time.Now().In(s.loc)
 }
 
-func loadSchedule(log zerolog.Logger, cfg Config, fn string) (Schedule, error) {
+func loadSchedule(log zerolog.Logger, db *sql.DB, cfg Config, fn string) (Schedule, error) {
 	s, err := readSpecs(fn)
 	if err != nil {
 		return Schedule{}, err
 	}
 	s.log = log
 	s.cfg = cfg
+	s.db = db
 
 	// run validations
 	if err := s.initialize(); err != nil {
@@ -160,8 +163,8 @@ func loadSchedule(log zerolog.Logger, cfg Config, fn string) (Schedule, error) {
 }
 
 // RunSchedule is the main entry entrypoint of cheek.
-func RunSchedule(log zerolog.Logger, cfg Config, scheduleFn string) error {
-	s, err := loadSchedule(log, cfg, scheduleFn)
+func RunSchedule(log zerolog.Logger, db *sql.DB, cfg Config, scheduleFn string) error {
+	s, err := loadSchedule(log, db, cfg, scheduleFn)
 	if err != nil {
 		return err
 	}
