@@ -20,14 +20,16 @@ func OpenDB(dbPath string) (*sql.DB, error) {
 	return db, nil
 }
 
-// assert that log table exists
 func InitDB(db *sql.DB) error {
 	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS log (
-		id INTEGER PRIMARY KEY,
-		job TEXT,
-		timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-		message TEXT
-	)`)
+        id INTEGER PRIMARY KEY,
+        job TEXT,
+        triggered_at DATETIME,
+		triggered_by TEXT,
+        duration INTEGER,
+        status INTEGER,
+        message TEXT
+    )`)
 	if err != nil {
 		return fmt.Errorf("create log table: %w", err)
 	}

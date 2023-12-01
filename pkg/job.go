@@ -2,7 +2,7 @@ package cheek
 
 import (
 	"bytes"
-	"encoding/json"
+	"database/sql"
 	"errors"
 	"fmt"
 	"io"
@@ -40,6 +40,7 @@ type JobSpec struct {
 	Runs             []JobRun `yaml:"runs,omitempty"`
 
 	nextTick time.Time
+	db       *sql.DB
 	log      zerolog.Logger
 	cfg      Config
 }
@@ -62,31 +63,23 @@ func (jr *JobRun) flushLogBuffer() {
 }
 
 func (jr *JobRun) logToDb() {
-	if jr.jobRef.globalSchedule.db == nil {
+	if jr.jobRef.db == nil {
+		jr.jobRef.log.Warn().Str("job", jr.Name).Msg("No db connection, not saving job log to db.")
 		return
 	}
-	_, err := jr.jobRef.globalSchedule.db.Exec("INSERT INTO log (job, message) VALUES (?, ?)", jr.Name, jr.Log)
+	_, err := jr.jobRef.db.Exec("INSERT INTO log (job, triggered_at, triggered_by, duration, status, message) VALUES (?, ?, ?, ?, ?, ?)", jr.Name, jr.TriggeredAt, jr.TriggeredBy, jr.Duration, jr.Status, jr.Log)
 	if err != nil {
-		jr.jobRef.log.Warn().Str("job", jr.Name).Err(err).Msg("Couldn't save job log to db.")
-	}
-}
-
-func (j *JobRun) logToDisk() {
-	logFn := path.Join(CheekPath(), fmt.Sprintf("%s.job.jsonl", j.Name))
-	f, err := os.OpenFile(logFn,
-		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
-	if err != nil {
-		j.jobRef.log.Warn().Str("job", j.Name).Err(err).Msgf("Can't open job log '%v' for writing", logFn)
-		return
-	}
-	defer f.Close()
-
-	if err := json.NewEncoder(f).Encode(j); err != nil {
-		j.jobRef.log.Warn().Str("job", j.Name).Err(err).Msg("Couldn't save job log to disk.")
+		if jr.jobRef.globalSchedule != nil {
+			jr.jobRef.globalSchedule.log.Warn().Str("job", jr.Name).Err(err).Msg("Couldn't save job log to db.")
+		} else {
+			panic(err)
+		}
 	}
 }
 
 func (j *JobSpec) finalize(jr *JobRun) {
+	// flush logbuf to string
+	jr.flushLogBuffer()
 	// write logs to disk
 	jr.logToDb()
 	// launch on_events
@@ -122,7 +115,7 @@ func (j *JobSpec) execCommandWithRetry(trigger string) JobRun {
 }
 
 func (j JobSpec) now() time.Time {
-	// defer for if schedule doesn't exist, allows fore easy testing
+	// defer for if schedule doesn't exist, allows for easy testing
 	if j.globalSchedule != nil {
 		return j.globalSchedule.now()
 	}
@@ -196,7 +189,7 @@ func (j *JobSpec) execCommand(trigger string) JobRun {
 		return jr
 	}
 
-	jr.Duration = time.Since(jr.TriggeredAt)
+	jr.Duration = time.Duration(time.Since(jr.TriggeredAt).Milliseconds())
 	jr.Status = 0
 	j.log.Debug().Str("job", j.Name).Int("exitcode", jr.Status).Msgf("job exited status: %v", jr.Status)
 

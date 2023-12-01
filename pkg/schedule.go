@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"path"
 	"strings"
 	"syscall"
 	"time"
@@ -125,6 +126,7 @@ func (s *Schedule) initialize() error {
 		v.globalSchedule = s
 		v.log = s.log
 		v.cfg = s.cfg
+		v.db = s.db
 
 		// validate cron string
 		if err := v.ValidateCron(); err != nil {
@@ -145,7 +147,12 @@ func (s *Schedule) now() time.Time {
 	return time.Now().In(s.loc)
 }
 
-func loadSchedule(log zerolog.Logger, db *sql.DB, cfg Config, fn string) (Schedule, error) {
+func loadSchedule(log zerolog.Logger, cfg Config, fn string) (Schedule, error) {
+	db, err := sql.Open("sqlite3", path.Join(CheekPath(), cfg.DBName))
+	if err != nil {
+		return Schedule{}, fmt.Errorf("open db: %w", err)
+	}
+
 	s, err := readSpecs(fn)
 	if err != nil {
 		return Schedule{}, err
@@ -163,8 +170,9 @@ func loadSchedule(log zerolog.Logger, db *sql.DB, cfg Config, fn string) (Schedu
 }
 
 // RunSchedule is the main entry entrypoint of cheek.
-func RunSchedule(log zerolog.Logger, db *sql.DB, cfg Config, scheduleFn string) error {
-	s, err := loadSchedule(log, db, cfg, scheduleFn)
+func RunSchedule(log zerolog.Logger, cfg Config, scheduleFn string) error {
+
+	s, err := loadSchedule(log, cfg, scheduleFn)
 	if err != nil {
 		return err
 	}

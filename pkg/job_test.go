@@ -14,20 +14,23 @@ import (
 )
 
 func TestLoadLogs(t *testing.T) {
+	db, err := OpenDB("./tmp.sqlite3")
+
 	j := &JobSpec{
 		Cron:    "* * * * *",
 		Name:    "test",
 		Command: []string{"echo", "bar"},
 		cfg:     NewConfig(),
+		db:      db,
+		log:     NewLogger("debug", os.Stdout, os.Stdout),
 	}
 
-	_, err := j.ToYAML(false)
+	_, err = j.ToYAML(false)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	jr := j.execCommandWithRetry("test")
-	jr.logToDb()
+	_ = j.execCommandWithRetry("test")
 
 	// log loading goes on job name basis
 	// let's recreate
