@@ -113,7 +113,7 @@ func ui(s *Schedule) func(w http.ResponseWriter, r *http.Request) {
 				http.Error(w, fmt.Errorf("job %s not found", jobId).Error(), http.StatusNotFound)
 				return
 			} else {
-				job.loadRuns()
+				job.loadRunsFromDb(50)
 			}
 		}
 
@@ -146,10 +146,8 @@ func ui(s *Schedule) func(w http.ResponseWriter, r *http.Request) {
 		}{SelectedJobName: jobId, JobNames: jobNames, SelectedJobSpec: *job}
 
 		if jobId == "" {
-			// pass along all job specs only when in overview
-			// takes a lot of I/O
 			for _, j := range s.Jobs {
-				j.loadRuns()
+				j.loadRunsFromDb(5)
 			}
 			data.JobSpecs = s.Jobs
 		}

@@ -35,6 +35,8 @@ func (s *Schedule) Run() {
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
+	defer s.db.Close()
+
 	for {
 		select {
 		case <-ticker.C:
@@ -148,7 +150,7 @@ func (s *Schedule) now() time.Time {
 }
 
 func loadSchedule(log zerolog.Logger, cfg Config, fn string) (Schedule, error) {
-	db, err := sql.Open("sqlite3", path.Join(CheekPath(), cfg.DBName))
+	db, err := OpenDB(path.Join(CheekPath(), cfg.DBName))
 	if err != nil {
 		return Schedule{}, fmt.Errorf("open db: %w", err)
 	}

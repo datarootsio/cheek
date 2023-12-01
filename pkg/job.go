@@ -206,6 +206,32 @@ func (j *JobSpec) loadRuns() {
 	j.Runs = jrs
 }
 
+func (j *JobSpec) loadRunsFromDb(nruns int) {
+	if j.db == nil {
+		j.log.Warn().Str("job", j.Name).Msg("No db connection, not loading job runs from db.")
+		return
+	}
+	query := "SELECT triggered_at, triggered_by, duration, status, message FROM log WHERE job = ? ORDER BY triggered_at DESC LIMIT ?"
+	rows, err := j.db.Query(query, j.Name, nruns)
+	if err != nil {
+		j.log.Warn().Str("job", j.Name).Err(err).Msg("Couldn't load job runs from db.")
+		return
+	}
+	defer rows.Close()
+
+	var jrs []JobRun
+	for rows.Next() {
+		var jr JobRun
+		err = rows.Scan(&jr.TriggeredAt, &jr.TriggeredBy, &jr.Duration, &jr.Status, &jr.Log)
+		if err != nil {
+			j.log.Warn().Str("job", j.Name).Err(err).Msg("Couldn't load job runs from db.")
+			return
+		}
+		jrs = append(jrs, jr)
+	}
+	j.Runs = jrs
+}
+
 func (j *JobSpec) setNextTick(refTime time.Time, includeRefTime bool) error {
 	if j.Cron != "" {
 		t, err := gronx.NextTickAfter(j.Cron, refTime, includeRefTime)
