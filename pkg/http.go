@@ -19,11 +19,11 @@ type Response struct {
 	Type   string `json:"type,omitempty"`
 }
 
-//go:embed public
+//go:embed web_assets
 var files embed.FS
 
 func fsys() fs.FS {
-	fsys, err := fs.Sub(files, "public")
+	fsys, err := fs.Sub(files, "web_assets")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -54,7 +54,7 @@ func setupMux(s *Schedule) *http.ServeMux {
 	mux.HandleFunc("/", ui(s))
 
 	fs := http.FileServer(http.FS(fsys()))
-	mux.Handle("/static/", http.StripPrefix("/static/", fs))
+	mux.Handle("/static/", fs)
 
 	return mux
 

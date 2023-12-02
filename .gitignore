@@ -254,3 +254,4 @@ cover.out
 butt
 *sheep
 *.sqlite3
+node_modules

@@ -7,16 +7,18 @@
   <title>cheek</title>
   <link rel="icon" type="image/x-icon" href="https://storage.googleapis.com/cheek-scheduler/cheek-64.png">
   <link rel="stylesheet" href="/static/styles.css" />
+  <link rel="stylesheet" href="/static/tailwind.css" />
   <script type="text/javascript" src="/static/script.js"></script>
 </head>
 
-<body>
-  <div class="container">
-    <div class="row">
+<body class="bg-slate-700">
+  <div class="max-w-4xl mx-auto">
+    <div class="flex pt-6">
 
-      <div id="title" class="col is-vertical-align">
-        <a class="brand text-primary" href="/">cheek</a>
-      </div>
+
+      <a class="text-3xl font-extrabold text-center font-bold from-lime-600 to-purple-600 bg-gradient-to-r bg-clip-text text-transparent"
+        href="/">cheek</a>
+      <div class="grow"></div>
       <div class="col is-vertical-align is-right">
         <a class="icon-ahref" href="https://github.com/datarootsio/cheek">
           <picture>
@@ -27,24 +29,18 @@
 
       </div>
     </div>
-    <div class="row">
-      <div class="col-12">
-        <div class="flex-container">
-          {{range .JobNames}}<a class="{{if eq . $.SelectedJobName}}text-primary{{else}}text-dark{{end}} pad"
-            href="/job/{{.}}">{{.}}</a>{{end}}
-        </div>
-      </div>
+    <div class="flex flex-wrap gap-x-2 gap-y-2">
+      {{range .JobNames}}<a class="{{if eq . $.SelectedJobName}}text-lime-200{{else}}text-gray-200 hover:text-lime-200{{end}}"
+        href="/job/{{.}}">{{.}}</a>{{end}}
     </div>
-    <div id="jobView">
-      <div class="row">
-        <div class="col-12">
-          {{ if .SelectedJobName}}
-          {{template "jobview" .}}
-          {{ else }}
-          {{ template "overview" .}}
-          {{end}}
-        </div>
+    <div class="py-4">
+      {{ if .SelectedJobName}}
+      {{template "jobview" .}}
+      {{ else }}
+      {{ template "overview" .}}
+      {{end}}
       </div>
+  </div>
 </body>
 
 <script>
