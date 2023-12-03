@@ -150,7 +150,7 @@ func (s *Schedule) now() time.Time {
 }
 
 func loadSchedule(log zerolog.Logger, cfg Config, fn string) (Schedule, error) {
-	db, err := OpenDB(path.Join(CheekPath(), cfg.DBName))
+	db, err := OpenDB(path.Join(CheekPath(), cfg.DBPath))
 	if err != nil {
 		return Schedule{}, fmt.Errorf("open db: %w", err)
 	}

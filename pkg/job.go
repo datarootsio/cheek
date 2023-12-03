@@ -17,6 +17,9 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// TODO: separate logger for core functionality
+// TODO: expose core logs in ui
+
 // OnEvent contains specs on what needs to happen after a job event.
 type OnEvent struct {
 	TriggerJob         []string `yaml:"trigger_job,omitempty" json:"trigger_job,omitempty"`
@@ -218,7 +221,7 @@ func (j *JobSpec) loadLogFromDb(id int) (JobRun, error) {
 
 	// if id -1 then load last run
 	if id == -1 {
-		err := j.db.Get(&jr, "SELECT triggered_at, triggered_by, duration, status, message FROM log WHERE job = ? ORDER BY triggered_at DESC LIMIT 1", j.Name)
+		err := j.db.Get(&jr, "SELECT id, triggered_at, triggered_by, duration, status, message FROM log WHERE job = ? ORDER BY triggered_at DESC LIMIT 1", j.Name)
 		if err != nil {
 			j.log.Warn().Str("job", j.Name).Err(err).Msg("Couldn't load job run from db.")
 			return jr, err
@@ -226,7 +229,7 @@ func (j *JobSpec) loadLogFromDb(id int) (JobRun, error) {
 		return jr, nil
 	}
 
-	err := j.db.Get(&jr, "SELECT triggered_at, triggered_by, duration, status, message FROM log WHERE id = ?", id)
+	err := j.db.Get(&jr, "SELECT id, triggered_at, triggered_by, duration, status, message FROM log WHERE id = ?", id)
 	if err != nil {
 		j.log.Warn().Str("job", j.Name).Err(err).Msg("Couldn't load job run from db.")
 		return jr, err

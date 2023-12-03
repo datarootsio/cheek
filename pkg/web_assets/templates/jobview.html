@@ -3,7 +3,7 @@
   <div class="flex gap-2">
     <div class="w-1/6 text-xs flex flex-col gap-2">
       <div class="flex gap-2" x-data="{showNotification: false, notification: ''}">
-        <button id="trigger" class="fill-slate-200 hover:fill-lime-200" @click="triggerJob($store.job.jobName); showNotification = true; notification = 'triggered'; setTimeout(() => showNotification = false, 3000)">
+        <button id="trigger" class="fill-slate-200 hover:fill-lime-200" @click="triggerJob($store.job.jobName); showNotification = true; notification = 'triggered'; setTimeout(() => showNotification = false, 2000)">
           <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12"
             >
             <g>
@@ -15,7 +15,8 @@
         </button>
       
 
-        <button id="refresh" class="fill-slate-200 hover:fill-lime-200" @click="$store.job.init(); showNotification = true; notification = 'refreshing'; setTimeout(() => showNotification = false, 3000)">
+        <button id="refresh" class="fill-slate-200 hover:fill-lime-200"
+         @click="$store.job.init(); showNotification = true; notification = 'refreshing'; setTimeout(() => showNotification = false, 2000)">
           <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12"
             >
             <title>refresh</title>
@@ -29,15 +30,15 @@
         <div class="grow"></div>
         <span x-show="showNotification" class="text-lime-200 text-xs" x-text="notification"></span>
       </div>
-      <div class="bg-slate-200 p-2 relative">
+      <div class="bg-slate-200 p-2 relative rounded">
         <div class="whitespace-pre-wrap" x-text="$store.job.spec.yaml"></div>
       </div>
-      <div class="bg-slate-200 h-full">
+      <div class="bg-slate-200 h-full rounded py-2">
         <ul class="flex flex-col justify-center">
           <template x-for="run in $store.job.spec.runs">
             <li class="pt-1 flex justify-center">
               <a :href="`/jobs/${$store.job.jobName}/${run.id}`">
-                <span :class="run.status !== 0 && 'bg-red-200 animate-pulse'"
+                <span :class="{'bg-red-200 animate-pulse': run.status !== 0, 'font-black underline decoration-dashed': run.id === Number($store.job.runId)}"
                   x-text="truncateDateTime(run.triggered_at)">
                 </span>
               </a>
@@ -49,12 +50,12 @@
     </div>
 
     <div class="w-5/6">
-      <div class="bg-slate-200 p-2 h-full">
+      <div class="bg-slate-200 p-2 h-full rounded">
         <div>
           <p class="font-black" x-text="$store.job.jobName"></p>
-          <p class="text-xs" x-text="`Triggered at: ${truncateDateTime($store.job.jobRun.triggered_at)}`"></p>
+          <p class="text-xs text-slate-500" x-text="`Triggered at: ${truncateDateTime($store.job.jobRun.triggered_at)}`"></p>
         </div>
-        <div class="text-sm pt-2 whitespace-pre-wrap" x-text="$store.job.jobRun.log">
+        <div class="text-xs pt-2 whitespace-pre-wrap" x-text="$store.job.jobRun.log">
 
         </div>
       </div>

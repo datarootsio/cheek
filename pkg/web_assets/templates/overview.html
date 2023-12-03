@@ -4,7 +4,7 @@
     <div class="flex flex-wrap items-center">
       <a class="pr-2 text-slate-200 hover:text-lime-200" :href="`/jobs/${job.name}/latest`" x-text="job.name"></a>
       <template x-for="run in job.runs">
-        <a :href="`/jobs/${job.name}/${run.id}`"><abbr class="no-underline"
+        <a class="pr-1" :href="`/jobs/${job.name}/${run.id}`"><abbr class="no-underline"
             :title="`${truncateDateTime(run.triggered_at)}`">
 
             <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12"
@@ -23,5 +23,5 @@
   </template>
 </div>
 
-<p class="pt-2 text-xs">shows statuses up until the last 10 runs</p>
+<p class="pt-2 text-xs text-slate-400">shows statuses up until the last 10 runs</p>
 {{ end }}

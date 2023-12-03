@@ -23,7 +23,7 @@ type Config struct {
 	LogLevel     string `yaml:"logLevel"`
 	HomeDir      string `yaml:"homedir"`
 	Port         string `yaml:"port"`
-	DBName       string `yaml:"dbname"`
+	DBPath       string `yaml:"dbname"`
 }
 
 func NewConfig() Config {
@@ -33,7 +33,7 @@ func NewConfig() Config {
 		LogLevel:     "info",
 		HomeDir:      CheekPath(),
 		Port:         "8081",
-		DBName:       "cheek.sqlite3",
+		DBPath:       path.Join(CheekPath(), "cheek.sqlite3"),
 	}
 }
 

@@ -23,12 +23,12 @@ document.addEventListener('alpine:init', () => {
           throw new Error('Network response was not ok');
         }
         this.jobRun = await response.json();
-        console.log(this);
+        this.runId = this.jobRun.id // update runId to the actual runId
       } catch (error) {
         console.error('Fetch error:', error);
       }
     },
-    init() {
+    async init()  {
       // get jobname from last part of url
       const {jobName, runId} = parseJobUrl(window.location.href);
       this.jobName = jobName;

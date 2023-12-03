@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
@@ -21,16 +22,21 @@ func TestScheduleRun(t *testing.T) {
 	}
 	b := new(tsBuffer)
 	logger := NewLogger("debug", b, os.Stdout)
+
 	go func() {
-		_ = RunSchedule(logger, Config{}, "../testdata/jobs1.yaml")
+		err := RunSchedule(logger, Config{DBPath: "tmpdb.sqlite3"}, "../testdata/jobs1.yaml")
+		if err != nil {
+			t.Fatal(err)
+		}
 	}()
 
-	time.Sleep((1 * time.Minute) + (1 * time.Second))
+	time.Sleep(61 * time.Second)
+	spew.Dump(b.String())
 	if err := proc.Signal(os.Interrupt); err != nil {
 		t.Fatal(err)
 	}
 
-	time.Sleep(1 * time.Second)
+	time.Sleep(2 * time.Second)
 	assert.Contains(t, b.String(), "Job triggered")
 	assert.Contains(t, b.String(), "interrupt signal received")
 

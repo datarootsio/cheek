@@ -61,9 +61,9 @@ func TestMux(t *testing.T) {
 		},
 		{
 			schedule: &s1,
-			name:     "/schedule/ must return 200",
+			name:     "/api/jobs/ must return 200",
 			args: func(*testing.T) args {
-				req, err := http.NewRequest("GET", "/schedule/", nil)
+				req, err := http.NewRequest("GET", "/api/jobs", nil)
 				if err != nil {
 					t.Fatalf("fail to create request: %s", err.Error())
 				}
@@ -72,13 +72,13 @@ func TestMux(t *testing.T) {
 				}
 			},
 			wantCode: http.StatusOK,
-			wantBody: "\"jobs\":{}",
+			wantBody: "{}",
 		},
 		{
 			schedule: &s1,
-			name:     "/trigger/ must return 401",
+			name:     "trigger must return 401",
 			args: func(*testing.T) args {
-				req, err := http.NewRequest("GET", "/trigger/does_not_exist", nil)
+				req, err := http.NewRequest("POST", "/api/jobs/does_not_exist/trigger", nil)
 				if err != nil {
 					t.Fatalf("fail to create request: %s", err.Error())
 				}
@@ -93,7 +93,7 @@ func TestMux(t *testing.T) {
 			schedule: &s2,
 			name:     "/trigger/ must return 200",
 			args: func(*testing.T) args {
-				req, err := http.NewRequest("GET", "/trigger/bertha", nil)
+				req, err := http.NewRequest("POST", "/api/jobs/bertha/trigger", nil)
 				if err != nil {
 					t.Fatalf("fail to create request: %s", err.Error())
 				}
@@ -117,7 +117,7 @@ func TestMux(t *testing.T) {
 				}
 			},
 			wantCode: http.StatusOK,
-			wantBody: "<a class=\"brand text-primary\" href=\"/\">cheek</a>",
+			wantBody: "href=\"/\">cheek</a>",
 		},
 		{
 			schedule: &s1,
@@ -137,7 +137,7 @@ func TestMux(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		handler := setupMux(tt.schedule)
+		handler := setupRouter(tt.schedule)
 
 		t.Run(tt.name, func(t *testing.T) {
 			tArgs := tt.args(t)
