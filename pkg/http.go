@@ -44,10 +44,10 @@ func setupRouter(s *Schedule) *httprouter.Router {
 	router.GET("/", getHomePage())
 
 	// api endpoints
-	router.GET("/api/jobs/", getJobs(s))
+	router.GET("/api/jobs", getJobs(s))
 	router.GET("/api/jobs/:jobId", getJob(s))
 	router.GET("/api/jobs/:jobId/runs/:jobRunId", getJobRun(s))
-	router.POST("/api/trigger/:jobId", postTrigger(s))
+	router.POST("/api/jobs/:jobId/trigger", postTrigger(s))
 
 	fileServer := http.FileServer(http.FS(fsys()))
 	router.GET("/static/*filepath", func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {

@@ -75,6 +75,18 @@ document.addEventListener('alpine:init', () => {
 
 })
 
+function triggerJob(jobName) {
+  fetch(`/api/jobs/${jobName}/trigger`, {
+    method: 'POST',
+  }).then(response => {
+    if (response.ok) {
+      console.log(`Job ${jobName} triggered!`);
+    } else {
+      console.error(`Job ${jobName} could not be triggered!`);
+    }
+  });
+}
+
 function parseJobUrl(url) {
   // Using a regular expression to extract jobName and runId
   const regex = /\/jobs\/([^\/]+)\/([^\/]+)/;
