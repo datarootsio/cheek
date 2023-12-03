@@ -1,0 +1,52 @@
+{{ define "content"}}
+<div x-data>
+  <button class="button icon-only outline">
+    <picture>
+      <source srcset="/static/img/play-light.svg" media="(prefers-color-scheme: dark)">
+      <img src="/static/img/play-dark.svg">
+    </picture>
+  </button>
+  <button class="button icon-only outline" onClick="window.location.reload();">
+    <picture>
+      <source srcset="/static/img/refresh-ccw-light.svg" media="(prefers-color-scheme: dark)">
+      <img src="/static/img/refresh-ccw-dark.svg">
+    </picture>
+  </button>
+  <div class="flex gap-2">
+    <div class="w-1/6 text-xs flex flex-col gap-2">
+      <div class="bg-slate-200 p-2 relative">
+        <div class="whitespace-pre-wrap" x-text="$store.job.spec.yaml"></div>
+      </div>
+      <div class="bg-slate-200 h-full">
+        <ul class="flex flex-col justify-center">
+          <template x-for="run in $store.job.spec.runs">
+            <li class="pt-1 flex justify-center">
+              <a :href="`/jobs/${$store.job.jobName}/${run.id}`">
+                <span :class="run.status !== 0 && 'bg-red-200 animate-pulse'"
+                  x-text="truncateDateTime(run.triggered_at)">
+                </span>
+              </a>
+            </li>
+          </template>
+        </ul>
+
+      </div>
+    </div>
+
+    <div class="w-5/6">
+      <div class="bg-slate-200 p-2 h-full">
+        <div>
+          <p class="text-bold" x-text="$store.job.jobName"></p>
+          <p x-text="`Triggered at: ${truncateDateTime($store.job.jobRun.triggered_at)}`"></p>
+        </div>
+        <div class="text-sm pt-2 whitespace-pre-wrap" x-text="$store.job.jobRun.log">
+
+        </div>
+      </div>
+
+
+    </div>
+  </div>
+</div>
+
+{{end}}

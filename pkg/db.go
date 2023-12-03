@@ -1,14 +1,15 @@
 package cheek
 
 import (
-	"database/sql"
 	"fmt"
+
+	"github.com/jmoiron/sqlx"
 
 	_ "github.com/mattn/go-sqlite3"
 )
 
-func OpenDB(dbPath string) (*sql.DB, error) {
-	db, err := sql.Open("sqlite3", dbPath)
+func OpenDB(dbPath string) (*sqlx.DB, error) {
+	db, err := sqlx.Open("sqlite3", dbPath)
 	if err != nil {
 		return nil, fmt.Errorf("open db: %w", err)
 	}
@@ -20,7 +21,7 @@ func OpenDB(dbPath string) (*sql.DB, error) {
 	return db, nil
 }
 
-func InitDB(db *sql.DB) error {
+func InitDB(db *sqlx.DB) error {
 	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS log (
         id INTEGER PRIMARY KEY,
         job TEXT,

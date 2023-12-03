@@ -2,7 +2,6 @@ package cheek
 
 import (
 	"bytes"
-	"database/sql"
 	"errors"
 	"fmt"
 	"io"
@@ -13,6 +12,7 @@ import (
 	"time"
 
 	"github.com/adhocore/gronx"
+	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog"
 	"gopkg.in/yaml.v3"
 )
@@ -26,6 +26,8 @@ type OnEvent struct {
 
 // JobSpec holds specifications and metadata of a job.
 type JobSpec struct {
+	Yaml string `yaml:"-" json:"yaml,omitempty"`
+
 	Cron    string      `yaml:"cron,omitempty" json:"cron,omitempty"`
 	Command stringArray `yaml:"command" json:"command"`
 
@@ -37,24 +39,25 @@ type JobSpec struct {
 	Env              map[string]string `yaml:"env,omitempty"`
 	WorkingDirectory string            `yaml:"working_directory,omitempty" json:"working_directory,omitempty"`
 	globalSchedule   *Schedule
-	Runs             []JobRun `yaml:"runs,omitempty"`
+	Runs             []JobRun `json:"runs" yaml:"-"`
 
 	nextTick time.Time
-	db       *sql.DB
+	db       *sqlx.DB
 	log      zerolog.Logger
 	cfg      Config
 }
 
 // JobRun holds information about a job execution.
 type JobRun struct {
-	Status      int `json:"status"`
+	LogEntryId  int `json:"id,omitempty" db:"id"`
+	Status      int `json:"status" db:"status"`
 	logBuf      bytes.Buffer
-	Log         string        `json:"log"`
+	Log         string        `json:"log" db:"message"`
 	Name        string        `json:"name"`
-	TriggeredAt time.Time     `json:"triggered_at"`
-	TriggeredBy string        `json:"triggered_by"`
+	TriggeredAt time.Time     `json:"triggered_at" db:"triggered_at"`
+	TriggeredBy string        `json:"triggered_by" db:"triggered_by"`
 	Triggered   []string      `json:"triggered,omitempty"`
-	Duration    time.Duration `json:"duration,omitempty"`
+	Duration    time.Duration `json:"duration,omitempty" db:"duration"`
 	jobRef      *JobSpec
 }
 
@@ -206,12 +209,42 @@ func (j *JobSpec) loadRuns() {
 	j.Runs = jrs
 }
 
-func (j *JobSpec) loadRunsFromDb(nruns int) {
+func (j *JobSpec) loadLogFromDb(id int) (JobRun, error) {
+	var jr JobRun
+	if j.db == nil {
+		j.log.Warn().Str("job", j.Name).Msg("No db connection, not loading job run from db.")
+		return jr, errors.New("no db connection")
+	}
+
+	// if id -1 then load last run
+	if id == -1 {
+		err := j.db.Get(&jr, "SELECT triggered_at, triggered_by, duration, status, message FROM log WHERE job = ? ORDER BY triggered_at DESC LIMIT 1", j.Name)
+		if err != nil {
+			j.log.Warn().Str("job", j.Name).Err(err).Msg("Couldn't load job run from db.")
+			return jr, err
+		}
+		return jr, nil
+	}
+
+	err := j.db.Get(&jr, "SELECT triggered_at, triggered_by, duration, status, message FROM log WHERE id = ?", id)
+	if err != nil {
+		j.log.Warn().Str("job", j.Name).Err(err).Msg("Couldn't load job run from db.")
+		return jr, err
+	}
+	return jr, nil
+}
+
+func (j *JobSpec) loadRunsFromDb(nruns int, includeLogs bool) {
+	var query string
 	if j.db == nil {
 		j.log.Warn().Str("job", j.Name).Msg("No db connection, not loading job runs from db.")
 		return
 	}
-	query := "SELECT triggered_at, triggered_by, duration, status, message FROM log WHERE job = ? ORDER BY triggered_at DESC LIMIT ?"
+	if includeLogs {
+		query = "SELECT id, triggered_at, triggered_by, duration, status, message FROM log WHERE job = ? ORDER BY triggered_at DESC LIMIT ?"
+	} else {
+		query = "SELECT id, triggered_at, triggered_by, duration, status FROM log WHERE job = ? ORDER BY triggered_at DESC LIMIT ?"
+	}
 	rows, err := j.db.Query(query, j.Name, nruns)
 	if err != nil {
 		j.log.Warn().Str("job", j.Name).Err(err).Msg("Couldn't load job runs from db.")
@@ -220,14 +253,10 @@ func (j *JobSpec) loadRunsFromDb(nruns int) {
 	defer rows.Close()
 
 	var jrs []JobRun
-	for rows.Next() {
-		var jr JobRun
-		err = rows.Scan(&jr.TriggeredAt, &jr.TriggeredBy, &jr.Duration, &jr.Status, &jr.Log)
-		if err != nil {
-			j.log.Warn().Str("job", j.Name).Err(err).Msg("Couldn't load job runs from db.")
-			return
-		}
-		jrs = append(jrs, jr)
+	err = j.db.Select(&jrs, query, j.Name, nruns)
+	if err != nil {
+		j.log.Warn().Str("job", j.Name).Err(err).Msg("Couldn't load job runs from db.")
+		return
 	}
 	j.Runs = jrs
 }

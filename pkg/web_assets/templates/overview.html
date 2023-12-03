@@ -1,0 +1,18 @@
+{{ define "content"}}
+<div class="pt-4 pb-2">
+  <template x-for="job in $store.jobs.jobs" :key="job" x-data>
+    <div class="flex flex-wrap items-center">
+      <a class="pr-2" :href="`/job/${job.name}/latest`" x-text="job.name"></a>
+      <template x-for="run in job.runs">
+        <a :href="`/jobs/${job.name}/${run.id}`"><abbr class="no-underline" :title="`${truncateDateTime(run.triggered_at)}`">
+            <img :src="run.status === 0 ? '/static/img/circle.svg' : '/static/img/circle-o.svg'" />
+          </abbr>
+        </a>
+      </template>
+
+    </div>
+  </template>
+</div>
+
+<p class="pt-2 text-xs">shows statuses up until the last 10 runs</p>
+{{ end }}

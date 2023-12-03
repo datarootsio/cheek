@@ -1,7 +1,6 @@
 package cheek
 
 import (
-	"database/sql"
 	"fmt"
 	"os"
 	"os/signal"
@@ -12,6 +11,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
+	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog"
 )
 
@@ -23,7 +23,7 @@ type Schedule struct {
 	TZLocation string              `yaml:"tz_location,omitempty" json:"tz_location,omitempty"`
 	loc        *time.Location
 	log        zerolog.Logger
-	db         *sql.DB
+	db         *sqlx.DB
 	cfg        Config
 }
 
