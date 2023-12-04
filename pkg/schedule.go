@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"path"
 	"strings"
 	"syscall"
 	"time"
@@ -150,7 +149,7 @@ func (s *Schedule) now() time.Time {
 }
 
 func loadSchedule(log zerolog.Logger, cfg Config, fn string) (Schedule, error) {
-	db, err := OpenDB(path.Join(CheekPath(), cfg.DBPath))
+	db, err := OpenDB(cfg.DBPath)
 	if err != nil {
 		return Schedule{}, fmt.Errorf("open db: %w", err)
 	}

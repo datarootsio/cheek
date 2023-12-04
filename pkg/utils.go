@@ -23,7 +23,7 @@ type Config struct {
 	LogLevel     string `yaml:"logLevel"`
 	HomeDir      string `yaml:"homedir"`
 	Port         string `yaml:"port"`
-	DBPath       string `yaml:"dbname"`
+	DBPath       string `yaml:"dbpath"`
 }
 
 func NewConfig() Config {

@@ -45,6 +45,52 @@ func TestMux(t *testing.T) {
 		wantBody string
 	}{
 		{
+			schedule: &s2,
+			name:     "/jobs/bertha/runs/1 must return xxx",
+			args: func(*testing.T) args {
+				req, err := http.NewRequest("GET", "/api/jobs/bertha/runs/2", nil)
+				if err != nil {
+					t.Fatalf("fail to create request: %s", err.Error())
+				}
+				return args{
+					req: req,
+				}
+			},
+			wantCode: http.StatusNotFound,
+			wantBody: "error: can't find job",
+		},
+		{
+			schedule: &s2,
+			name:     "/jobs/bertha must return 200",
+			args: func(*testing.T) args {
+				req, err := http.NewRequest("GET", "/api/jobs/bertha", nil)
+				if err != nil {
+					t.Fatalf("fail to create request: %s", err.Error())
+				}
+				return args{
+					req: req,
+				}
+			},
+			wantCode: http.StatusOK,
+			wantBody: "MooIAmACow",
+		},
+		{
+			schedule: &s2,
+			name:     "/jobs/bertha/1 must return 404",
+			args: func(*testing.T) args {
+				req, err := http.NewRequest("GET", "/api/jobs/bertha/1", nil)
+				if err != nil {
+					t.Fatalf("fail to create request: %s", err.Error())
+				}
+				return args{
+					req: req,
+				}
+			},
+			wantCode: http.StatusNotFound,
+			wantBody: "not found",
+		},
+
+		{
 			schedule: &s1,
 			name:     "/healthz must return 200",
 			args: func(*testing.T) args {

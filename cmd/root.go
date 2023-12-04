@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"path"
 
 	cheek "github.com/datarootsio/cheek/pkg"
 	"github.com/spf13/cobra"
@@ -12,6 +13,7 @@ import (
 var (
 	httpPort string
 	homeDir  string
+	dbPath   string
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -30,6 +32,7 @@ func Execute() {
 func init() {
 	rootCmd.PersistentFlags().StringVar(&httpPort, "port", "8081", "port on which to open the http server for core to ui communication")
 	rootCmd.PersistentFlags().StringVar(&homeDir, "homedir", cheek.CheekPath(), fmt.Sprintf("directory in which to save cheek's core & job logs, defaults to '%s'", cheek.CheekPath()))
+	rootCmd.PersistentFlags().StringVar(&homeDir, "dbpath", path.Join(cheek.CheekPath(), "cheek.sqlite3"), fmt.Sprintf("path to sqlite3 db used for logging, defaults to '%s'", path.Join(cheek.CheekPath(), "cheek.sqlite3")))
 	cobra.OnInitialize(initConfig)
 }
 
@@ -59,6 +62,10 @@ func initConfig() {
 	}
 
 	if err := viper.BindPFlag("homedir", rootCmd.PersistentFlags().Lookup("homedir")); err != nil {
+		fmt.Printf("error binding pflag %s", err)
+	}
+
+	if err := viper.BindPFlag("dbpath", rootCmd.PersistentFlags().Lookup("dbpath")); err != nil {
 		fmt.Printf("error binding pflag %s", err)
 	}
 }
