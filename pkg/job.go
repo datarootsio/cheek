@@ -7,12 +7,10 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"path"
 	"sync"
 	"time"
 
 	"github.com/adhocore/gronx"
-	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog"
 	"gopkg.in/yaml.v3"
 )
@@ -45,7 +43,6 @@ type JobSpec struct {
 	Runs             []JobRun `json:"runs" yaml:"-"`
 
 	nextTick time.Time
-	db       *sqlx.DB
 	log      zerolog.Logger
 	cfg      Config
 }
@@ -53,12 +50,12 @@ type JobSpec struct {
 // JobRun holds information about a job execution.
 type JobRun struct {
 	LogEntryId  int `json:"id,omitempty" db:"id"`
-	Status      int `json:"status" db:"status"`
+	Status      int `json:"status" db:"status,omitempty"`
 	logBuf      bytes.Buffer
 	Log         string        `json:"log" db:"message"`
-	Name        string        `json:"name"`
+	Name        string        `json:"name" db:"job"`
 	TriggeredAt time.Time     `json:"triggered_at" db:"triggered_at"`
-	TriggeredBy string        `json:"triggered_by" db:"triggered_by"`
+	TriggeredBy string        `json:"triggered_by" db:"triggered_by,omitempty"`
 	Triggered   []string      `json:"triggered,omitempty"`
 	Duration    time.Duration `json:"duration,omitempty" db:"duration"`
 	jobRef      *JobSpec
@@ -69,11 +66,11 @@ func (jr *JobRun) flushLogBuffer() {
 }
 
 func (jr *JobRun) logToDb() {
-	if jr.jobRef.db == nil {
+	if jr.jobRef.cfg.DB == nil {
 		jr.jobRef.log.Warn().Str("job", jr.Name).Msg("No db connection, not saving job log to db.")
 		return
 	}
-	_, err := jr.jobRef.db.Exec("INSERT INTO log (job, triggered_at, triggered_by, duration, status, message) VALUES (?, ?, ?, ?, ?, ?)", jr.Name, jr.TriggeredAt, jr.TriggeredBy, jr.Duration, jr.Status, jr.Log)
+	_, err := jr.jobRef.cfg.DB.Exec("INSERT INTO log (job, triggered_at, triggered_by, duration, status, message) VALUES (?, ?, ?, ?, ?, ?)", jr.Name, jr.TriggeredAt, jr.TriggeredBy, jr.Duration, jr.Status, jr.Log)
 	if err != nil {
 		if jr.jobRef.globalSchedule != nil {
 			jr.jobRef.globalSchedule.log.Warn().Str("job", jr.Name).Err(err).Msg("Couldn't save job log to db.")
@@ -202,26 +199,16 @@ func (j *JobSpec) execCommand(trigger string) JobRun {
 	return jr
 }
 
-func (j *JobSpec) loadRuns() {
-	const nRuns int = 10
-	logFn := path.Join(CheekPath(), fmt.Sprintf("%s.job.jsonl", j.Name))
-	jrs, err := readLastJobRuns(j.log, logFn, nRuns)
-	if err != nil {
-		j.log.Warn().Str("job", j.Name).Err(err).Msgf("could not load job logs from '%s'", logFn)
-	}
-	j.Runs = jrs
-}
-
 func (j *JobSpec) loadLogFromDb(id int) (JobRun, error) {
 	var jr JobRun
-	if j.db == nil {
+	if j.cfg.DB == nil {
 		j.log.Warn().Str("job", j.Name).Msg("No db connection, not loading job run from db.")
 		return jr, errors.New("no db connection")
 	}
 
 	// if id -1 then load last run
 	if id == -1 {
-		err := j.db.Get(&jr, "SELECT id, triggered_at, triggered_by, duration, status, message FROM log WHERE job = ? ORDER BY triggered_at DESC LIMIT 1", j.Name)
+		err := j.cfg.DB.Get(&jr, "SELECT id, triggered_at, triggered_by, duration, status, message FROM log WHERE job = ? ORDER BY triggered_at DESC LIMIT 1", j.Name)
 		if err != nil {
 			j.log.Warn().Str("job", j.Name).Err(err).Msg("Couldn't load job run from db.")
 			return jr, err
@@ -229,7 +216,7 @@ func (j *JobSpec) loadLogFromDb(id int) (JobRun, error) {
 		return jr, nil
 	}
 
-	err := j.db.Get(&jr, "SELECT id, triggered_at, triggered_by, duration, status, message FROM log WHERE id = ?", id)
+	err := j.cfg.DB.Get(&jr, "SELECT id, triggered_at, triggered_by, duration, status, message FROM log WHERE id = ?", id)
 	if err != nil {
 		j.log.Warn().Str("job", j.Name).Err(err).Msg("Couldn't load job run from db.")
 		return jr, err
@@ -239,7 +226,7 @@ func (j *JobSpec) loadLogFromDb(id int) (JobRun, error) {
 
 func (j *JobSpec) loadRunsFromDb(nruns int, includeLogs bool) {
 	var query string
-	if j.db == nil {
+	if j.cfg.DB == nil {
 		j.log.Warn().Str("job", j.Name).Msg("No db connection, not loading job runs from db.")
 		return
 	}
@@ -248,7 +235,7 @@ func (j *JobSpec) loadRunsFromDb(nruns int, includeLogs bool) {
 	} else {
 		query = "SELECT id, triggered_at, triggered_by, duration, status FROM log WHERE job = ? ORDER BY triggered_at DESC LIMIT ?"
 	}
-	rows, err := j.db.Query(query, j.Name, nruns)
+	rows, err := j.cfg.DB.Query(query, j.Name, nruns)
 	if err != nil {
 		j.log.Warn().Str("job", j.Name).Err(err).Msg("Couldn't load job runs from db.")
 		return
@@ -256,7 +243,7 @@ func (j *JobSpec) loadRunsFromDb(nruns int, includeLogs bool) {
 	defer rows.Close()
 
 	var jrs []JobRun
-	err = j.db.Select(&jrs, query, j.Name, nruns)
+	err = j.cfg.DB.Select(&jrs, query, j.Name, nruns)
 	if err != nil {
 		j.log.Warn().Str("job", j.Name).Err(err).Msg("Couldn't load job runs from db.")
 		return

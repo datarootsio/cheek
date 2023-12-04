@@ -25,7 +25,7 @@ func InitDB(db *sqlx.DB) error {
 	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS log (
         id INTEGER PRIMARY KEY,
         job TEXT,
-        triggered_at DATETIME,
+        triggered_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 		triggered_by TEXT,
         duration INTEGER,
         status INTEGER,

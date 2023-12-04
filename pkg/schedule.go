@@ -10,7 +10,6 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog"
 )
 
@@ -22,7 +21,6 @@ type Schedule struct {
 	TZLocation string              `yaml:"tz_location,omitempty" json:"tz_location,omitempty"`
 	loc        *time.Location
 	log        zerolog.Logger
-	db         *sqlx.DB
 	cfg        Config
 }
 
@@ -34,7 +32,7 @@ func (s *Schedule) Run() {
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
-	defer s.db.Close()
+	defer s.cfg.DB.Close()
 
 	for {
 		select {
@@ -127,7 +125,6 @@ func (s *Schedule) initialize() error {
 		v.globalSchedule = s
 		v.log = s.log
 		v.cfg = s.cfg
-		v.db = s.db
 
 		// validate cron string
 		if err := v.ValidateCron(); err != nil {
@@ -149,18 +146,12 @@ func (s *Schedule) now() time.Time {
 }
 
 func loadSchedule(log zerolog.Logger, cfg Config, fn string) (Schedule, error) {
-	db, err := OpenDB(cfg.DBPath)
-	if err != nil {
-		return Schedule{}, fmt.Errorf("open db: %w", err)
-	}
-
 	s, err := readSpecs(fn)
 	if err != nil {
 		return Schedule{}, err
 	}
 	s.log = log
 	s.cfg = cfg
-	s.db = db
 
 	// run validations
 	if err := s.initialize(); err != nil {

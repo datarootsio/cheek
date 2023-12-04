@@ -563,6 +563,10 @@ video {
   width: 83.333333%;
 }
 
+.w-full {
+  width: 100%;
+}
+
 .max-w-4xl {
   max-width: 56rem;
 }
@@ -672,8 +676,17 @@ video {
   fill: #e2e8f0;
 }
 
+.fill-slate-800 {
+  fill: #1e293b;
+}
+
 .p-2 {
   padding: 0.5rem;
+}
+
+.py-1 {
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
 }
 
 .py-2 {
@@ -718,6 +731,11 @@ video {
   line-height: 2.25rem;
 }
 
+.text-lg {
+  font-size: 1.125rem;
+  line-height: 1.75rem;
+}
+
 .text-xs {
   font-size: 0.75rem;
   line-height: 1rem;
@@ -734,6 +752,11 @@ video {
 .text-gray-200 {
   --tw-text-opacity: 1;
   color: rgb(229 231 235 / var(--tw-text-opacity));
+}
+
+.text-gray-400 {
+  --tw-text-opacity: 1;
+  color: rgb(156 163 175 / var(--tw-text-opacity));
 }
 
 .text-lime-200 {
@@ -754,6 +777,11 @@ video {
 .text-slate-500 {
   --tw-text-opacity: 1;
   color: rgb(100 116 139 / var(--tw-text-opacity));
+}
+
+.text-slate-800 {
+  --tw-text-opacity: 1;
+  color: rgb(30 41 59 / var(--tw-text-opacity));
 }
 
 .text-transparent {
@@ -817,6 +845,10 @@ video {
 
 .hover\:fill-slate-200:hover {
   fill: #e2e8f0;
+}
+
+.hover\:fill-slate-500:hover {
+  fill: #64748b;
 }
 
 .hover\:text-lime-200:hover {

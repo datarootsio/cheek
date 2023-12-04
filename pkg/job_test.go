@@ -22,7 +22,7 @@ func TestLoadLogs(t *testing.T) {
 		Command: []string{"echo", "bar"},
 		cfg:     NewConfig(),
 		db:      db,
-		log:     NewLogger("debug", os.Stdout, os.Stdout),
+		log:     NewLogger("debug", nil, os.Stdout, os.Stdout),
 	}
 
 	_, err = j.ToYAML(false)
@@ -261,7 +261,7 @@ func TestStringArray(t *testing.T) {
 
 func TestStandaloneJobRun(t *testing.T) {
 	b := new(tsBuffer)
-	log := NewLogger("debug", b, os.Stdout)
+	log := NewLogger("debug", nil, b, os.Stdout)
 	cfg := NewConfig()
 
 	jr, err := RunJob(log, cfg, "../testdata/jobs1.yaml", "bar")
@@ -272,7 +272,7 @@ func TestStandaloneJobRun(t *testing.T) {
 
 func TestWorkingDir(t *testing.T) {
 	b := new(tsBuffer)
-	log := NewLogger("debug", b, os.Stdout)
+	log := NewLogger("debug", nil, b, os.Stdout)
 	cfg := NewConfig()
 
 	jr, err := RunJob(log, cfg, "../testdata/readme_example.yaml", "other_workingdir")

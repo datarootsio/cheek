@@ -28,9 +28,9 @@ document.addEventListener('alpine:init', () => {
         console.error('Fetch error:', error);
       }
     },
-    async init()  {
+    async init() {
       // get jobname from last part of url
-      const {jobName, runId} = parseJobUrl(window.location.href);
+      const { jobName, runId } = parseJobUrl(window.location.href);
       this.jobName = jobName;
       this.runId = runId === "latest" ? -1 : runId;
 
@@ -52,6 +52,8 @@ document.addEventListener('alpine:init', () => {
           throw new Error('Network response was not ok');
         }
         this.jobs = await response.json();
+        console.log(this.jobs, 777)
+
       } catch (error) {
         console.error('Fetch error:', error);
       }
@@ -73,7 +75,30 @@ document.addEventListener('alpine:init', () => {
     },
   })
 
+  // alpine data component
+  Alpine.data('coreLogs', () => ({
+
+    logs: null,
+    fetchLogs: async function () {
+      try {
+        const response = await fetch('/api/core/logs');
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        this.logs = await response.json();
+      } catch (error) {
+        console.error('Fetch error:', error);
+      }
+    },
+    init() {
+      this.fetchLogs();
+    }
+
+  }))
+
+
 })
+
 
 function triggerJob(jobName) {
   fetch(`/api/jobs/${jobName}/trigger`, {

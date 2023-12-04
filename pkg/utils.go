@@ -1,21 +1,18 @@
 package cheek
 
 import (
-	"bufio"
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"io"
 	"os"
 	"os/user"
 	"path"
-	"sync"
 
+	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
 )
 
-const coreLogFile string = "core.cheek.jsonl"
+const jobNameCoreProcess = "_cheek"
 
 type Config struct {
 	Pretty       bool   `yaml:"pretty"`
@@ -24,6 +21,7 @@ type Config struct {
 	HomeDir      string `yaml:"homedir"`
 	Port         string `yaml:"port"`
 	DBPath       string `yaml:"dbpath"`
+	DB           *sqlx.DB
 }
 
 func NewConfig() Config {
@@ -35,6 +33,15 @@ func NewConfig() Config {
 		Port:         "8081",
 		DBPath:       path.Join(CheekPath(), "cheek.sqlite3"),
 	}
+}
+
+func (c *Config) Init() error {
+	var err error
+	c.DB, err = OpenDB(c.DBPath)
+	if err != nil {
+		return fmt.Errorf("open db: %w", err)
+	}
+	return nil
 }
 
 func CheekPath() string {
@@ -53,124 +60,35 @@ func CheekPath() string {
 	return p
 }
 
-func readLastJobRuns(log zerolog.Logger, filepath string, nRuns int) ([]JobRun, error) {
-	lines, err := readLastLines(filepath, nRuns)
-	if err != nil {
-		return []JobRun{}, nil
-	}
-
-	var jrs []JobRun
-	for _, line := range lines {
-		jr := JobRun{}
-		err = json.Unmarshal([]byte(line), &jr)
-		if err != nil {
-			log.Debug().Str("logfile", filepath).Err(err).Msgf("can't decode log line: %s", line)
-			// try to still fetch other log entries by skipping this log line
-			continue
-		}
-		jrs = append(jrs, jr)
-	}
-
-	return jrs, nil
-}
-
-func readLastLines(filepath string, nLines int) ([]string, error) {
-	fileHandle, err := os.Open(filepath)
-	if err != nil {
-		return []string{}, err
-	}
-	defer fileHandle.Close()
-
-	var lines []string
-	reader := bufio.NewReader(fileHandle)
-
-	for {
-		s, err := reader.ReadString('\n')
-		if err != nil {
-			if err == io.EOF {
-				break
-			}
-			return []string{}, err
-		}
-
-		lines = append([]string{s}, lines...)
-
-		if nLines > 0 && len(lines) > nLines {
-			lines = lines[:nLines]
-		}
-	}
-
-	return lines, nil
-}
-
-func hardWrap(in string, width int) string {
-	if width < 1 {
-		return in
-	}
-
-	wrapped := ""
-
-	var i int
-	for i = 0; len(in[i:]) > width; i += width {
-		wrapped += in[i:i+width] + "\n"
-	}
-	wrapped += in[i:]
-
-	return wrapped
-}
-
-type tsBuffer struct {
-	b bytes.Buffer
-	m sync.Mutex
-}
-
-func (b *tsBuffer) Read(p []byte) (n int, err error) {
-	b.m.Lock()
-	defer b.m.Unlock()
-	return b.b.Read(p)
-}
-
-func (b *tsBuffer) Write(p []byte) (n int, err error) {
-	b.m.Lock()
-	defer b.m.Unlock()
-	return b.b.Write(p)
-}
-
-func (b *tsBuffer) String() string {
-	b.m.Lock()
-	defer b.m.Unlock()
-	return b.b.String()
-}
-
-func (b *tsBuffer) Reset() {
-	b.m.Lock()
-	defer b.m.Unlock()
-	b.b.Reset()
-}
-
 func PrettyStdout() io.Writer {
 	return zerolog.ConsoleWriter{Out: os.Stdout}
 }
 
-func CoreJsonLogger() io.Writer {
-	logFn := path.Join(CheekPath(), coreLogFile)
+type DBLogWriter struct {
+	db *sqlx.DB
+}
 
-	f, err := os.OpenFile(logFn,
-		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+func (w DBLogWriter) Write(p []byte) (n int, err error) {
+	_, err = w.db.Exec("INSERT INTO log (job, message) VALUES (?, ?)", jobNameCoreProcess, string(p))
 	if err != nil {
-		fmt.Printf("Can't open log file '%s' for writing.", coreLogFile)
-		os.Exit(1)
+		return 0, err
 	}
-	return f
+	return len(p), nil
+}
+
+func NewDBLogWriter(db *sqlx.DB) io.Writer {
+	return DBLogWriter{db: db}
 }
 
 // Configures the package's global logger, also allows to pass in custom writers for
 // testing purposes.
-func NewLogger(logLevel string, extraWriters ...io.Writer) zerolog.Logger {
+func NewLogger(logLevel string, db *sqlx.DB, extraWriters ...io.Writer) zerolog.Logger {
 	var multi zerolog.LevelWriter
 
 	var loggers []io.Writer
-	loggers = append(loggers, CoreJsonLogger())
+	if db != nil {
+		loggers = append(loggers, NewDBLogWriter(db))
+	}
 	loggers = append(loggers, extraWriters...)
 
 	multi = zerolog.MultiLevelWriter(loggers...)
@@ -180,4 +98,12 @@ func NewLogger(logLevel string, extraWriters ...io.Writer) zerolog.Logger {
 		os.Exit(1)
 	}
 	return zerolog.New(multi).With().Timestamp().Logger().Level(level)
+}
+
+func getCoreLogsFromDB(db *sqlx.DB, nruns int) ([]JobRun, error) {
+	var logs []JobRun
+	if err := db.Select(&logs, "SELECT triggered_at, message FROM log WHERE job = ? ORDER BY id DESC LIMIT ?", jobNameCoreProcess, nruns); err != nil {
+		return nil, err
+	}
+	return logs, nil
 }

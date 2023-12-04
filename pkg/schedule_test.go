@@ -21,7 +21,7 @@ func TestScheduleRun(t *testing.T) {
 		t.Fatal(err)
 	}
 	b := new(tsBuffer)
-	logger := NewLogger("debug", b, os.Stdout)
+	logger := NewLogger("debug", nil, b, os.Stdout)
 
 	go func() {
 		err := RunSchedule(logger, Config{DBPath: "tmpdb.sqlite3"}, "../testdata/jobs1.yaml")
