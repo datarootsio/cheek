@@ -34,7 +34,7 @@
     </div>
     <div class="flex flex-wrap gap-x-2 gap-y-2" x-data>
       <a class="text-gray-400 hover:text-lime-200'"
-          href="/core/logs">_cheek</a>
+          href="/core/logs">_</a>
       <template x-for="job in $store.jobs.jobs">
         <a :class="job.name === $store.job.jobName ? 'text-lime-200' : 'text-gray-200 hover:text-lime-200'"
           :href="`/jobs/${job.name}/latest`" x-text="job.name"></a>
