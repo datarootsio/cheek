@@ -1,11 +1,13 @@
 package cheek
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"os"
 	"os/user"
 	"path"
+	"sync"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog"
@@ -13,6 +15,35 @@ import (
 )
 
 const jobNameCoreProcess = "_cheek"
+
+type tsBuffer struct {
+	b bytes.Buffer
+	m sync.Mutex
+}
+
+func (b *tsBuffer) Read(p []byte) (n int, err error) {
+	b.m.Lock()
+	defer b.m.Unlock()
+	return b.b.Read(p)
+}
+
+func (b *tsBuffer) Write(p []byte) (n int, err error) {
+	b.m.Lock()
+	defer b.m.Unlock()
+	return b.b.Write(p)
+}
+
+func (b *tsBuffer) String() string {
+	b.m.Lock()
+	defer b.m.Unlock()
+	return b.b.String()
+}
+
+func (b *tsBuffer) Reset() {
+	b.m.Lock()
+	defer b.m.Unlock()
+	b.b.Reset()
+}
 
 type Config struct {
 	Pretty       bool   `yaml:"pretty"`

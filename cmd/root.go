@@ -32,7 +32,7 @@ func Execute() {
 func init() {
 	rootCmd.PersistentFlags().StringVar(&httpPort, "port", "8081", "port on which to open the http server for core to ui communication")
 	rootCmd.PersistentFlags().StringVar(&homeDir, "homedir", cheek.CheekPath(), fmt.Sprintf("directory in which to save cheek's core & job logs, defaults to '%s'", cheek.CheekPath()))
-	rootCmd.PersistentFlags().StringVar(&homeDir, "dbpath", path.Join(cheek.CheekPath(), "cheek.sqlite3"), fmt.Sprintf("path to sqlite3 db used for logging, defaults to '%s'", path.Join(cheek.CheekPath(), "cheek.sqlite3")))
+	rootCmd.PersistentFlags().StringVar(&dbPath, "dbpath", path.Join(cheek.CheekPath(), "cheek.sqlite3"), fmt.Sprintf("path to sqlite3 db used for logging, defaults to '%s'", path.Join(cheek.CheekPath(), "cheek.sqlite3")))
 	cobra.OnInitialize(initConfig)
 }
 

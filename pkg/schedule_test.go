@@ -26,7 +26,7 @@ func TestScheduleRun(t *testing.T) {
 	go func() {
 		err := RunSchedule(logger, Config{DBPath: "tmpdb.sqlite3"}, "../testdata/jobs1.yaml")
 		if err != nil {
-			t.Fatal(err)
+			panic(err)
 		}
 	}()
 

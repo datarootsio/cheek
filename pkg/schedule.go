@@ -32,7 +32,10 @@ func (s *Schedule) Run() {
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
-	defer s.cfg.DB.Close()
+	// close db connection on exit
+	if s.cfg.DB != nil {
+		defer s.cfg.DB.Close()
+	}
 
 	for {
 		select {
