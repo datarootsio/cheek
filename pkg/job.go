@@ -15,9 +15,6 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// TODO: separate logger for core functionality
-// TODO: expose core logs in ui
-
 // OnEvent contains specs on what needs to happen after a job event.
 type OnEvent struct {
 	TriggerJob         []string `yaml:"trigger_job,omitempty" json:"trigger_job,omitempty"`

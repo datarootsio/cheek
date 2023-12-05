@@ -81,13 +81,11 @@ Check out `cheek run --help` for configuration options.
 
 `cheek` ships with a web UI that by default gets launched on port `8081`. You can define the port on which it is accessible via the `--port` flag.
 
-| ![main-screen](https://i.imgur.com/hq0Zxjb.png) |
-| :---------------------------------------------: |
-|                  main overview                  |
+![main-screen](/readme_assets/main.png)
+ main overview
 
-| ![detail](https://i.imgur.com/jc9wBQJ.png) |
-| :----------------------------------------: |
-|                 job detail                 |
+![main-screen](/readme_assets/joboverview.png)
+job detail
 
 You can access the UI by navigating to `http://localhost:8081`. When `cheek` is deployed you are recommended to NOT make this port publicly accessible, instead navigate to the UI via an SSH tunnel.
 
