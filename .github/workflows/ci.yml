@@ -36,7 +36,6 @@ jobs:
       - tests
       - golangci
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
     outputs:
       new_tag: ${{ steps.tag_action.outputs.new_tag }}
     steps:
