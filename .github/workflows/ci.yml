@@ -99,6 +99,7 @@ jobs:
           path: ${{ matrix.goos }}/${{ matrix.goarch }}/cheek-${{ steps.vars.outputs.sha_short }}
           destination: cheek-scheduler/${{ matrix.goos }}/${{ matrix.goarch }}/
       - uses: google-github-actions/upload-cloud-storage@v1.0.3
+        if: github.ref == 'refs/heads/main'
         with:
           path: ${{ matrix.goos }}/${{ matrix.goarch }}/cheek-${{ needs.version_tag.outputs.new_tag }}
           destination: cheek-scheduler/${{ matrix.goos }}/${{ matrix.goarch }}/
