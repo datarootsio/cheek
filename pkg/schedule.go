@@ -32,6 +32,11 @@ func (s *Schedule) Run() {
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
+	// close db connection on exit
+	if s.cfg.DB != nil {
+		defer s.cfg.DB.Close()
+	}
+
 	for {
 		select {
 		case <-ticker.C:
@@ -161,6 +166,7 @@ func loadSchedule(log zerolog.Logger, cfg Config, fn string) (Schedule, error) {
 
 // RunSchedule is the main entry entrypoint of cheek.
 func RunSchedule(log zerolog.Logger, cfg Config, scheduleFn string) error {
+
 	s, err := loadSchedule(log, cfg, scheduleFn)
 	if err != nil {
 		return err

@@ -2,13 +2,11 @@ package cheek
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
-	"path"
 	"sync"
 	"time"
 
@@ -26,6 +24,8 @@ type OnEvent struct {
 
 // JobSpec holds specifications and metadata of a job.
 type JobSpec struct {
+	Yaml string `yaml:"-" json:"yaml,omitempty"`
+
 	Cron    string      `yaml:"cron,omitempty" json:"cron,omitempty"`
 	Command stringArray `yaml:"command" json:"command"`
 
@@ -37,7 +37,7 @@ type JobSpec struct {
 	Env              map[string]string `yaml:"env,omitempty"`
 	WorkingDirectory string            `yaml:"working_directory,omitempty" json:"working_directory,omitempty"`
 	globalSchedule   *Schedule
-	Runs             []JobRun `yaml:"runs,omitempty"`
+	Runs             []JobRun `json:"runs" yaml:"-"`
 
 	nextTick time.Time
 	log      zerolog.Logger
@@ -46,14 +46,15 @@ type JobSpec struct {
 
 // JobRun holds information about a job execution.
 type JobRun struct {
-	Status      int `json:"status"`
+	LogEntryId  int `json:"id,omitempty" db:"id"`
+	Status      int `json:"status" db:"status,omitempty"`
 	logBuf      bytes.Buffer
-	Log         string        `json:"log"`
-	Name        string        `json:"name"`
-	TriggeredAt time.Time     `json:"triggered_at"`
-	TriggeredBy string        `json:"triggered_by"`
+	Log         string        `json:"log" db:"message"`
+	Name        string        `json:"name" db:"job"`
+	TriggeredAt time.Time     `json:"triggered_at" db:"triggered_at"`
+	TriggeredBy string        `json:"triggered_by" db:"triggered_by,omitempty"`
 	Triggered   []string      `json:"triggered,omitempty"`
-	Duration    time.Duration `json:"duration,omitempty"`
+	Duration    time.Duration `json:"duration,omitempty" db:"duration"`
 	jobRef      *JobSpec
 }
 
@@ -61,18 +62,18 @@ func (jr *JobRun) flushLogBuffer() {
 	jr.Log = jr.logBuf.String()
 }
 
-func (j *JobRun) logToDisk() {
-	logFn := path.Join(CheekPath(), fmt.Sprintf("%s.job.jsonl", j.Name))
-	f, err := os.OpenFile(logFn,
-		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
-	if err != nil {
-		j.jobRef.log.Warn().Str("job", j.Name).Err(err).Msgf("Can't open job log '%v' for writing", logFn)
+func (jr *JobRun) logToDb() {
+	if jr.jobRef.cfg.DB == nil {
+		jr.jobRef.log.Warn().Str("job", jr.Name).Msg("No db connection, not saving job log to db.")
 		return
 	}
-	defer f.Close()
-
-	if err := json.NewEncoder(f).Encode(j); err != nil {
-		j.jobRef.log.Warn().Str("job", j.Name).Err(err).Msg("Couldn't save job log to disk.")
+	_, err := jr.jobRef.cfg.DB.Exec("INSERT INTO log (job, triggered_at, triggered_by, duration, status, message) VALUES (?, ?, ?, ?, ?, ?)", jr.Name, jr.TriggeredAt, jr.TriggeredBy, jr.Duration, jr.Status, jr.Log)
+	if err != nil {
+		if jr.jobRef.globalSchedule != nil {
+			jr.jobRef.globalSchedule.log.Warn().Str("job", jr.Name).Err(err).Msg("Couldn't save job log to db.")
+		} else {
+			panic(err)
+		}
 	}
 }
 
@@ -80,7 +81,7 @@ func (j *JobSpec) finalize(jr *JobRun) {
 	// flush logbuf to string
 	jr.flushLogBuffer()
 	// write logs to disk
-	jr.logToDisk()
+	jr.logToDb()
 	// launch on_events
 	j.OnEvent(jr)
 }
@@ -114,7 +115,7 @@ func (j *JobSpec) execCommandWithRetry(trigger string) JobRun {
 }
 
 func (j JobSpec) now() time.Time {
-	// defer for if schedule doesn't exist, allows fore easy testing
+	// defer for if schedule doesn't exist, allows for easy testing
 	if j.globalSchedule != nil {
 		return j.globalSchedule.now()
 	}
@@ -188,19 +189,61 @@ func (j *JobSpec) execCommand(trigger string) JobRun {
 		return jr
 	}
 
-	jr.Duration = time.Since(jr.TriggeredAt)
+	jr.Duration = time.Duration(time.Since(jr.TriggeredAt).Milliseconds())
 	jr.Status = 0
 	j.log.Debug().Str("job", j.Name).Int("exitcode", jr.Status).Msgf("job exited status: %v", jr.Status)
 
 	return jr
 }
 
-func (j *JobSpec) loadRuns() {
-	const nRuns int = 10
-	logFn := path.Join(CheekPath(), fmt.Sprintf("%s.job.jsonl", j.Name))
-	jrs, err := readLastJobRuns(j.log, logFn, nRuns)
+func (j *JobSpec) loadLogFromDb(id int) (JobRun, error) {
+	var jr JobRun
+	if j.cfg.DB == nil {
+		j.log.Warn().Str("job", j.Name).Msg("No db connection, not loading job run from db.")
+		return jr, errors.New("no db connection")
+	}
+
+	// if id -1 then load last run
+	if id == -1 {
+		err := j.cfg.DB.Get(&jr, "SELECT id, triggered_at, triggered_by, duration, status, message FROM log WHERE job = ? ORDER BY triggered_at DESC LIMIT 1", j.Name)
+		if err != nil {
+			j.log.Warn().Str("job", j.Name).Err(err).Msg("Couldn't load job run from db.")
+			return jr, err
+		}
+		return jr, nil
+	}
+
+	err := j.cfg.DB.Get(&jr, "SELECT id, triggered_at, triggered_by, duration, status, message FROM log WHERE id = ?", id)
 	if err != nil {
-		j.log.Warn().Str("job", j.Name).Err(err).Msgf("could not load job logs from '%s'", logFn)
+		j.log.Warn().Str("job", j.Name).Err(err).Msg("Couldn't load job run from db.")
+		return jr, err
+	}
+	return jr, nil
+}
+
+func (j *JobSpec) loadRunsFromDb(nruns int, includeLogs bool) {
+	var query string
+	if j.cfg.DB == nil {
+		j.log.Warn().Str("job", j.Name).Msg("No db connection, not loading job runs from db.")
+		return
+	}
+	if includeLogs {
+		query = "SELECT id, triggered_at, triggered_by, duration, status, message FROM log WHERE job = ? ORDER BY triggered_at DESC LIMIT ?"
+	} else {
+		query = "SELECT id, triggered_at, triggered_by, duration, status FROM log WHERE job = ? ORDER BY triggered_at DESC LIMIT ?"
+	}
+	rows, err := j.cfg.DB.Query(query, j.Name, nruns)
+	if err != nil {
+		j.log.Warn().Str("job", j.Name).Err(err).Msg("Couldn't load job runs from db.")
+		return
+	}
+	defer rows.Close()
+
+	var jrs []JobRun
+	err = j.cfg.DB.Select(&jrs, query, j.Name, nruns)
+	if err != nil {
+		j.log.Warn().Str("job", j.Name).Err(err).Msg("Couldn't load job runs from db.")
+		return
 	}
 	j.Runs = jrs
 }
