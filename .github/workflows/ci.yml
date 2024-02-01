@@ -27,7 +27,7 @@ jobs:
         run: go test ./cmd
       - name: run tests on pkg
         run: go test ./pkg -timeout 120s -coverprofile=cover.out -covermode=atomic
-      - uses: codecov/codecov-action@v3
+      - uses: codecov/codecov-action@v4
         with:
           files: ./cover.out
 
