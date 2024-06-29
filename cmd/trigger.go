@@ -21,7 +21,11 @@ The name should be defined in your schedule specs. Usage:
 		if err := viper.Unmarshal(&c); err != nil {
 			return err
 		}
-		l := cheek.NewLogger(logLevel, cheek.PrettyStdout())
+		if err := c.Init(); err != nil {
+			return err
+		}
+
+		l := cheek.NewLogger(logLevel, c.DB, cheek.PrettyStdout())
 		_, err := cheek.RunJob(l, c, args[0], args[1])
 		return err
 	},

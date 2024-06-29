@@ -36,7 +36,6 @@ jobs:
       - tests
       - golangci
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
     outputs:
       new_tag: ${{ steps.tag_action.outputs.new_tag }}
     steps:
@@ -44,18 +43,18 @@ jobs:
         with:
           fetch-depth: '0'
       - name: Bump version and push tag
+        if: github.ref == 'refs/heads/main'
         id: tag_action
         uses: anothrNick/github-tag-action@1.67.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           WITH_V: true
           DEFAULT_BUMP: patch
+          PRERELEASE: ${{ github.ref != 'refs/heads/main' }}
 
   build:
     needs: version_tag
     runs-on: ubuntu-latest
-    ## need decent versioning strategy in future
-    if: github.ref == 'refs/heads/main'
     env:
       CGO_ENABLED: 0
     strategy:
@@ -69,9 +68,19 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: '0'
+      ## build tailwind assets
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '19'
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 8
+      - run: pnpm install
+      - run: npm run build
+      ## setup go
       - uses: actions/setup-go@v5
         with:
-          go-version: "^1.16"
+          go-version: "^1.22"
       ## above is fine to get latest for now, also save a copy with short sha
       - id: vars
         run: echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
@@ -87,10 +96,21 @@ jobs:
       - id: upload-files
         uses: google-github-actions/upload-cloud-storage@v2.1.0
         with:
-          path: ${{ matrix.goos }}/${{ matrix.goarch }}
-          destination: cheek-scheduler/${{ matrix.goos }}/
+          path: ${{ matrix.goos }}/${{ matrix.goarch }}/cheek-${{ steps.vars.outputs.sha_short }}
+          destination: cheek-scheduler/${{ matrix.goos }}/${{ matrix.goarch }}/
+      - uses: google-github-actions/upload-cloud-storage@v1.0.3
+        if: github.ref == 'refs/heads/main'
+        with:
+          path: ${{ matrix.goos }}/${{ matrix.goarch }}/cheek-${{ needs.version_tag.outputs.new_tag }}
+          destination: cheek-scheduler/${{ matrix.goos }}/${{ matrix.goarch }}/
+      - uses: google-github-actions/upload-cloud-storage@v1.0.3
+        if: github.ref == 'refs/heads/main'
+        with:
+          path: ${{ matrix.goos }}/${{ matrix.goarch }}/cheek
+          destination: cheek-scheduler/${{ matrix.goos }}/${{ matrix.goarch }}/
 
   docker-build:
+    ## only do this on main
     needs: 
       - build
       - version_tag

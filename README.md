@@ -12,6 +12,8 @@
 
 `cheek` is a pico-sized declarative job scheduler designed to excel in a single-node environment. `cheek` aims to be lightweight, stand-alone and simple. It does not compete for robustness.
 
+> 📄 This bump to v1 introduces a storage backend switch, moving from jsonline logs to sqlite. This might introduce the need to adjust your long-term log storage approach.
+
 ## Getting started
 
 Fetch the latest version for your system below.
@@ -22,7 +24,7 @@ Fetch the latest version for your system below.
 [linux-arm64](https://storage.googleapis.com/cheek-scheduler/linux/arm64/cheek) |
 [linux-amd64](https://storage.googleapis.com/cheek-scheduler/linux/amd64/cheek)
 
-You can (for example) fetch it like below, make it executable and run it. Optionally put the `cheek` on your `PATH`.
+You can (for example) fetch it like below, make it executable and run it. Optionally put `cheek` on your `PATH`.
 
 ```sh
 curl https://storage.googleapis.com/cheek-scheduler/darwin/amd64/cheek -o cheek
@@ -81,13 +83,11 @@ Check out `cheek run --help` for configuration options.
 
 `cheek` ships with a web UI that by default gets launched on port `8081`. You can define the port on which it is accessible via the `--port` flag.
 
-| ![main-screen](https://i.imgur.com/hq0Zxjb.png) |
-| :---------------------------------------------: |
-|                  main overview                  |
+![main-screen](/readme_assets/main.png)
+ main overview
 
-| ![detail](https://i.imgur.com/jc9wBQJ.png) |
-| :----------------------------------------: |
-|                 job detail                 |
+![main-screen](/readme_assets/joboverview.png)
+job detail
 
 You can access the UI by navigating to `http://localhost:8081`. When `cheek` is deployed you are recommended to NOT make this port publicly accessible, instead navigate to the UI via an SSH tunnel.
 

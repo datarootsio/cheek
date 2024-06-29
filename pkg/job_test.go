@@ -14,28 +14,41 @@ import (
 )
 
 func TestLoadLogs(t *testing.T) {
+	db, err := OpenDB("./tmp.sqlite3")
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg := NewConfig()
+	cfg.DB = db
+
+	l := NewLogger("debug", nil, os.Stdout, os.Stdout)
+
 	j := &JobSpec{
 		Cron:    "* * * * *",
 		Name:    "test",
 		Command: []string{"echo", "bar"},
-		cfg:     NewConfig(),
+		cfg:     cfg,
+		log:     l,
 	}
 
-	_, err := j.ToYAML(false)
+	_, err = j.ToYAML(false)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	jr := j.execCommandWithRetry("test")
-	jr.logToDisk()
+	_ = j.execCommandWithRetry("test")
 
 	// log loading goes on job name basis
-	// let's recreate
+	// let's recreate and see if we can load logs
+
 	j = &JobSpec{
 		Name: "test",
+		cfg:  cfg,
+		log:  l,
 	}
 
-	j.loadRuns()
+	j.loadRunsFromDb(10, false)
+
 	assert.Greater(t, len(j.Runs), 0)
 }
 
@@ -258,7 +271,7 @@ func TestStringArray(t *testing.T) {
 
 func TestStandaloneJobRun(t *testing.T) {
 	b := new(tsBuffer)
-	log := NewLogger("debug", b, os.Stdout)
+	log := NewLogger("debug", nil, b, os.Stdout)
 	cfg := NewConfig()
 
 	jr, err := RunJob(log, cfg, "../testdata/jobs1.yaml", "bar")
@@ -269,7 +282,7 @@ func TestStandaloneJobRun(t *testing.T) {
 
 func TestWorkingDir(t *testing.T) {
 	b := new(tsBuffer)
-	log := NewLogger("debug", b, os.Stdout)
+	log := NewLogger("debug", nil, b, os.Stdout)
 	cfg := NewConfig()
 
 	jr, err := RunJob(log, cfg, "../testdata/readme_example.yaml", "other_workingdir")

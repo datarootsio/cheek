@@ -1,0 +1,17 @@
+{
+  "name": "cheek",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "tailwindcss build -o pkg/web_assets/static/tailwind.css",
+    "watch": "tailwindcss build -o pkg/web_assets/static/tailwind.css --watch",
+    "dev": "nodemon --watch pkg/web_assets --ext html,css,js --exec 'go generate && go run . run ./testdata/jobs1.yaml' --signal SIGTERM"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "tailwindcss": "^3.3.5"
+  }
+}
