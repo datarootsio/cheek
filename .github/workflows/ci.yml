@@ -56,7 +56,7 @@ jobs:
     needs: version_tag
     runs-on: ubuntu-latest
     env:
-      CGO_ENABLED: 1
+      CGO_ENABLED: 0
     strategy:
       matrix:
         goos: [linux, darwin]

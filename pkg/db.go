@@ -5,11 +5,11 @@ import (
 
 	"github.com/jmoiron/sqlx"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/glebarez/go-sqlite"
 )
 
 func OpenDB(dbPath string) (*sqlx.DB, error) {
-	db, err := sqlx.Open("sqlite3", dbPath)
+	db, err := sqlx.Open("sqlite", dbPath)
 	if err != nil {
 		return nil, fmt.Errorf("open db: %w", err)
 	}
