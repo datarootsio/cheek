@@ -25,11 +25,11 @@ var runCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		c := cheek.NewConfig()
 		if err := viper.Unmarshal(&c); err != nil {
-			fmt.Println("cannot init configuration")
+			fmt.Println("cannot init configuration, error unmarshalling config: ", err)
 			os.Exit(1)
 		}
 		if err := c.Init(); err != nil {
-			fmt.Println("cannot init configuration")
+			fmt.Println("cannot init configuration", err)
 			os.Exit(1)
 		}
 
