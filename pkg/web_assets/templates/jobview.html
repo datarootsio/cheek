@@ -30,10 +30,10 @@
         <div class="grow"></div>
         <span x-show="showNotification" class="text-lime-200 text-xs" x-text="notification"></span>
       </div>
-      <div class="bg-slate-200 p-2 relative rounded">
-        <div class="whitespace-pre-wrap" x-text="$store.job.spec.yaml"></div>
+      <div class="bg-slate-900 p-2 relative rounded">
+        <div class="whitespace-pre-wrap break-words text-lime-200" x-text="$store.job.spec.yaml"></div>
       </div>
-      <div class="bg-slate-200 h-full rounded py-2">
+      <div class="bg-slate-900 h-full rounded py-2 text-lime-200">
         <ul class="flex flex-col justify-center">
           <template x-for="run in $store.job.spec.runs">
             <li class="pt-1 flex justify-center">

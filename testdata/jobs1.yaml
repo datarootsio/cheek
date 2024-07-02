@@ -21,3 +21,5 @@ jobs:
     retries: 3
   string_command:
     command: echo foo bar
+  command_with_a_very_long_title:
+    command: echo foo bar
