@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v3"
@@ -288,4 +289,33 @@ func TestWorkingDir(t *testing.T) {
 	jr, err := RunJob(log, cfg, "../testdata/readme_example.yaml", "other_workingdir")
 	assert.NoError(t, err)
 	assert.Contains(t, jr.Log, "/testdata")
+}
+
+func TestJobWithBashEval(t *testing.T) {
+	b := new(tsBuffer)
+	log := NewLogger("debug", nil, b, os.Stdout)
+	cfg := NewConfig()
+
+	j := &JobSpec{
+		Cron: "* * * * *",
+		Name: "test",
+		Command: []string{
+			"bash", "-c", "MY_VAR=$(date +%Y-%m); echo $MY_VAR $FOO",
+		},
+		// add random Env to check if it passes through
+		Env: map[string]string{
+			"FOO": "BAR",
+		},
+		cfg: NewConfig(),
+	}
+
+	j.log = log
+	j.cfg = cfg
+
+	jr := j.execCommand("test")
+	jr.flushLogBuffer()
+
+	currentYearMonth := time.Now().Format("2006-01")
+	assert.Contains(t, jr.Log, currentYearMonth)
+	assert.Contains(t, jr.Log, "BAR")
 }
