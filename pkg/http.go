@@ -39,12 +39,12 @@ func setupRouter(s *Schedule) *httprouter.Router {
 	router := httprouter.New()
 
 	// ui endpoints
-	router.GET("/healthz/", getHealthCheck)
 	router.GET("/jobs/:jobId/:jobRunId", getJobDetailPage(s))
 	router.GET("/core/logs", getCoreLogsPage())
 	router.GET("/", getHomePage())
 
 	// api endpoints
+	router.GET("/healthz/", getHealthCheck)
 	router.GET("/api/jobs", getJobs(s))
 	router.GET("/api/jobs/:jobId", getJob(s))
 	router.GET("/api/jobs/:jobId/runs/:jobRunId", getJobRun(s))
