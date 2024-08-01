@@ -180,6 +180,21 @@ func TestMux(t *testing.T) {
 			wantCode: http.StatusNotFound,
 			wantBody: "",
 		},
+		{
+			schedule: &s1,
+			name:     "/api/schedule/status must return 200",
+			args: func(*testing.T) args {
+				req, err := http.NewRequest("GET", "/api/schedule/status", nil)
+				if err != nil {
+					t.Fatalf("fail to create request: %s", err.Error())
+				}
+				return args{
+					req: req,
+				}
+			},
+			wantCode: http.StatusOK,
+			wantBody: "{}",
+		},
 	}
 
 	for _, tt := range tests {
