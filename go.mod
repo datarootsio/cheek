@@ -7,7 +7,7 @@ toolchain go1.22.4
 require github.com/stretchr/testify v1.9.0
 
 require (
-	github.com/adhocore/gronx v1.8.1
+	github.com/adhocore/gronx v1.19.0
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 	github.com/rs/zerolog v1.33.0
 	gopkg.in/yaml.v3 v3.0.1
