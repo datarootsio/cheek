@@ -91,7 +91,7 @@ jobs:
       - run: cp ${{ matrix.goos }}/${{ matrix.goarch }}/cheek ${{ matrix.goos }}/${{ matrix.goarch }}/cheek-${{ needs.version_tag.outputs.new_tag }}
       ## upload binary to google storage
       - id: auth
-        uses: google-github-actions/auth@v2.1.2
+        uses: google-github-actions/auth@v2.1.5
         with:
           credentials_json: ${{ secrets.gcp_credentials_cheek }}
       - id: upload-files
