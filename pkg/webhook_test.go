@@ -32,7 +32,7 @@ func TestJobRunWebhookCall(t *testing.T) {
 
 	// test generic webhook
 	jr := JobRun{
-		Status:      0,
+		Status:      Int(0),
 		Name:        "test",
 		TriggeredBy: "cron",
 		Log:         "this is a random log statement\nwith multiple lines\nand stuff",
