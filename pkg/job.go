@@ -162,7 +162,7 @@ func (j JobSpec) now() time.Time {
 	return time.Now()
 }
 func (j *JobSpec) execCommand(jr JobRun, trigger string) JobRun {
-
+	j.log.Info().Str("job", j.Name).Str("trigger", trigger).Msgf("Job triggered")
 	suppressLogs := j.cfg.SuppressLogs
 
 	var cmd *exec.Cmd
@@ -325,7 +325,7 @@ func (j *JobSpec) OnEvent(jr *JobRun) {
 	var webhooksToCall []string
 	var slackWebhooksToCall []string
 
-	switch jr.Status == Int(0) {
+	switch *jr.Status == 0 {
 	case true: // after success
 		jobsToTrigger = j.OnSuccess.TriggerJob
 		webhooksToCall = j.OnSuccess.NotifyWebhook

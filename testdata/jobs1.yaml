@@ -17,7 +17,7 @@ jobs:
     cron: "* * * * *"
   coffee:
     command: this fails
-    cron: "* * * * *"
+    cron: "* * 2 * *"
     retries: 3
   string_command:
     command: echo foo bar
