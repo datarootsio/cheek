@@ -41,10 +41,6 @@ func fsys() fs.FS {
 	return fsys
 }
 
-func IntConvert(i int) *int {
-	return &i
-}
-
 func setupRouter(s *Schedule) *httprouter.Router {
 	router := httprouter.New()
 
@@ -163,7 +159,7 @@ func getScheduleStatus(s *Schedule) httprouter.Handle {
 			j.loadRunsFromDb(1, false)
 			lastRunStatus := j.Runs[0].Status
 			ssr.Status[j.Name] = *lastRunStatus
-			if lastRunStatus == IntConvert(1) {
+			if lastRunStatus == Int(1) {
 				ssr.FailedRunCount++
 			}
 		}
