@@ -23,13 +23,14 @@ func OpenDB(dbPath string) (*sqlx.DB, error) {
 
 func InitDB(db *sqlx.DB) error {
 	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS log (
-        id INTEGER PRIMARY KEY,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
         job TEXT,
         triggered_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 		triggered_by TEXT,
         duration INTEGER,
         status INTEGER,
-        message TEXT
+        message TEXT,
+		UNIQUE(job, triggered_at, triggered_by)
     )`)
 	if err != nil {
 		return fmt.Errorf("create log table: %w", err)
