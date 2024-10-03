@@ -159,7 +159,7 @@ func getScheduleStatus(s *Schedule) httprouter.Handle {
 			j.loadRunsFromDb(1, false)
 			lastRunStatus := j.Runs[0].Status
 			ssr.Status[j.Name] = *lastRunStatus
-			if lastRunStatus == Int(1) {
+			if *lastRunStatus == 1 {
 				ssr.FailedRunCount++
 			}
 		}
