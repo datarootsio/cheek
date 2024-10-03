@@ -46,8 +46,8 @@ type JobSpec struct {
 
 // JobRun holds information about a job execution.
 type JobRun struct {
-	LogEntryId  int `json:"id,omitempty" db:"id"`
-	Status      int `json:"status" db:"status,omitempty"`
+	LogEntryId  int  `json:"id,omitempty" db:"id"`
+	Status      *int `json:"status,omitempty" db:"status,omitempty"`
 	logBuf      bytes.Buffer
 	Log         string        `json:"log" db:"message"`
 	Name        string        `json:"name" db:"job"`
@@ -62,12 +62,43 @@ func (jr *JobRun) flushLogBuffer() {
 	jr.Log = jr.logBuf.String()
 }
 
+func Int(i int) *int {
+	return &i
+}
+
+func (j *JobSpec) setup(trigger string) JobRun {
+	// Initialize the JobRun before executing the command
+	jr := JobRun{
+		Name:        j.Name,
+		TriggeredAt: j.now(),
+		TriggeredBy: trigger,
+		Status:      nil,
+		jobRef:      j,
+	}
+
+	// Log the job run immediately to the database to mark the job as started
+	jr.logToDb()
+
+	return jr
+}
+
 func (jr *JobRun) logToDb() {
 	if jr.jobRef.cfg.DB == nil {
 		jr.jobRef.log.Warn().Str("job", jr.Name).Msg("No db connection, not saving job log to db.")
 		return
 	}
-	_, err := jr.jobRef.cfg.DB.Exec("INSERT INTO log (job, triggered_at, triggered_by, duration, status, message) VALUES (?, ?, ?, ?, ?, ?)", jr.Name, jr.TriggeredAt, jr.TriggeredBy, jr.Duration, jr.Status, jr.Log)
+
+	// Perform an UPSERT (insert or update)
+	_, err := jr.jobRef.cfg.DB.Exec(`
+		INSERT INTO log (job,triggered_at ,triggered_by, duration, status, message) 
+		VALUES (?, ?, ?, ?, ?, ?)
+		ON CONFLICT(job, triggered_at, triggered_by) DO UPDATE SET 
+			duration = excluded.duration, 
+			status = excluded.status, 
+			message = excluded.message;
+		`,
+		jr.Name, jr.TriggeredAt, jr.TriggeredBy, jr.Duration, jr.Status, jr.Log)
+
 	if err != nil {
 		if jr.jobRef.globalSchedule != nil {
 			jr.jobRef.globalSchedule.log.Warn().Str("job", jr.Name).Err(err).Msg("Couldn't save job log to db.")
@@ -91,26 +122,35 @@ func (j *JobSpec) execCommandWithRetry(trigger string) JobRun {
 	var jr JobRun
 	const timeOut = 5 * time.Second
 
-	for tries < j.Retries+1 {
+	// Initialize the JobRun with the first trigger
+	jr = j.setup(trigger)
 
+	for tries < j.Retries+1 {
 		switch {
 		case tries == 0:
-			jr = j.execCommand(trigger)
+			// First attempt with the original trigger
+			jr = j.execCommand(jr, trigger)
 		default:
-			jr = j.execCommand(fmt.Sprintf("%s[retry=%v]", trigger, tries))
+			// On retries, update the trigger with retry count and rerun
+			jr = j.execCommand(jr, fmt.Sprintf("%s[retry=%d]", trigger, tries))
 		}
 
-		// finalise logging etc
+		// Finalize logging, etc.
 		j.finalize(&jr)
 
-		if jr.Status == 0 {
+		if jr.Status == Int(0) {
+			// Exit if the job succeeded (Status 0)
 			break
 		}
-		j.log.Debug().Str("job", j.Name).Int("exitcode", jr.Status).Msgf("job exited unsuccessfully, launching retry after %v timeout.", timeOut)
+
+		// Log the unsuccessful attempt and retry
+		j.log.Debug().Str("job", j.Name).Int("exitcode", *jr.Status).Msgf("job exited unsuccessfully, launching retry after %v timeout.", timeOut)
+
+		// Increment the attempt counter
 		tries++
 		time.Sleep(timeOut)
-
 	}
+
 	return jr
 }
 
@@ -121,11 +161,7 @@ func (j JobSpec) now() time.Time {
 	}
 	return time.Now()
 }
-
-func (j *JobSpec) execCommand(trigger string) JobRun {
-	j.log.Info().Str("job", j.Name).Str("trigger", trigger).Msgf("Job triggered")
-	// init status to non-zero until execution says otherwise
-	jr := JobRun{Name: j.Name, TriggeredAt: j.now(), TriggeredBy: trigger, Status: -1, jobRef: j}
+func (j *JobSpec) execCommand(jr JobRun, trigger string) JobRun {
 
 	suppressLogs := j.cfg.SuppressLogs
 
@@ -138,6 +174,7 @@ func (j *JobSpec) execCommand(trigger string) JobRun {
 		if !suppressLogs {
 			fmt.Println(err.Error())
 		}
+		jr.Status = Int(-1) // Set failure status when no command is specified
 		return jr
 	case 1:
 		cmd = exec.Command(j.Command[0])
@@ -145,7 +182,7 @@ func (j *JobSpec) execCommand(trigger string) JobRun {
 		cmd = exec.Command(j.Command[0], j.Command[1:]...)
 	}
 
-	// add env vars
+	// Add env vars
 	cmd.Env = os.Environ()
 	for k, v := range j.Env {
 		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", k, v))
@@ -161,37 +198,53 @@ func (j *JobSpec) execCommand(trigger string) JobRun {
 		w = io.MultiWriter(os.Stdout, &jr.logBuf)
 	}
 
-	// merge stdout and stderr to same writer
+	// Merge stdout and stderr to same writer
 	cmd.Stdout = w
 	cmd.Stderr = w
 
+	// Start command execution
 	err := cmd.Start()
 	if err != nil {
 		if !suppressLogs {
 			fmt.Println(err.Error())
 		}
-		j.log.Warn().Str("job", j.Name).Str("trigger", trigger).Int("exitcode", jr.Status).Err(err).Msg("job unable to start")
-		// also send this to terminal output
+
+		// Log the initial error and set the exit code
+		exitCode := -1
+		j.log.Warn().Str("job", j.Name).Str("trigger", trigger).Int("exitcode", exitCode).Err(err).Msg("job unable to start")
+
+		// Also send this to terminal output
 		_, err = w.Write([]byte(fmt.Sprintf("job unable to start: %v", err.Error())))
 		if err != nil {
 			j.log.Debug().Str("job", j.Name).Err(err).Msg("can't write to log buffer")
 		}
 
+		jr.Status = Int(exitCode) // Set the exit code in the job result
 		return jr
 	}
 
+	// Wait for the command to finish and check for errors
 	if err := cmd.Wait(); err != nil {
 		if exitError, ok := err.(*exec.ExitError); ok {
-			jr.Status = exitError.ExitCode()
-			j.log.Warn().Str("job", j.Name).Msgf("Exit code %v", exitError.ExitCode())
+			// Get the exact exit code from ExitError
+			exitCode := exitError.ExitCode()
+			jr.Status = Int(exitCode) // Set the exit code in the job result
+			j.log.Warn().Str("job", j.Name).Msgf("Exit code: %d", exitCode)
+		} else {
+			// Handle unexpected errors
+			exitCode := -1
+			j.log.Error().Str("job", j.Name).Err(err).Msg("unexpected error during command execution")
+			jr.Status = Int(exitCode)
+			return jr
 		}
-
-		return jr
+	} else {
+		// No error, command exited successfully
+		jr.Status = Int(0) // Command succeeded, set exit code 0
 	}
 
 	jr.Duration = time.Duration(time.Since(jr.TriggeredAt).Milliseconds())
-	jr.Status = 0
-	j.log.Debug().Str("job", j.Name).Int("exitcode", jr.Status).Msgf("job exited status: %v", jr.Status)
+
+	j.log.Debug().Str("job", j.Name).Int("exitcode", *jr.Status).Msgf("job exited with status: %d", *jr.Status)
 
 	return jr
 }
@@ -272,7 +325,7 @@ func (j *JobSpec) OnEvent(jr *JobRun) {
 	var webhooksToCall []string
 	var slackWebhooksToCall []string
 
-	switch jr.Status == 0 {
+	switch jr.Status == Int(0) {
 	case true: // after success
 		jobsToTrigger = j.OnSuccess.TriggerJob
 		webhooksToCall = j.OnSuccess.NotifyWebhook
@@ -352,12 +405,17 @@ func (j JobSpec) ToYAML(includeRuns bool) (string, error) {
 func RunJob(log zerolog.Logger, cfg Config, scheduleFn string, jobName string) (JobRun, error) {
 	s, err := loadSchedule(log, cfg, scheduleFn)
 	if err != nil {
-		fmt.Printf("error loading schedule: %s\n", err)
-		os.Exit(1)
+		log.Error().Err(err).Msgf("error loading schedule: %s", scheduleFn)
+		return JobRun{}, fmt.Errorf("failed to load schedule: %w", err)
 	}
+
 	for _, job := range s.Jobs {
 		if job.Name == jobName {
-			jr := job.execCommand("manual")
+			// Use the setup function to create a JobRun instance
+			jr := job.setup("manual")
+
+			// Execute the command with the initialized JobRun and the trigger string
+			jr = job.execCommand(jr, "manual")
 			job.finalize(&jr)
 			return jr, nil
 		}
