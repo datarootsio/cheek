@@ -62,6 +62,10 @@ func (jr *JobRun) flushLogBuffer() {
 	jr.Log = jr.logBuf.String()
 }
 
+func Int(i int) *int {
+	return &i
+}
+
 func (j *JobSpec) setup(trigger string) JobRun {
 	// Initialize the JobRun before executing the command
 	jr := JobRun{
@@ -134,7 +138,7 @@ func (j *JobSpec) execCommandWithRetry(trigger string) JobRun {
 		// Finalize logging, etc.
 		j.finalize(&jr)
 
-		if *jr.Status == 0 {
+		if jr.Status == Int(0) {
 			// Exit if the job succeeded (Status 0)
 			break
 		}
@@ -170,7 +174,7 @@ func (j *JobSpec) execCommand(jr JobRun, trigger string) JobRun {
 		if !suppressLogs {
 			fmt.Println(err.Error())
 		}
-		*jr.Status = -1 // Set failure status when no command is specified
+		jr.Status = Int(-1) // Set failure status when no command is specified
 		return jr
 	case 1:
 		cmd = exec.Command(j.Command[0])
@@ -215,7 +219,7 @@ func (j *JobSpec) execCommand(jr JobRun, trigger string) JobRun {
 			j.log.Debug().Str("job", j.Name).Err(err).Msg("can't write to log buffer")
 		}
 
-		*jr.Status = exitCode // Set the exit code in the job result
+		jr.Status = Int(exitCode) // Set the exit code in the job result
 		return jr
 	}
 
@@ -224,18 +228,18 @@ func (j *JobSpec) execCommand(jr JobRun, trigger string) JobRun {
 		if exitError, ok := err.(*exec.ExitError); ok {
 			// Get the exact exit code from ExitError
 			exitCode := exitError.ExitCode()
-			*jr.Status = exitCode // Set the exit code in the job result
+			jr.Status = Int(exitCode) // Set the exit code in the job result
 			j.log.Warn().Str("job", j.Name).Msgf("Exit code: %d", exitCode)
 		} else {
 			// Handle unexpected errors
 			exitCode := -1
 			j.log.Error().Str("job", j.Name).Err(err).Msg("unexpected error during command execution")
-			*jr.Status = exitCode
+			jr.Status = Int(exitCode)
 			return jr
 		}
 	} else {
 		// No error, command exited successfully
-		*jr.Status = 0 // Command succeeded, set exit code 0
+		jr.Status = Int(0) // Command succeeded, set exit code 0
 	}
 
 	jr.Duration = time.Duration(time.Since(jr.TriggeredAt).Milliseconds())

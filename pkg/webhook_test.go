@@ -12,9 +12,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Int(i int) *int {
-	return &i
-}
 func TestJobRunWebhookCall(t *testing.T) {
 	var err error
 	var resp_body []byte
