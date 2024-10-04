@@ -15,6 +15,12 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// Global status constants
+const (
+	StatusOK    int = 0
+	StatusError int = -1
+)
+
 // OnEvent contains specs on what needs to happen after a job event.
 type OnEvent struct {
 	TriggerJob         []string `yaml:"trigger_job,omitempty" json:"trigger_job,omitempty"`
@@ -60,10 +66,6 @@ type JobRun struct {
 
 func (jr *JobRun) flushLogBuffer() {
 	jr.Log = jr.logBuf.String()
-}
-
-func Int(i int) *int {
-	return &i
 }
 
 func (j *JobSpec) setup(trigger string) JobRun {
@@ -138,7 +140,7 @@ func (j *JobSpec) execCommandWithRetry(trigger string) JobRun {
 		// Finalize logging, etc.
 		j.finalize(&jr)
 
-		if jr.Status == Int(0) {
+		if *jr.Status == StatusOK {
 			// Exit if the job succeeded (Status 0)
 			break
 		}
@@ -161,6 +163,7 @@ func (j JobSpec) now() time.Time {
 	}
 	return time.Now()
 }
+
 func (j *JobSpec) execCommand(jr JobRun, trigger string) JobRun {
 	j.log.Info().Str("job", j.Name).Str("trigger", trigger).Msgf("Job triggered")
 	suppressLogs := j.cfg.SuppressLogs
@@ -174,7 +177,9 @@ func (j *JobSpec) execCommand(jr JobRun, trigger string) JobRun {
 		if !suppressLogs {
 			fmt.Println(err.Error())
 		}
-		jr.Status = Int(-1) // Set failure status when no command is specified
+		errStatus := StatusError
+		jr.Status = &errStatus // Set failure status when no command is specified
+
 		return jr
 	case 1:
 		cmd = exec.Command(j.Command[0])
@@ -205,21 +210,23 @@ func (j *JobSpec) execCommand(jr JobRun, trigger string) JobRun {
 	// Start command execution
 	err := cmd.Start()
 	if err != nil {
+		// Existing logging logic
 		if !suppressLogs {
 			fmt.Println(err.Error())
 		}
 
 		// Log the initial error and set the exit code
-		exitCode := -1
+		exitCode := StatusError
 		j.log.Warn().Str("job", j.Name).Str("trigger", trigger).Int("exitcode", exitCode).Err(err).Msg("job unable to start")
 
 		// Also send this to terminal output
-		_, err = w.Write([]byte(fmt.Sprintf("job unable to start: %v", err.Error())))
-		if err != nil {
-			j.log.Debug().Str("job", j.Name).Err(err).Msg("can't write to log buffer")
+		logMessage := fmt.Sprintf("job unable to start: %v", err.Error())
+		_, writeErr := w.Write([]byte(logMessage)) // Ensure we log this message
+		if writeErr != nil {
+			j.log.Debug().Str("job", j.Name).Err(writeErr).Msg("can't write to log buffer")
 		}
-
-		jr.Status = Int(exitCode) // Set the exit code in the job result
+		jr.Log = logMessage   // Capture log message to jr.Log
+		jr.Status = &exitCode // Set the exit code in the job result
 		return jr
 	}
 
@@ -228,18 +235,21 @@ func (j *JobSpec) execCommand(jr JobRun, trigger string) JobRun {
 		if exitError, ok := err.(*exec.ExitError); ok {
 			// Get the exact exit code from ExitError
 			exitCode := exitError.ExitCode()
-			jr.Status = Int(exitCode) // Set the exit code in the job result
+			jr.Status = &exitCode // Set the exit code in the job result
 			j.log.Warn().Str("job", j.Name).Msgf("Exit code: %d", exitCode)
+			jr.Log += fmt.Sprintf("Exit code: %d\n", exitCode)
+
 		} else {
 			// Handle unexpected errors
-			exitCode := -1
+			exitCode := StatusError
 			j.log.Error().Str("job", j.Name).Err(err).Msg("unexpected error during command execution")
-			jr.Status = Int(exitCode)
+			jr.Status = &exitCode
 			return jr
 		}
 	} else {
 		// No error, command exited successfully
-		jr.Status = Int(0) // Command succeeded, set exit code 0
+		StatusCode := StatusOK
+		jr.Status = &StatusCode // Command succeeded, set exit code 0
 	}
 
 	jr.Duration = time.Duration(time.Since(jr.TriggeredAt).Milliseconds())
@@ -325,7 +335,7 @@ func (j *JobSpec) OnEvent(jr *JobRun) {
 	var webhooksToCall []string
 	var slackWebhooksToCall []string
 
-	switch *jr.Status == 0 {
+	switch *jr.Status == StatusOK {
 	case true: // after success
 		jobsToTrigger = j.OnSuccess.TriggerJob
 		webhooksToCall = j.OnSuccess.NotifyWebhook

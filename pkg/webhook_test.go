@@ -29,10 +29,10 @@ func TestJobRunWebhookCall(t *testing.T) {
 	}))
 
 	defer testServer.Close()
-
+	statusCode := 0
 	// test generic webhook
 	jr := JobRun{
-		Status:      Int(0),
+		Status:      &statusCode,
 		Name:        "test",
 		TriggeredBy: "cron",
 		Log:         "this is a random log statement\nwith multiple lines\nand stuff",

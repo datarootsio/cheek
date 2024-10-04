@@ -1,6 +1,7 @@
 package cheek
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"log"
@@ -332,4 +333,77 @@ func TestJobWithBashEval(t *testing.T) {
 	currentYearMonth := time.Now().Format("2006-01")
 	assert.Contains(t, jr.Log, currentYearMonth)
 	assert.Contains(t, jr.Log, "BAR")
+}
+
+// TestExecCommandStartError simulates a scenario where cmd.Start() fails
+func TestExecCommandStartError(t *testing.T) {
+	// Create a sample JobRun instance
+	jobRun := JobRun{
+		LogEntryId:  1,
+		Status:      nil,
+		logBuf:      bytes.Buffer{},
+		Log:         "",
+		Name:        "TestJob",
+		TriggeredAt: time.Now(),
+		TriggeredBy: "manual",
+		Triggered:   []string{"manual"},
+		Duration:    0,
+	}
+
+	// Create a sample JobSpec instance with a command that will fail
+	jobSpec := JobSpec{
+		Name:    "TestJob",
+		Command: stringArray{"nonexistent-command"},
+		cfg: Config{
+			SuppressLogs: false,
+		},
+	}
+
+	// Run the execCommand method with the JobSpec and JobRun
+	trigger := "manual"
+	result := jobSpec.execCommand(jobRun, trigger)
+
+	// Assertions
+	assert.NotNil(t, result.Status, "Expected job run status to be set")
+	assert.Equal(t, StatusError, *result.Status, "Expected StatusError when cmd.Start fails")
+	assert.Contains(t, result.Log, "job unable to start", "Expected log to contain failure message")
+	assert.NotEmpty(t, result.Log, "Expected log to contain some content")
+	assert.NotNil(t, result.Duration, "Expected duration to be set")
+	assert.GreaterOrEqual(t, result.Duration.Milliseconds(), int64(0), "Expected positive duration")
+}
+
+func TestExecCommandExitError(t *testing.T) {
+	// Create a sample JobRun instance
+	jobRun := JobRun{
+		LogEntryId:  1,
+		Status:      nil,
+		logBuf:      bytes.Buffer{},
+		Log:         "",
+		Name:        "TestJob",
+		TriggeredAt: time.Now(),
+		TriggeredBy: "manual",
+		Triggered:   []string{"manual"},
+		Duration:    0,
+	}
+
+	// Create a sample JobSpec instance with a command that will fail
+	jobSpec := JobSpec{
+		Name:    "TestJob",
+		Command: stringArray{"false"}, // Use a command that always exits with code 1
+		cfg: Config{
+			SuppressLogs: false,
+		},
+	}
+
+	// Run the execCommand method with the JobSpec and JobRun
+	trigger := "manual"
+	result := jobSpec.execCommand(jobRun, trigger)
+
+	// Assertions
+	assert.NotNil(t, result.Status, "Expected job run status to be set")
+	assert.Equal(t, 1, *result.Status, "Expected StatusError when cmd.Wait fails with non-zero exit code")
+	assert.Contains(t, result.Log, "Exit code:", "Expected log to contain exit status message")
+	assert.NotEmpty(t, result.Log, "Expected log to contain some content")
+	assert.NotNil(t, result.Duration, "Expected duration to be set")
+	assert.GreaterOrEqual(t, result.Duration.Milliseconds(), int64(0), "Expected positive duration")
 }
