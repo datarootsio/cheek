@@ -1,6 +1,7 @@
 package cheek
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"log"
@@ -61,8 +62,13 @@ func TestJobRun(t *testing.T) {
 		cfg:     NewConfig(),
 	}
 
-	jr := j.execCommand("test")
-	assert.Equal(t, jr.Status, 0)
+	jobRun := JobRun{}
+
+	// Execute command and get result
+	jr := j.execCommand(jobRun, "test")
+
+	// Dereference the pointer and compare the value
+	assert.Equal(t, *jr.Status, 0)
 }
 
 func TestSpecialCron(t *testing.T) {
@@ -77,8 +83,9 @@ func TestSpecialCron(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	jr := j.execCommand("test")
-	assert.Equal(t, jr.Status, 0)
+	jobRun := JobRun{}                  // Create a JobRun instance
+	jr := j.execCommand(jobRun, "test") // Pass JobRun instance and "test"
+	assert.Equal(t, *jr.Status, 0)
 }
 
 func TestInvalidCron(t *testing.T) {
@@ -125,7 +132,8 @@ env:
 		t.Fatal("should contain foo")
 	}
 
-	jr := j.execCommand("test")
+	jobRun := JobRun{}                  // Create a JobRun instance
+	jr := j.execCommand(jobRun, "test") // Pass JobRun instance and "test"
 
 	jr.flushLogBuffer()
 
@@ -144,7 +152,8 @@ func TestStdErrOut(t *testing.T) {
 		cfg: cfg,
 	}
 
-	jr := j.execCommand("test")
+	jobRun := JobRun{}                  // Create a JobRun instance
+	jr := j.execCommand(jobRun, "test") // Pass JobRun instance and "test"
 	jr.flushLogBuffer()
 	assert.Contains(t, jr.Log, "stdout")
 	assert.Contains(t, jr.Log, "stderr")
@@ -162,7 +171,8 @@ func TestFailingLog(t *testing.T) {
 		cfg: cfg,
 	}
 
-	jr := j.execCommand("test")
+	jobRun := JobRun{}                  // Create a JobRun instance
+	jr := j.execCommand(jobRun, "test") // Pass JobRun instance and "test"
 	jr.flushLogBuffer()
 	assert.Contains(t, jr.Log, "this fails")
 }
@@ -174,7 +184,8 @@ func TestJobRunNoCommand(t *testing.T) {
 		cfg:  NewConfig(),
 	}
 
-	jr := j.execCommand("test")
+	jobRun := JobRun{}                  // Create a JobRun instance
+	jr := j.execCommand(jobRun, "test") // Pass JobRun instance and "test"
 	assert.NotEqual(t, jr.Status, 0)
 }
 
@@ -188,7 +199,8 @@ func TestJobNonZero(t *testing.T) {
 		cfg: NewConfig(),
 	}
 
-	jr := j.execCommand("test")
+	jobRun := JobRun{}                  // Create a JobRun instance
+	jr := j.execCommand(jobRun, "test") // Pass JobRun instance and "test"
 	assert.NotEqual(t, jr.Status, 0)
 }
 
@@ -232,7 +244,8 @@ func TestOnEventWebhook(t *testing.T) {
 			NotifyWebhook: []string{testServer.URL},
 		},
 	}
-	jr := j.execCommand("test")
+	jobRun := JobRun{}                  // Create a JobRun instance
+	jr := j.execCommand(jobRun, "test") // Pass JobRun instance and "test"
 	j.OnEvent(&jr)
 }
 
@@ -262,10 +275,11 @@ func TestStringArray(t *testing.T) {
 		}
 
 		j.cfg = NewConfig()
-		jr := j.execCommand("test")
+		jobRun := JobRun{}                  // Create a JobRun instance
+		jr := j.execCommand(jobRun, "test") // Pass JobRun instance and "test"
 
 		jr.flushLogBuffer()
-		assert.Equal(t, jr.Status, scenario.expectedStatus)
+		assert.Equal(t, *jr.Status, scenario.expectedStatus)
 		assert.Contains(t, jr.Log, scenario.expectedLogContent)
 	}
 }
@@ -312,10 +326,84 @@ func TestJobWithBashEval(t *testing.T) {
 	j.log = log
 	j.cfg = cfg
 
-	jr := j.execCommand("test")
+	jobRun := JobRun{}                  // Create a JobRun instance
+	jr := j.execCommand(jobRun, "test") // Pass JobRun instance and "test"
 	jr.flushLogBuffer()
 
 	currentYearMonth := time.Now().Format("2006-01")
 	assert.Contains(t, jr.Log, currentYearMonth)
 	assert.Contains(t, jr.Log, "BAR")
+}
+
+// TestExecCommandStartError simulates a scenario where cmd.Start() fails
+func TestExecCommandStartError(t *testing.T) {
+	// Create a sample JobRun instance
+	jobRun := JobRun{
+		LogEntryId:  1,
+		Status:      nil,
+		logBuf:      bytes.Buffer{},
+		Log:         "",
+		Name:        "TestJob",
+		TriggeredAt: time.Now(),
+		TriggeredBy: "manual",
+		Triggered:   []string{"manual"},
+		Duration:    0,
+	}
+
+	// Create a sample JobSpec instance with a command that will fail
+	jobSpec := JobSpec{
+		Name:    "TestJob",
+		Command: stringArray{"nonexistent-command"},
+		cfg: Config{
+			SuppressLogs: false,
+		},
+	}
+
+	// Run the execCommand method with the JobSpec and JobRun
+	trigger := "manual"
+	result := jobSpec.execCommand(jobRun, trigger)
+
+	// Assertions
+	assert.NotNil(t, result.Status, "Expected job run status to be set")
+	assert.Equal(t, StatusError, *result.Status, "Expected StatusError when cmd.Start fails")
+	assert.Contains(t, result.Log, "job unable to start", "Expected log to contain failure message")
+	assert.NotEmpty(t, result.Log, "Expected log to contain some content")
+	assert.NotNil(t, result.Duration, "Expected duration to be set")
+	assert.GreaterOrEqual(t, result.Duration.Milliseconds(), int64(0), "Expected positive duration")
+}
+
+func TestExecCommandExitError(t *testing.T) {
+	// Create a sample JobRun instance
+	jobRun := JobRun{
+		LogEntryId:  1,
+		Status:      nil,
+		logBuf:      bytes.Buffer{},
+		Log:         "",
+		Name:        "TestJob",
+		TriggeredAt: time.Now(),
+		TriggeredBy: "manual",
+		Triggered:   []string{"manual"},
+		Duration:    0,
+	}
+
+	// Create a sample JobSpec instance with a command that will fail
+	jobSpec := JobSpec{
+		Name:    "TestJob",
+		Command: stringArray{"false"}, // Use a command that always exits with code 1
+		cfg: Config{
+			SuppressLogs: false,
+		},
+	}
+
+	// Run the execCommand method with the JobSpec and JobRun
+	trigger := "manual"
+	result := jobSpec.execCommand(jobRun, trigger)
+
+	// Assertions
+	assert.NotNil(t, result.Status, "Expected job run status to be set")
+	assert.Equal(t, 1, *result.Status, "Expected StatusError when cmd.Wait fails with non-zero exit code")
+	assert.Contains(t, result.Log, "Exit code:", "Expected log to contain exit status message")
+	assert.NotEmpty(t, result.Log, "Expected log to contain some content")
+	assert.NotNil(t, result.Duration, "Expected duration to be set")
+	assert.GreaterOrEqual(t, result.Duration.Milliseconds(), int64(0), "Expected positive duration")
 }

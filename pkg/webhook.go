@@ -17,7 +17,7 @@ func JobRunWebhookCall(jr *JobRun, webhookURL string, webhookType string) ([]byt
 
 	if webhookType == "slack" {
 		d := slackPayload{
-			Text: fmt.Sprintf("%s (exitcode %v):\n%s", jr.Name, jr.Status, jr.Log),
+			Text: fmt.Sprintf("%s (exitcode %v):\n%s", jr.Name, *jr.Status, jr.Log),
 		}
 
 		if err := json.NewEncoder(&payload).Encode(d); err != nil {
