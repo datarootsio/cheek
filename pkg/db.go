@@ -22,6 +22,7 @@ func OpenDB(dbPath string) (*sqlx.DB, error) {
 }
 
 func InitDB(db *sqlx.DB) error {
+	// Create the log table if it doesn't exist
 	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS log (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         job TEXT,
@@ -34,6 +35,19 @@ func InitDB(db *sqlx.DB) error {
     )`)
 	if err != nil {
 		return fmt.Errorf("create log table: %w", err)
+	}
+
+	// Perform cleanup to remove old, non-conforming records
+	_, err = db.Exec(`
+		DELETE FROM log
+		WHERE id NOT IN (
+			SELECT MIN(id)
+			FROM log
+			GROUP BY job, triggered_at, triggered_by
+		);
+	`)
+	if err != nil {
+		return fmt.Errorf("cleanup old log records: %w", err)
 	}
 
 	return nil
