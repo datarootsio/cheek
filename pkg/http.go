@@ -23,10 +23,15 @@ type Response struct {
 	Type   string `json:"type,omitempty"`
 }
 
-var version string // This will be injected at build time
+// This will be injected at build time
+var (
+	version   string
+	commitSHA string
+)
 
 type VersionResponse struct {
-	Version string `json:"version"`
+	Version   string `json:"version"`
+	CommitSHA string `json:"commit_sha"`
 }
 
 type ScheduleStatusResponse struct {
@@ -89,6 +94,7 @@ func getCoreLogsPage() httprouter.Handle {
 }
 
 func getHomePage() httprouter.Handle {
+
 	tmpl, err := template.ParseFS(fsys(), "templates/overview.html", "templates/base.html")
 	if err != nil {
 		panic(err)
@@ -296,7 +302,7 @@ func postTrigger(s *Schedule) httprouter.Handle {
 }
 
 func getVersion(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	versionResponse := VersionResponse{Version: version}
+	versionResponse := VersionResponse{Version: fmt.Sprintf("(running cheek %s)", version), CommitSHA: commitSHA}
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(versionResponse); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
