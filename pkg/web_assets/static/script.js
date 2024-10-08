@@ -138,3 +138,22 @@ function truncateDateTime(dateTimeStr) {
   const match = dateTimeStr.match(regex);
   return match ? match[1] : null;
 }
+
+// Function to fetch version from the server
+async function fetchVersion() {
+  try {
+    const response = await fetch('/api/version');
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
+    }
+    const data = await response.json();
+    document.getElementById('version').textContent = `Version: ${data.version}`;
+  } catch (error) {
+    console.error('Fetch error:', error);
+  }
+}
+
+// Fetch version when the DOM is fully loaded
+document.addEventListener('DOMContentLoaded', () => {
+  fetchVersion(); // Call the function when the DOM is fully loaded
+});

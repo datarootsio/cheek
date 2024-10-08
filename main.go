@@ -4,7 +4,8 @@ import (
 	"github.com/datarootsio/cheek/cmd"
 )
 
-//go:generate npm run build
 func main() {
+
+	// Execute any command line commands (if applicable)
 	cmd.Execute()
 }

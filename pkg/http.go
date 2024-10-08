@@ -23,6 +23,12 @@ type Response struct {
 	Type   string `json:"type,omitempty"`
 }
 
+var version string // This will be injected at build time
+
+type VersionResponse struct {
+	Version string `json:"version"`
+}
+
 type ScheduleStatusResponse struct {
 	Status         map[string]int `json:"status,omitempty"`
 	FailedRunCount int            `json:"failed_run_count,omitempty"`
@@ -57,6 +63,7 @@ func setupRouter(s *Schedule) *httprouter.Router {
 	router.POST("/api/jobs/:jobId/trigger", postTrigger(s))
 	router.GET("/api/core/logs", getCoreLogs(s))
 	router.GET("/api/schedule/status", getScheduleStatus(s))
+	router.GET("/api/version", getVersion) // Add version endpoint
 
 	fileServer := http.FileServer(http.FS(fsys()))
 	router.GET("/static/*filepath", func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -285,5 +292,13 @@ func postTrigger(s *Schedule) httprouter.Handle {
 		if err := json.NewEncoder(w).Encode(status); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
+	}
+}
+
+func getVersion(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	versionResponse := VersionResponse{Version: version}
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(versionResponse); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }

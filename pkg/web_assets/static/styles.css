@@ -4,3 +4,13 @@
   font-weight: 100 900;
   font-style: normal;
 }
+#version {
+  margin-top: 1rem;
+  padding: 0.5rem;
+  background-color: #1e293b; /* slate-800 color */
+  color: #94a3b8; /* slate-300 color */
+  text-align: center;
+  border-radius: 0.375rem; /* rounded-md */
+  font-size: 0.875rem; /* text-sm */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); /* subtle shadow */
+}
