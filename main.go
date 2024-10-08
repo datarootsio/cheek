@@ -5,7 +5,5 @@ import (
 )
 
 func main() {
-
-	// Execute any command line commands (if applicable)
 	cmd.Execute()
 }
