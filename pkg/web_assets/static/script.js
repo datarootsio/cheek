@@ -75,6 +75,28 @@ document.addEventListener('alpine:init', () => {
     },
   })
 
+  // New version store
+  Alpine.store('version', {
+    version: null,
+
+    fetchVersion: async function () {
+      try {
+        const response = await fetch('/api/version');
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        const data = await response.json();
+        this.version = data.version;
+      } catch (error) {
+        console.error('Fetch error:', error);
+      }
+    },
+
+    init() {
+      this.fetchVersion();
+    }
+  })
+
   // alpine data component
   Alpine.data('coreLogs', () => ({
 
@@ -95,6 +117,7 @@ document.addEventListener('alpine:init', () => {
     }
 
   }))
+  
 
 
 })

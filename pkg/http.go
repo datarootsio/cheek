@@ -23,6 +23,17 @@ type Response struct {
 	Type   string `json:"type,omitempty"`
 }
 
+// This will be injected at build time
+var (
+	version   string
+	commitSHA string
+)
+
+type VersionResponse struct {
+	Version   string `json:"version"`
+	CommitSHA string `json:"commit_sha"`
+}
+
 type ScheduleStatusResponse struct {
 	Status         map[string]int `json:"status,omitempty"`
 	FailedRunCount int            `json:"failed_run_count,omitempty"`
@@ -57,6 +68,7 @@ func setupRouter(s *Schedule) *httprouter.Router {
 	router.POST("/api/jobs/:jobId/trigger", postTrigger(s))
 	router.GET("/api/core/logs", getCoreLogs(s))
 	router.GET("/api/schedule/status", getScheduleStatus(s))
+	router.GET("/api/version", getVersion) // Add version endpoint
 
 	fileServer := http.FileServer(http.FS(fsys()))
 	router.GET("/static/*filepath", func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -82,6 +94,7 @@ func getCoreLogsPage() httprouter.Handle {
 }
 
 func getHomePage() httprouter.Handle {
+
 	tmpl, err := template.ParseFS(fsys(), "templates/overview.html", "templates/base.html")
 	if err != nil {
 		panic(err)
@@ -285,5 +298,13 @@ func postTrigger(s *Schedule) httprouter.Handle {
 		if err := json.NewEncoder(w).Encode(status); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
+	}
+}
+
+func getVersion(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	versionResponse := VersionResponse{Version: version, CommitSHA: commitSHA}
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(versionResponse); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
