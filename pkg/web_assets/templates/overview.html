@@ -24,8 +24,10 @@
   </template>
 </div>
 
-<p class="pt-2 text-xs text-slate-400">
-  shows statuses up until the last 10 runs <span id="version"></span>
-</p>
+<div x-data x-init="$store.version.init()">
+  <p class="pt-2 text-xs text-slate-400">
+    shows statuses up until the last 10 runs (running cheek v<span x-text="$store.version.version" class="text-gray-500"></span>)
+  </p>
+</div>
 
 {{ end }}

@@ -302,7 +302,7 @@ func postTrigger(s *Schedule) httprouter.Handle {
 }
 
 func getVersion(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	versionResponse := VersionResponse{Version: fmt.Sprintf("(running cheek v%s)", version), CommitSHA: commitSHA}
+	versionResponse := VersionResponse{Version: version, CommitSHA: commitSHA}
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(versionResponse); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

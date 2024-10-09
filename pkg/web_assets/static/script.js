@@ -87,7 +87,6 @@ document.addEventListener('alpine:init', () => {
         }
         const data = await response.json();
         this.version = data.version;
-        document.getElementById('version').textContent = `${this.version}`; // Update DOM
       } catch (error) {
         console.error('Fetch error:', error);
       }
