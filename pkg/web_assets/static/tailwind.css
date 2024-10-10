@@ -654,24 +654,10 @@ video {
   background-image: linear-gradient(to right, var(--tw-gradient-stops));
 }
 
-.from-lime-600 {
-  --tw-gradient-from: #65a30d var(--tw-gradient-from-position);
-  --tw-gradient-to: rgb(101 163 13 / 0) var(--tw-gradient-to-position);
-  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
-}
-
 .from-lime-200 {
   --tw-gradient-from: #d9f99d var(--tw-gradient-from-position);
   --tw-gradient-to: rgb(217 249 157 / 0) var(--tw-gradient-to-position);
   --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
-}
-
-.to-blue-600 {
-  --tw-gradient-to: #2563eb var(--tw-gradient-to-position);
-}
-
-.to-blue-200 {
-  --tw-gradient-to: #bfdbfe var(--tw-gradient-to-position);
 }
 
 .to-blue-400 {
@@ -683,16 +669,20 @@ video {
           background-clip: text;
 }
 
-.fill-emerald-500 {
-  fill: #10b981;
+.fill-emerald-600 {
+  fill: #059669;
 }
 
 .fill-lime-200 {
   fill: #d9f99d;
 }
 
-.fill-red-500 {
-  fill: #ef4444;
+.fill-orange-300 {
+  fill: #fdba74;
+}
+
+.fill-red-600 {
+  fill: #dc2626;
 }
 
 .fill-slate-200 {
@@ -782,6 +772,11 @@ video {
   color: rgb(156 163 175 / var(--tw-text-opacity));
 }
 
+.text-gray-500 {
+  --tw-text-opacity: 1;
+  color: rgb(107 114 128 / var(--tw-text-opacity));
+}
+
 .text-lime-200 {
   --tw-text-opacity: 1;
   color: rgb(217 249 157 / var(--tw-text-opacity));
@@ -842,12 +837,6 @@ video {
   background-image: linear-gradient(to left, var(--tw-gradient-stops));
 }
 
-.hover\:from-orange-400:hover {
-  --tw-gradient-from: #fb923c var(--tw-gradient-from-position);
-  --tw-gradient-to: rgb(251 146 60 / 0) var(--tw-gradient-to-position);
-  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
-}
-
 .hover\:from-red-400:hover {
   --tw-gradient-from: #f87171 var(--tw-gradient-from-position);
   --tw-gradient-to: rgb(248 113 113 / 0) var(--tw-gradient-to-position);
@@ -862,10 +851,6 @@ video {
 .hover\:via-yellow-300:hover {
   --tw-gradient-to: rgb(253 224 71 / 0)  var(--tw-gradient-to-position);
   --tw-gradient-stops: var(--tw-gradient-from), #fde047 var(--tw-gradient-via-position), var(--tw-gradient-to);
-}
-
-.hover\:to-blue-500:hover {
-  --tw-gradient-to: #3b82f6 var(--tw-gradient-to-position);
 }
 
 .hover\:to-lime-200:hover {
