@@ -33,20 +33,37 @@
       <div class="bg-slate-900 p-2 relative rounded">
         <div class="whitespace-pre-wrap break-words text-lime-200" x-text="$store.job.spec.yaml"></div>
       </div>
-      <div class="bg-slate-900 h-full rounded py-2 text-lime-200">
+
+      <div class="bg-slate-200 h-full rounded py-2 text-black">
         <ul class="flex flex-col justify-center">
           <template x-for="run in $store.job.spec.runs">
             <li class="pt-1 flex justify-center">
-              <a :href="`/jobs/${$store.job.jobName}/${run.id}`">
-                <span :class="{'bg-red-200 animate-pulse': run.status !== 0, 'font-black underline decoration-dashed': run.id === Number($store.job.runId)}"
+              <a :href="`/jobs/${$store.job.jobName}/${run.id}`" class="flex items-center">
+                
+                <!-- Bullet based on run status -->
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="12" viewBox="0 0 12 12"
+                  :class="run.status === 0 ? 'fill-emerald-600' : run.status === undefined ? 'fill-orange-300' : 'fill-red-600'">
+                  <g>
+                    <path
+                      d="M6.03 1.01c-2.78 0-5.03 2.24-5.03 5.02s2.24 5.03 5.03 5.03 5.03-2.24 5.02-5.03-2.24-5.03-5.02-5.02z">
+                    </path>
+                  </g>
+                </svg>
+                
+                <span 
+                  :class="{
+                    'underline decoration-dashed': run.id === Number($store.job.runId)
+                  }"
                   x-text="truncateDateTime(run.triggered_at)">
                 </span>
               </a>
             </li>
           </template>
         </ul>
-
       </div>
+      
+
+
     </div>
 
     <div class="w-5/6">
