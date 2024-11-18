@@ -2,6 +2,7 @@ package cheek
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -317,7 +318,7 @@ func TestJobWithBashEval(t *testing.T) {
 			"bash", "-c", "MY_VAR=$(date +%Y-%m); echo $MY_VAR $FOO",
 		},
 		// add random Env to check if it passes through
-		Env: map[string]string{
+		Env: map[string]secret{
 			"FOO": "BAR",
 		},
 		cfg: NewConfig(),
@@ -406,4 +407,20 @@ func TestExecCommandExitError(t *testing.T) {
 	assert.NotEmpty(t, result.Log, "Expected log to contain some content")
 	assert.NotNil(t, result.Duration, "Expected duration to be set")
 	assert.GreaterOrEqual(t, result.Duration.Milliseconds(), int64(0), "Expected positive duration")
+}
+
+func TestMarshalSecret(t *testing.T) {
+	secrets := map[string]secret{"foo": "bar"}
+
+	yamlResult, err := yaml.Marshal(secrets)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.Equal(t, string(yamlResult), "foo: '***'\n")
+
+	jsonResult, err := json.Marshal(secrets)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.Equal(t, string(jsonResult), `{"foo":"***"}`)
 }

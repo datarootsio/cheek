@@ -40,7 +40,7 @@ type JobSpec struct {
 
 	Name             string            `json:"name"`
 	Retries          int               `yaml:"retries,omitempty" json:"retries,omitempty"`
-	Env              map[string]string `yaml:"env,omitempty"`
+	Env              map[string]secret `yaml:"env,omitempty"`
 	WorkingDirectory string            `yaml:"working_directory,omitempty" json:"working_directory,omitempty"`
 	globalSchedule   *Schedule
 	Runs             []JobRun `json:"runs" yaml:"-"`
@@ -48,6 +48,13 @@ type JobSpec struct {
 	nextTick time.Time
 	log      zerolog.Logger
 	cfg      Config
+}
+
+type secret string
+
+// custom marshaller to hide secrets
+func (secret) MarshalText() ([]byte, error) {
+	return []byte("***"), nil
 }
 
 // JobRun holds information about a job execution.
