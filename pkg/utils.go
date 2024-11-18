@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/user"
 	"path"
 	"sync"
 
@@ -81,8 +80,7 @@ func CheekPath() string {
 	case true:
 		p = viper.GetString("homedir")
 	default:
-		usr, _ := user.Current()
-		dir := usr.HomeDir
+		dir, _ := os.UserHomeDir()
 		p = path.Join(dir, ".cheek")
 	}
 
