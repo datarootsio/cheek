@@ -33,6 +33,7 @@ jobs:
           files: ./cover.out
 
   version_tag:
+    if: github.event.repository.fork == false && github.actor != 'dependabot[bot]'
     needs: 
       - tests
       - golangci
@@ -54,6 +55,7 @@ jobs:
           PRERELEASE: ${{ github.ref != 'refs/heads/main' }}
 
   build:
+    if: github.event.repository.fork == false && github.actor != 'dependabot[bot]'
     needs: version_tag
     runs-on: ubuntu-latest
     env:
@@ -84,7 +86,7 @@ jobs:
           go-version: "^1.22"
       ## above is fine to get latest for now, also save a copy with short sha
       - id: vars
-        run: echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
+        run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
       - run: mkdir -p ${{ matrix.goos }}/${{ matrix.goarch }}
       - run: env GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -ldflags="-X 'github.com/datarootsio/cheek/pkg.version=${{ needs.version_tag.outputs.new_tag }}' -X 'github.com/datarootsio/cheek/pkg.commitSHA=${{ steps.vars.outputs.sha_short }}'" -o ${{ matrix.goos }}/${{ matrix.goarch }}
       - run: cp ${{ matrix.goos }}/${{ matrix.goarch }}/cheek ${{ matrix.goos }}/${{ matrix.goarch }}/cheek-${{ steps.vars.outputs.sha_short }}
