@@ -61,6 +61,8 @@ jobs:
         - https://webhook.site/4b732eb4-ba10-4a84-8f6b-30167b2f2762
       notify_slack_webhook: # notify slack via a slack compatible webhook
         - https://webhook.site/048ff47f-9ef5-43fb-9375-a795a8c5cbf5
+      notify_discord_webhook: # notify discord via a discord compatible webhook
+        - https://discord.com/api/webhooks/user/token
 ```
 
 If your `command` requires arguments, please make sure to pass them as an array like in `foo_job`.
@@ -103,7 +105,7 @@ Configuration can be passed as flags to the `cheek` CLI directly. All configurat
 
 ## Events & Notifications
 
-There are two types of event you can hook into: `on_success` and `on_error`. Both events materialize after an (attempted) job run. Three types of actions can be taken as a response: `notify_webhook`, `notify_slack_webhook` and `trigger_job`. See the example below. Definition of these event actions can be done on job level or at schedule level, in the latter case it will apply to all jobs.
+There are two types of event you can hook into: `on_success` and `on_error`. Both events materialize after an (attempted) job run. Three types of actions can be taken as a response: `notify_webhook`, `notify_slack_webhook`, `notify_slack_webhook` and `trigger_job`. See the example below. Definition of these event actions can be done on job level or at schedule level, in the latter case it will apply to all jobs.
 
 ```yaml
 on_success:
@@ -121,7 +123,7 @@ jobs:
     cron: "* * * * *"
 ```
 
-Webhooks are a generic way to push notifications to a plethora of tools. There is a generic way to do this via the `notify_webhook` option or a Slack-compatible one via `notify_slack_webhook`.
+Webhooks are a generic way to push notifications to a plethora of tools. There is a generic way to do this via the `notify_webhook` option or a Slack-compatible one via `notify_slack_webhook` or a Discord-compatible one via `notify_discord_webhook`.
 
 The `notify_webhook` sends a JSON payload to your webhook url with the following structure:
 
@@ -141,6 +143,14 @@ The `notify_slack_webhook` sends a JSON payload to your Slack webhook url with t
 ```json
 {
 	"text": "TeapotTask (exitcode 0):\nI'm a teapot, not a coffee machine!"
+}
+```
+
+The `notify_discord_webhook` sends a JSON payload to your Discord webhook url with the following structure (which is Discord app compatible):
+
+```json
+{
+	"content": "TeapotTask (exitcode 0):\nI'm a teapot, not a coffee machine!"
 }
 ```
 
