@@ -19,6 +19,7 @@ type Schedule struct {
 	OnSuccess  OnEvent             `yaml:"on_success,omitempty" json:"on_success,omitempty"`
 	OnError    OnEvent             `yaml:"on_error,omitempty" json:"on_error,omitempty"`
 	TZLocation string              `yaml:"tz_location,omitempty" json:"tz_location,omitempty"`
+	Env        map[string]secret   `yaml:"env,omitempty"`
 	loc        *time.Location
 	log        zerolog.Logger
 	cfg        Config

@@ -195,7 +195,15 @@ func (j *JobSpec) execCommand(jr JobRun, trigger string) JobRun {
 	}
 
 	// Add env vars
+	// Firstly, add the system env vars
 	cmd.Env = os.Environ()
+
+	// Then add the global env vars from the schedule
+	for k, v := range j.globalSchedule.Env {
+		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", k, v))
+	}
+
+	// Then add the job specific env vars
 	for k, v := range j.Env {
 		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", k, v))
 	}
