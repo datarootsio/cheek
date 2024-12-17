@@ -357,7 +357,7 @@ func (j *JobSpec) OnEvent(jr *JobRun) {
 	}
 
 	for _, e := range events {
-		jobsToTrigger = e.TriggerJob
+		jobsToTrigger = append(jobsToTrigger, e.TriggerJob...)
 		for _, whURL := range e.NotifyWebhook {
 			webhooksToCall = append(webhooksToCall, NewDefaultWebhook(whURL))
 		}
