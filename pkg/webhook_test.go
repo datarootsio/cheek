@@ -1,8 +1,6 @@
 package cheek
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -24,7 +22,7 @@ func TestJobRunWebhookCall(t *testing.T) {
 		}
 		// mirror this
 		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprintln(w, string(body))
+		fmt.Fprint(w, string(body))
 		t.Log(string(body))
 	}))
 
@@ -38,23 +36,21 @@ func TestJobRunWebhookCall(t *testing.T) {
 		Log:         "this is a random log statement\nwith multiple lines\nand stuff",
 	}
 
-	resp_body, err = JobRunWebhookCall(&jr, testServer.URL, "generic")
+	var wh webhook
+	wh = NewDefaultWebhook(testServer.URL)
+	resp_body, err = wh.Call(&jr)
 	assert.NoError(t, err)
-
-	jr2 := JobRun{}
-	err = json.NewDecoder(bytes.NewBuffer(resp_body)).Decode(&jr2)
-	assert.NoError(t, err)
-
-	assert.Equal(t, jr, jr2)
+	assert.Contains(t, string(resp_body), `{"status":0,"log":"this is a random log statement\nwith multiple lines\nand stuff","name":"test","triggered_at":"0001-01-01T00:00:00Z","triggered_by":"cron"}`)
 
 	// test slack webhook
-	resp_body, err = JobRunWebhookCall(&jr, testServer.URL, "slack")
+	wh = NewSlackWebhook(testServer.URL)
+	resp_body, err = wh.Call(&jr)
 	assert.NoError(t, err)
-	assert.Contains(t, string(resp_body), "text\":\"test (exitcode 0)")
+	assert.Contains(t, string(resp_body), `{"text":"test (exitcode 0):\nthis is a random log statement\nwith multiple lines\nand stuff"}`)
 
-	sl := slackPayload{}
-	err = json.NewDecoder(bytes.NewBuffer(resp_body)).Decode(&sl)
+	// test discord webhook
+	wh = NewDiscordWebhook(testServer.URL)
+	resp_body, err = wh.Call(&jr)
 	assert.NoError(t, err)
-	assert.NotEmpty(t, sl.Text)
-
+	assert.Contains(t, string(resp_body), `{"content":"test (exitcode 0):\nthis is a random log statement\nwith multiple lines\nand stuff"}`)
 }

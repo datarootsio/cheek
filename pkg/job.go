@@ -23,9 +23,10 @@ const (
 
 // OnEvent contains specs on what needs to happen after a job event.
 type OnEvent struct {
-	TriggerJob         []string `yaml:"trigger_job,omitempty" json:"trigger_job,omitempty"`
-	NotifyWebhook      []string `yaml:"notify_webhook,omitempty" json:"notify_webhook,omitempty"`
-	NotifySlackWebhook []string `yaml:"notify_slack_webhook,omitempty" json:"notify_slack_webhook,omitempty"`
+	TriggerJob           []string `yaml:"trigger_job,omitempty" json:"trigger_job,omitempty"`
+	NotifyWebhook        []string `yaml:"notify_webhook,omitempty" json:"notify_webhook,omitempty"`
+	NotifySlackWebhook   []string `yaml:"notify_slack_webhook,omitempty" json:"notify_slack_webhook,omitempty"`
+	NotifyDiscordWebhook []string `yaml:"notify_discord_webhook,omitempty" json:"notify_discord_webhook,omitempty"`
 }
 
 // JobSpec holds specifications and metadata of a job.
@@ -339,27 +340,32 @@ func (j *JobSpec) ValidateCron() error {
 
 func (j *JobSpec) OnEvent(jr *JobRun) {
 	var jobsToTrigger []string
-	var webhooksToCall []string
-	var slackWebhooksToCall []string
+	var webhooksToCall []webhook
+	var events []OnEvent
 
 	switch *jr.Status == StatusOK {
 	case true: // after success
-		jobsToTrigger = j.OnSuccess.TriggerJob
-		webhooksToCall = j.OnSuccess.NotifyWebhook
-		slackWebhooksToCall = j.OnSuccess.NotifySlackWebhook
+		events = append(events, j.OnSuccess)
 		if j.globalSchedule != nil {
-			jobsToTrigger = append(jobsToTrigger, j.globalSchedule.OnSuccess.TriggerJob...)
-			webhooksToCall = append(webhooksToCall, j.globalSchedule.OnSuccess.NotifyWebhook...)
-			slackWebhooksToCall = append(slackWebhooksToCall, j.globalSchedule.OnSuccess.NotifySlackWebhook...)
+			events = append(events, j.globalSchedule.OnSuccess)
 		}
 	case false: // after error
-		jobsToTrigger = j.OnError.TriggerJob
-		webhooksToCall = j.OnError.NotifyWebhook
-		slackWebhooksToCall = j.OnError.NotifySlackWebhook
+		events = append(events, j.OnError)
 		if j.globalSchedule != nil {
-			jobsToTrigger = append(jobsToTrigger, j.globalSchedule.OnError.TriggerJob...)
-			webhooksToCall = append(webhooksToCall, j.globalSchedule.OnError.NotifyWebhook...)
-			slackWebhooksToCall = append(slackWebhooksToCall, j.globalSchedule.OnError.NotifySlackWebhook...)
+			events = append(events, j.globalSchedule.OnError)
+		}
+	}
+
+	for _, e := range events {
+		jobsToTrigger = append(jobsToTrigger, e.TriggerJob...)
+		for _, whURL := range e.NotifyWebhook {
+			webhooksToCall = append(webhooksToCall, NewDefaultWebhook(whURL))
+		}
+		for _, whURL := range e.NotifySlackWebhook {
+			webhooksToCall = append(webhooksToCall, NewSlackWebhook(whURL))
+		}
+		for _, whURL := range e.NotifyDiscordWebhook {
+			webhooksToCall = append(webhooksToCall, NewDiscordWebhook(whURL))
 		}
 	}
 
@@ -377,29 +383,15 @@ func (j *JobSpec) OnEvent(jr *JobRun) {
 
 	// trigger webhooks
 	for _, wu := range webhooksToCall {
-		j.log.Debug().Str("job", j.Name).Str("on_event", "webhook_call").Msg("triggered by parent job")
+		j.log.Debug().Str("job", j.Name).Str("on_event", wu.Name()+"_webhook_call").Msg("triggered by parent job")
 		wg.Add(1)
-		go func(wg *sync.WaitGroup, webhookURL string) {
+		go func(wg *sync.WaitGroup, wu webhook) {
 			defer wg.Done()
-			resp_body, err := JobRunWebhookCall(jr, webhookURL, "generic")
+			resp_body, err := wu.Call(jr)
 			if err != nil {
 				j.log.Warn().Str("job", j.Name).Str("on_event", "webhook").Err(err).Msg("webhook notify failed")
 			}
-			j.log.Debug().Str("job", jr.Name).Str("webhook_call", "response").Str("webhook_url", webhookURL).Msg(string(resp_body))
-		}(&wg, wu)
-	}
-
-	// trigger slack webhooks - this feels like a lot of duplication
-	for _, wu := range slackWebhooksToCall {
-		j.log.Debug().Str("job", j.Name).Str("on_event", "slack_webhook_call").Msg("triggered by parent job")
-		wg.Add(1)
-		go func(wg *sync.WaitGroup, webhookURL string) {
-			defer wg.Done()
-			resp_body, err := JobRunWebhookCall(jr, webhookURL, "slack")
-			if err != nil {
-				j.log.Warn().Str("job", j.Name).Str("on_event", "webhook").Err(err).Msg("webhook notify failed")
-			}
-			j.log.Debug().Str("job", jr.Name).Str("webhook_call", "response").Str("webhook_url", webhookURL).Msg(string(resp_body))
+			j.log.Debug().Str("job", jr.Name).Str("webhook_call", "response").Str("webhook_url", wu.URL()).Msg(string(resp_body))
 		}(&wg, wu)
 	}
 
