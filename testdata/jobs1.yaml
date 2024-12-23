@@ -1,3 +1,5 @@
+env:
+  FOO: baz
 jobs:
   foo:
     command: date
@@ -23,3 +25,16 @@ jobs:
     command: echo foo bar
   command_with_a_very_long_title:
     command: echo foo bar
+  global_env_var:
+    cron: "* * * * *"
+    command: 
+      - /bin/bash
+      - -c
+      - echo global env $FOO
+  local_env_var:
+    env:
+      FOO: local
+    command: 
+      - /bin/bash
+      - -c
+      - echo $FOO    
