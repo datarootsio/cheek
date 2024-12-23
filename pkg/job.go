@@ -93,7 +93,7 @@ func (j *JobSpec) setup(trigger string) JobRun {
 
 func (jr *JobRun) logToDb() {
 	if jr.jobRef.cfg.DB == nil {
-		jr.jobRef.log.Warn().Str("job", jr.Name).Msg("No db connection, not saving job log to db.")
+		jr.jobRef.log.Warn().Str("job", jr.Name).Msgf("No db connection, not saving job log to db: %s", jr.Log)
 		return
 	}
 
@@ -199,8 +199,10 @@ func (j *JobSpec) execCommand(jr JobRun, trigger string) JobRun {
 	cmd.Env = os.Environ()
 
 	// Then add the global env vars from the schedule
-	for k, v := range j.globalSchedule.Env {
-		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", k, v))
+	if j.globalSchedule != nil {
+		for k, v := range j.globalSchedule.Env {
+			cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", k, v))
+		}
 	}
 
 	// Then add the job specific env vars

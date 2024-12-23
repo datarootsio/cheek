@@ -26,10 +26,11 @@ jobs:
   command_with_a_very_long_title:
     command: echo foo bar
   global_env_var:
+    cron: "* * * * *"
     command: 
       - /bin/bash
       - -c
-      - echo $FOO
+      - echo global env $FOO
   local_env_var:
     env:
       FOO: local

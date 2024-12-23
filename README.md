@@ -36,7 +36,7 @@ Everything about how you want the scheduler to function is defined in a schedule
 
 ```yaml
 tz_location: Europe/Brussels # optionally set timezone to adhere to
-env: # env vars passed to any job. 
+env: # env vars passed to any job
   foo: baz
 jobs:
   foo:
@@ -49,7 +49,7 @@ jobs:
     command: # command to run, use a list if you want to pass args
       - echo
       - $foo
-    env: # job-local env variables
+    env: # job specific env variables
       foo: bar
   other_workingdir:
     command: pwd
@@ -119,7 +119,7 @@ jobs:
       notify_webhook:
         - https://webhook.site/e33464a3-1a4f-4f1a-99d3-743364c6b10f
   beans:
-    command: echo grind # this will create on_success event
+    command: echo whatever # this will create on_success event
     cron: "* * * * *"
 ```
 
