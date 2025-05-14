@@ -20,6 +20,7 @@ type Schedule struct {
 	OnSuccess  OnEvent             `yaml:"on_success,omitempty" json:"on_success,omitempty"`
 	OnError    OnEvent             `yaml:"on_error,omitempty" json:"on_error,omitempty"`
 	TZLocation string              `yaml:"tz_location,omitempty" json:"tz_location,omitempty"`
+	LockJobs   bool                `yaml:"lock_jobs,omitempty" json:"lock_jobs,omitempty"`
 	loc        *time.Location
 	log        zerolog.Logger
 	cfg        Config
@@ -28,7 +29,7 @@ type Schedule struct {
 
 func (s *Schedule) Run() {
 	var currentTickTime time.Time
-	s.log.Info().Msg("Scheduler started")
+	s.log.Info().Bool("lock_jobs", s.LockJobs).Msg("Scheduler started")
 	ticker := time.NewTicker(15 * time.Second)
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
@@ -63,15 +64,16 @@ func (s *Schedule) Run() {
 
 					if err := j.setNextTick(currentTickTime, false); err != nil {
 						s.log.Error().Err(err).Msg("error determining next tick")
+						continue
 					}
 
 					wg.Add(1)
 					go func(j *JobSpec) {
 						defer wg.Done()
-
-						s.jobMutex.Lock()
-						defer s.jobMutex.Unlock()
-
+						if s.LockJobs {
+							s.jobMutex.Lock()
+							defer s.jobMutex.Unlock()
+						}
 						j.execCommandWithRetry("cron")
 					}(j)
 				}
@@ -110,11 +112,9 @@ func readSpecs(fn string) (*Schedule, error) {
 	}
 
 	specs := Schedule{}
-
 	if err = yaml.Unmarshal(yfile, &specs); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal YAML: %w", err)
 	}
-
 	return &specs, nil
 }
 
@@ -168,22 +168,23 @@ func loadSchedule(log zerolog.Logger, cfg Config, fn string) (*Schedule, error) 
 	if err := s.initialize(); err != nil {
 		return nil, err
 	}
-	s.log.Info().Msg("Scheduled loaded and validated")
+	s.log.Info().Msg("Schedule loaded and validated")
 	return s, nil
 }
 
 func RunSchedule(log zerolog.Logger, cfg Config, scheduleFn string) error {
-
 	s, err := loadSchedule(log, cfg, scheduleFn)
 	if err != nil {
 		return err
 	}
+
 	numberJobs := len(s.Jobs)
 	i := 1
 	for k := range s.Jobs {
 		s.log.Info().Msgf("Initializing (%v/%v) job: %s", i, numberJobs, k)
 		i++
 	}
+
 	go server(s)
 	s.Run()
 	return nil
