@@ -63,9 +63,9 @@ func (s *Schedule) Run() {
 					s.log.Debug().Msgf("%v is due", j.Name)
 
 					if err := j.setNextTick(currentTickTime, false); err != nil {
-						s.log.Error().Err(err).Msg("error determining next tick")
-						continue
+    						s.log.Fatal().Err(err).Msg("error determining next tick")
 					}
+
 
 					wg.Add(1)
 					go func(j *JobSpec) {
