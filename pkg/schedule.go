@@ -20,7 +20,7 @@ type Schedule struct {
 	OnSuccess  OnEvent             `yaml:"on_success,omitempty" json:"on_success,omitempty"`
 	OnError    OnEvent             `yaml:"on_error,omitempty" json:"on_error,omitempty"`
 	TZLocation string              `yaml:"tz_location,omitempty" json:"tz_location,omitempty"`
-	LockJobs   bool                `yaml:"lock_jobs,omitempty" json:"lock_jobs,omitempty"`
+	LockJobs   bool                `yaml:"disable_concurrent_execution,omitempty" json:"disable_concurrent_execution,omitempty"`
 	loc        *time.Location
 	log        zerolog.Logger
 	cfg        Config
