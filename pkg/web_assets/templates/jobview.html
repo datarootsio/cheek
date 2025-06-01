@@ -3,7 +3,7 @@
   <div class="flex gap-2">
     <div class="w-1/6 text-xs flex flex-col gap-2">
       <div class="flex gap-2" x-data="{showNotification: false, notification: ''}">
-        <button id="trigger" class="fill-slate-200 hover:fill-lime-200" @click="triggerJob($store.job.jobName); showNotification = true; notification = 'triggered'; setTimeout(() => showNotification = false, 2000)">
+        <button id="trigger" class="fill-slate-200 hover:fill-lime-200" @click="triggerJob($store.job.jobName); showNotification = true; notification = 'triggered'; setTimeout(async () => { showNotification = false; window.location.href = `/jobs/${$store.job.jobName}/latest`; }, 2000)">
           <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12"
             >
             <g>
