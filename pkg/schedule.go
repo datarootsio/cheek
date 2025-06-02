@@ -21,17 +21,15 @@ type Schedule struct {
 	OnSuccess  OnEvent             `yaml:"on_success,omitempty" json:"on_success,omitempty"`
 	OnError    OnEvent             `yaml:"on_error,omitempty" json:"on_error,omitempty"`
 	TZLocation string              `yaml:"tz_location,omitempty" json:"tz_location,omitempty"`
-	LockJobs   bool                `yaml:"disable_concurrent_execution,omitempty" json:"disable_concurrent_execution,omitempty"`
 	loc        *time.Location
 	log        zerolog.Logger
 	cfg        Config
-	jobMutex   sync.Mutex
 }
 
 func (s *Schedule) Run() {
 	var currentTickTime time.Time
 	s.log.Info().Msg("Scheduler started")
-	ticker := time.NewTicker(15 * time.Second)
+	ticker := time.NewTicker(1 * time.Second)
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
@@ -70,17 +68,17 @@ func (s *Schedule) Run() {
 					wg.Add(1)
 					go func(j *JobSpec) {
 						defer wg.Done()
-						if s.LockJobs {
-							s.jobMutex.Lock()
-							defer s.jobMutex.Unlock()
+						if j.DisableConcurrentExecution {
+							j.mutex.Lock()
+							defer j.mutex.Unlock()
 						}
-						j.execCommandWithRetry("cron")
+						j.execCommandWithRetryContext(ctx, "cron")
 					}(j)
 				}
 			}
 
 		case <-ctx.Done():
-			s.log.Info().Msg("Shutting down scheduler due to signal")
+			s.log.Info().Msg("Shutting down scheduler due to context cancellation")
 			wg.Wait()
 			return
 		}

@@ -56,6 +56,7 @@ jobs:
     command: this fails
     cron: "* * * * *"
     retries: 3
+    disable_concurrent_execution: true # prevent concurrent runs of this job (defaults to false)
     on_error:
       notify_webhook: # notify something on error
         - https://webhook.site/4b732eb4-ba10-4a84-8f6b-30167b2f2762
