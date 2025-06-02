@@ -2,6 +2,7 @@ package cheek
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -39,16 +40,18 @@ type JobSpec struct {
 	OnSuccess OnEvent `yaml:"on_success,omitempty" json:"on_success,omitempty"`
 	OnError   OnEvent `yaml:"on_error,omitempty" json:"on_error,omitempty"`
 
-	Name             string            `json:"name"`
-	Retries          int               `yaml:"retries,omitempty" json:"retries,omitempty"`
-	Env              map[string]secret `yaml:"env,omitempty"`
-	WorkingDirectory string            `yaml:"working_directory,omitempty" json:"working_directory,omitempty"`
-	globalSchedule   *Schedule
-	Runs             []JobRun `json:"runs" yaml:"-"`
+	Name                       string            `json:"name"`
+	Retries                    int               `yaml:"retries,omitempty" json:"retries,omitempty"`
+	Env                        map[string]secret `yaml:"env,omitempty"`
+	WorkingDirectory           string            `yaml:"working_directory,omitempty" json:"working_directory,omitempty"`
+	DisableConcurrentExecution bool              `yaml:"disable_concurrent_execution,omitempty" json:"disable_concurrent_execution,omitempty"`
+	globalSchedule             *Schedule
+	Runs                       []JobRun `json:"runs" yaml:"-"`
 
 	nextTick time.Time
 	log      zerolog.Logger
 	cfg      Config
+	mutex    sync.Mutex
 }
 
 type secret string
@@ -123,11 +126,19 @@ func (j *JobSpec) finalize(jr *JobRun) {
 	jr.flushLogBuffer()
 	// write logs to disk
 	jr.logToDb()
+	// if no DB, store run in memory for testing/debugging
+	if j.cfg.DB == nil {
+		j.Runs = append(j.Runs, *jr)
+	}
 	// launch on_events
 	j.OnEvent(jr)
 }
 
 func (j *JobSpec) execCommandWithRetry(trigger string) JobRun {
+	return j.execCommandWithRetryContext(context.Background(), trigger)
+}
+
+func (j *JobSpec) execCommandWithRetryContext(ctx context.Context, trigger string) JobRun {
 	tries := 0
 	var jr JobRun
 	const timeOut = 5 * time.Second
@@ -136,13 +147,22 @@ func (j *JobSpec) execCommandWithRetry(trigger string) JobRun {
 	jr = j.setup(trigger)
 
 	for tries < j.Retries+1 {
-		switch {
-		case tries == 0:
+		// Check if context is cancelled before starting
+		if ctx.Err() != nil {
+			jr.Log = "Job cancelled due to scheduler shutdown"
+			exitCode := StatusError
+			jr.Status = &exitCode
+			j.finalize(&jr)
+			return jr
+		}
+
+		switch tries {
+		case 0:
 			// First attempt with the original trigger
-			jr = j.execCommand(jr, trigger)
+			jr = j.execCommandContext(ctx, jr, trigger)
 		default:
 			// On retries, update the trigger with retry count and rerun
-			jr = j.execCommand(jr, fmt.Sprintf("%s[retry=%d]", trigger, tries))
+			jr = j.execCommandContext(ctx, jr, fmt.Sprintf("%s[retry=%d]", trigger, tries))
 		}
 
 		// Finalize logging, etc.
@@ -158,13 +178,23 @@ func (j *JobSpec) execCommandWithRetry(trigger string) JobRun {
 
 		// Increment the attempt counter
 		tries++
-		time.Sleep(timeOut)
+
+		// Sleep with context cancellation check
+		select {
+		case <-time.After(timeOut):
+			// Continue to retry
+		case <-ctx.Done():
+			jr.Log += "\nJob cancelled during retry timeout"
+			exitCode := StatusError
+			jr.Status = &exitCode
+			return jr
+		}
 	}
 
 	return jr
 }
 
-func (j JobSpec) now() time.Time {
+func (j *JobSpec) now() time.Time {
 	// defer for if schedule doesn't exist, allows for easy testing
 	if j.globalSchedule != nil {
 		return j.globalSchedule.now()
@@ -173,6 +203,10 @@ func (j JobSpec) now() time.Time {
 }
 
 func (j *JobSpec) execCommand(jr JobRun, trigger string) JobRun {
+	return j.execCommandContext(context.Background(), jr, trigger)
+}
+
+func (j *JobSpec) execCommandContext(ctx context.Context, jr JobRun, trigger string) JobRun {
 	j.log.Info().Str("job", j.Name).Str("trigger", trigger).Msgf("Job triggered")
 	suppressLogs := j.cfg.SuppressLogs
 
@@ -190,9 +224,9 @@ func (j *JobSpec) execCommand(jr JobRun, trigger string) JobRun {
 
 		return jr
 	case 1:
-		cmd = exec.Command(j.Command[0])
+		cmd = exec.CommandContext(ctx, j.Command[0])
 	default:
-		cmd = exec.Command(j.Command[0], j.Command[1:]...)
+		cmd = exec.CommandContext(ctx, j.Command[0], j.Command[1:]...)
 	}
 
 	// Add env vars
@@ -241,12 +275,19 @@ func (j *JobSpec) execCommand(jr JobRun, trigger string) JobRun {
 	// Wait for the command to finish and check for errors
 	if err := cmd.Wait(); err != nil {
 		if exitError, ok := err.(*exec.ExitError); ok {
-			// Get the exact exit code from ExitError
-			exitCode := exitError.ExitCode()
-			jr.Status = &exitCode // Set the exit code in the job result
-			j.log.Warn().Str("job", j.Name).Msgf("Exit code: %d", exitCode)
-			jr.Log += fmt.Sprintf("Exit code: %d\n", exitCode)
-
+			// Check if it was killed due to context cancellation
+			if ctx.Err() != nil {
+				jr.Log += "\nJob killed due to scheduler shutdown"
+				exitCode := StatusError
+				jr.Status = &exitCode
+				j.log.Info().Str("job", j.Name).Msg("Job killed due to context cancellation")
+			} else {
+				// Get the exact exit code from ExitError
+				exitCode := exitError.ExitCode()
+				jr.Status = &exitCode // Set the exit code in the job result
+				j.log.Warn().Str("job", j.Name).Msgf("Exit code: %d", exitCode)
+				jr.Log += fmt.Sprintf("Exit code: %d\n", exitCode)
+			}
 		} else {
 			// Handle unexpected errors
 			exitCode := StatusError
@@ -308,7 +349,7 @@ func (j *JobSpec) loadRunsFromDb(nruns int, includeLogs bool) {
 		j.log.Warn().Str("job", j.Name).Err(err).Msg("Couldn't load job runs from db.")
 		return
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var jrs []JobRun
 	err = j.cfg.DB.Select(&jrs, query, j.Name, nruns)
@@ -375,10 +416,15 @@ func (j *JobSpec) OnEvent(jr *JobRun) {
 		tj := j.globalSchedule.Jobs[tn]
 		j.log.Debug().Str("job", j.Name).Str("on_event", "job_trigger").Msg("triggered by parent job")
 		wg.Add(1)
-		go func(wg *sync.WaitGroup) {
+		go func(wg *sync.WaitGroup, tj *JobSpec) {
 			defer wg.Done()
+			if tj.DisableConcurrentExecution {
+				tj.mutex.Lock()
+				defer tj.mutex.Unlock()
+			}
+			// Use background context for triggered jobs (they should complete independently)
 			tj.execCommandWithRetry(fmt.Sprintf("job[%s]", j.Name))
-		}(&wg)
+		}(&wg, tj)
 	}
 
 	// trigger webhooks
@@ -398,7 +444,7 @@ func (j *JobSpec) OnEvent(jr *JobRun) {
 	wg.Wait() // this allows to wait for go routines when running just the job exec
 }
 
-func (j JobSpec) ToYAML(includeRuns bool) (string, error) {
+func (j *JobSpec) ToYAML(includeRuns bool) (string, error) {
 	if !includeRuns {
 		j.Runs = []JobRun{}
 	}

@@ -1,10 +1,12 @@
 package cheek
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/signal"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -24,18 +26,26 @@ type Schedule struct {
 	cfg        Config
 }
 
-// Run a Schedule based on its specs.
 func (s *Schedule) Run() {
 	var currentTickTime time.Time
 	s.log.Info().Msg("Scheduler started")
-	ticker := time.NewTicker(15 * time.Second) // could be longer
+	ticker := time.NewTicker(1 * time.Second)
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
-	// close db connection on exit
 	if s.cfg.DB != nil {
-		defer s.cfg.DB.Close()
+		defer func() { _ = s.cfg.DB.Close() }()
 	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	go func() {
+		<-sigs
+		cancel()
+	}()
+
+	var wg sync.WaitGroup
 
 	for {
 		select {
@@ -50,19 +60,26 @@ func (s *Schedule) Run() {
 
 				if j.nextTick.Before(currentTickTime) {
 					s.log.Debug().Msgf("%v is due", j.Name)
-					// first set nextTick
+
 					if err := j.setNextTick(currentTickTime, false); err != nil {
 						s.log.Fatal().Err(err).Msg("error determining next tick")
 					}
 
+					wg.Add(1)
 					go func(j *JobSpec) {
-						j.execCommandWithRetry("cron")
+						defer wg.Done()
+						if j.DisableConcurrentExecution {
+							j.mutex.Lock()
+							defer j.mutex.Unlock()
+						}
+						j.execCommandWithRetryContext(ctx, "cron")
 					}(j)
 				}
 			}
 
-		case sig := <-sigs:
-			s.log.Info().Msgf("%s signal received, exiting...", sig.String())
+		case <-ctx.Done():
+			s.log.Info().Msg("Shutting down scheduler due to context cancellation")
+			wg.Wait()
 			return
 		}
 	}

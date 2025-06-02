@@ -1,7 +1,7 @@
 jobs:
   foo:
     command: date
-    cron: "* * * * *"
+    cron: "* * * * * * *" # non-default cron that triggers every second
     on_success:
       trigger_job:
         - bar

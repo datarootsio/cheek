@@ -226,14 +226,14 @@ func TestJobRunInvalidSchedule(t *testing.T) {
 
 func TestOnEventWebhook(t *testing.T) {
 	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		defer r.Body.Close()
+		defer func() { _ = r.Body.Close() }()
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 		}
 		// mirror this
 		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprintln(w, string(body))
+		_, _ = fmt.Fprintln(w, string(body))
 	}))
 
 	defer testServer.Close()
