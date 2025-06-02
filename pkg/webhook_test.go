@@ -15,14 +15,14 @@ func TestJobRunWebhookCall(t *testing.T) {
 	var resp_body []byte
 
 	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		defer r.Body.Close()
+		defer func() { _ = r.Body.Close() }()
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 		}
 		// mirror this
 		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprint(w, string(body))
+		_, _ = fmt.Fprint(w, string(body))
 		t.Log(string(body))
 	}))
 

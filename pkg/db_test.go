@@ -15,7 +15,7 @@ func TestInitDB(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to open in-memory database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Create the log table without the UNIQUE constraint temporarily
 	_, err = db.Exec(`CREATE TABLE log_temp (

@@ -34,7 +34,7 @@ func (s *Schedule) Run() {
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
 	if s.cfg.DB != nil {
-		defer s.cfg.DB.Close()
+		defer func() { _ = s.cfg.DB.Close() }()
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())

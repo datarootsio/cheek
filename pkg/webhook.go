@@ -41,7 +41,7 @@ func (dw discordWebhook) Call(jr *JobRun) ([]byte, error) {
 	if err != nil {
 		return []byte{}, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	resp_body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -86,7 +86,7 @@ func (dw slackWebhook) Call(jr *JobRun) ([]byte, error) {
 	if err != nil {
 		return []byte{}, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	resp_body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -124,7 +124,7 @@ func (dw defaultWebhook) Call(jr *JobRun) ([]byte, error) {
 	if err != nil {
 		return []byte{}, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	resp_body, err := io.ReadAll(resp.Body)
 	if err != nil {

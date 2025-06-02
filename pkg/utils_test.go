@@ -18,5 +18,5 @@ func TestCheekPath(t *testing.T) {
 	assert.True(t, strings.Contains(CheekPath(), "sheep"))
 
 	// cleanup
-	os.RemoveAll(dirName)
+	_ = os.RemoveAll(dirName)
 }

@@ -16,7 +16,7 @@ func TestEnvVar(t *testing.T) {
 		t.Fatalf("default value not correct")
 	}
 
-	os.Setenv("CHEEK_PRETTY", "false")
+	_ = os.Setenv("CHEEK_PRETTY", "false")
 	initConfig()
 	if viper.GetBool("pretty") {
 		t.Fatalf("env var not picked up")

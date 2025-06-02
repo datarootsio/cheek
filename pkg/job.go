@@ -40,13 +40,13 @@ type JobSpec struct {
 	OnSuccess OnEvent `yaml:"on_success,omitempty" json:"on_success,omitempty"`
 	OnError   OnEvent `yaml:"on_error,omitempty" json:"on_error,omitempty"`
 
-	Name             string            `json:"name"`
-	Retries          int               `yaml:"retries,omitempty" json:"retries,omitempty"`
+	Name                       string            `json:"name"`
+	Retries                    int               `yaml:"retries,omitempty" json:"retries,omitempty"`
 	Env                        map[string]secret `yaml:"env,omitempty"`
 	WorkingDirectory           string            `yaml:"working_directory,omitempty" json:"working_directory,omitempty"`
 	DisableConcurrentExecution bool              `yaml:"disable_concurrent_execution,omitempty" json:"disable_concurrent_execution,omitempty"`
 	globalSchedule             *Schedule
-	Runs             []JobRun `json:"runs" yaml:"-"`
+	Runs                       []JobRun `json:"runs" yaml:"-"`
 
 	nextTick time.Time
 	log      zerolog.Logger
@@ -156,8 +156,8 @@ func (j *JobSpec) execCommandWithRetryContext(ctx context.Context, trigger strin
 			return jr
 		}
 
-		switch {
-		case tries == 0:
+		switch tries {
+		case 0:
 			// First attempt with the original trigger
 			jr = j.execCommandContext(ctx, jr, trigger)
 		default:
@@ -178,7 +178,7 @@ func (j *JobSpec) execCommandWithRetryContext(ctx context.Context, trigger strin
 
 		// Increment the attempt counter
 		tries++
-		
+
 		// Sleep with context cancellation check
 		select {
 		case <-time.After(timeOut):
@@ -194,7 +194,7 @@ func (j *JobSpec) execCommandWithRetryContext(ctx context.Context, trigger strin
 	return jr
 }
 
-func (j JobSpec) now() time.Time {
+func (j *JobSpec) now() time.Time {
 	// defer for if schedule doesn't exist, allows for easy testing
 	if j.globalSchedule != nil {
 		return j.globalSchedule.now()
@@ -349,7 +349,7 @@ func (j *JobSpec) loadRunsFromDb(nruns int, includeLogs bool) {
 		j.log.Warn().Str("job", j.Name).Err(err).Msg("Couldn't load job runs from db.")
 		return
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var jrs []JobRun
 	err = j.cfg.DB.Select(&jrs, query, j.Name, nruns)
@@ -444,7 +444,7 @@ func (j *JobSpec) OnEvent(jr *JobRun) {
 	wg.Wait() // this allows to wait for go routines when running just the job exec
 }
 
-func (j JobSpec) ToYAML(includeRuns bool) (string, error) {
+func (j *JobSpec) ToYAML(includeRuns bool) (string, error) {
 	if !includeRuns {
 		j.Runs = []JobRun{}
 	}
