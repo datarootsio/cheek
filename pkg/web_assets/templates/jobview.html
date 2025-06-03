@@ -73,7 +73,12 @@
       <!-- Log Output -->
       <div class="p-4">
         <div class="bg-gray-50 dark:bg-gray-900 rounded-md p-4 border border-gray-200 dark:border-gray-700">
-          <pre class="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap font-mono overflow-x-auto" x-text="$store.job.jobRun.log"></pre>
+          <template x-if="$store.job.jobRun && $store.job.jobRun.log">
+            <pre class="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap font-mono overflow-x-auto" x-text="$store.job.jobRun.log"></pre>
+          </template>
+          <template x-if="!$store.job.jobRun || !$store.job.jobRun.log">
+            <div class="text-sm text-gray-500 dark:text-gray-400 italic">No logs available</div>
+          </template>
         </div>
       </div>
     </div>
