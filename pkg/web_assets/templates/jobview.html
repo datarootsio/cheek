@@ -1,85 +1,81 @@
 {{ define "content"}}
-<div x-data class="pt-2">
-  <div class="flex gap-2">
-    <div class="w-1/6 text-xs flex flex-col gap-2">
-      <div class="flex gap-2" x-data="{showNotification: false, notification: ''}">
-        <button id="trigger" class="fill-slate-200 hover:fill-lime-200" @click="triggerJob($store.job.jobName); showNotification = true; notification = 'triggered'; setTimeout(() => { showNotification = false; window.location.href = `/jobs/${$store.job.jobName}/latest`; }, 2000)">
-          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12"
-            >
-            <g>
-              <path
-                d="M2.783.088A.5.5,0,0,0,2,.5v11a.5.5,0,0,0,.268.442A.49.49,0,0,0,2.5,12a.5.5,0,0,0,.283-.088l8-5.5a.5.5,0,0,0,0-.824Z">
-              </path>
-            </g>
-          </svg>
-        </button>
+<div x-data class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+  <!-- Sidebar -->
+  <div class="lg:col-span-1 space-y-4">
+    <!-- Controls -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm p-4">
+      <div class="flex items-center justify-between mb-4" x-data="{showNotification: false, notification: ''}">
+        <div class="flex space-x-2">
+          <button class="p-2 rounded-md text-gray-600 dark:text-gray-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors duration-200"
+                  @click="triggerJob($store.job.jobName); showNotification = true; notification = 'triggered'; setTimeout(() => { showNotification = false; window.location.href = `/jobs/${$store.job.jobName}/latest`; }, 2000)"
+                  title="Trigger job">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="5,3 19,12 5,21 5,3"/>
+            </svg>
+          </button>
+          <button class="p-2 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-800 dark:hover:text-gray-200 transition-colors duration-200"
+                  @click="$store.job.init(); showNotification = true; notification = 'refreshing'; setTimeout(() => showNotification = false, 2000)"
+                  title="Refresh">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="23,4 23,10 17,10"/>
+              <polyline points="1,20 1,14 7,14"/>
+              <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/>
+            </svg>
+          </button>
+        </div>
+        <span x-show="showNotification" class="text-emerald-600 dark:text-emerald-400 text-sm font-medium" x-text="notification"></span>
+      </div>
       
-
-        <button id="refresh" class="fill-slate-200 hover:fill-lime-200"
-         @click="$store.job.init(); showNotification = true; notification = 'refreshing'; setTimeout(() => showNotification = false, 2000)">
-          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12"
-            >
-            <title>refresh</title>
-            <g>
-              <path
-                d="M11.854.036a.25.25,0,0,0-.272.053L10.061,1.594A5.937,5.937,0,0,0,6,0a6,6,0,1,0,4.8,9.6A1,1,0,1,0,9.2,8.4,4,4,0,1,1,6,2,3.954,3.954,0,0,1,8.636,3L6.941,4.681a.251.251,0,0,0-.06.259.248.248,0,0,0,.209.166l4.64.514.028,0a.248.248,0,0,0,.25-.25V.267A.251.251,0,0,0,11.854.036Z">
-              </path>
-            </g>
-          </svg>
-        </button>
-        <div class="grow"></div>
-        <span x-show="showNotification" class="text-lime-200 text-xs" x-text="notification"></span>
-      </div>
-      <div class="bg-slate-900 p-2 relative rounded">
-        <div class="whitespace-pre-wrap break-words text-lime-200" x-text="$store.job.spec.yaml"></div>
+      <!-- Job Configuration -->
+      <div class="mb-4">
+        <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Configuration</h3>
+        <div class="bg-gray-50 dark:bg-gray-900 rounded-md p-3 border border-gray-200 dark:border-gray-700">
+          <pre class="text-xs text-gray-600 dark:text-gray-400 whitespace-pre-wrap break-words font-mono" x-text="$store.job.spec.yaml"></pre>
+        </div>
       </div>
 
-      <div class="bg-slate-200 h-full rounded py-2 text-black">
-        <ul class="flex flex-col justify-center">
-          <template x-for="run in $store.job.spec.runs">
-            <li class="pt-1 flex justify-center">
-              <a :href="`/jobs/${$store.job.jobName}/${run.id}`" class="flex items-center">
-                
-                <!-- Bullet based on run status -->
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="12" viewBox="0 0 12 12"
-                  :class="run.status === 0 ? 'fill-emerald-600' : (run.status === undefined ? 'fill-orange-300' : 'fill-red-600')"
-                  x-show="$store.job.spec.runs.length > 0">
-                  <g>
-                    <path
-                      d="M6.03 1.01c-2.78 0-5.03 2.24-5.03 5.02s2.24 5.03 5.03 5.03 5.03-2.24 5.02-5.03-2.24-5.03-5.02-5.02z">
-                    </path>
-                  </g>
-                </svg>
-              
-                <span 
-                  :class="{
-                    'underline decoration-dashed': run.id === Number($store.job.runId)
-                  }"
-                  x-text="truncateDateTime(run.triggered_at)">
-                </span>
-              </a>
-            </li>
+      <!-- Run History -->
+      <div>
+        <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Recent Runs</h3>
+        <div class="space-y-1">
+          <template x-if="$store.job.spec.runs && $store.job.spec.runs.length > 0">
+            <div class="space-y-1">
+              <template x-for="run in $store.job.spec.runs">
+                <a :href="`/jobs/${$store.job.jobName}/${run.id}`" 
+                   class="flex items-center space-x-2 p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200"
+                   :class="run.id === Number($store.job.runId) ? 'bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-700' : ''">
+                  <div class="w-3 h-3 rounded-full flex-shrink-0"
+                       :class="run.status === 0 ? 'bg-emerald-500 dark:bg-emerald-400' : (run.status === undefined ? 'bg-orange-400 dark:bg-orange-300' : 'bg-red-500 dark:bg-red-400')"></div>
+                  <span class="text-sm text-gray-700 dark:text-gray-300 font-mono" x-text="truncateDateTime(run.triggered_at)"></span>
+                </a>
+              </template>
+            </div>
           </template>
-        </ul>
+          <template x-if="!$store.job.spec.runs || $store.job.spec.runs.length === 0">
+            <div class="p-2">
+              <span class="text-sm text-gray-500 dark:text-gray-400 italic">none</span>
+            </div>
+          </template>
+        </div>
       </div>
-      
-      
-
-
     </div>
+  </div>
 
-    <div class="w-5/6">
-      <div class="bg-slate-200 p-2 h-full rounded">
-        <div>
-          <p class="font-black" x-text="$store.job.jobName"></p>
-          <p class="text-xs text-slate-500" x-text="`Triggered at: ${truncateDateTime($store.job.jobRun.triggered_at)}`"></p>
-        </div>
-        <div class="text-xs pt-2 whitespace-pre-wrap" x-text="$store.job.jobRun.log">
-
+  <!-- Main Content -->
+  <div class="lg:col-span-3">
+    <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+      <!-- Header -->
+      <div class="border-b border-gray-200 dark:border-gray-700 p-4">
+        <h1 class="text-xl font-bold text-gray-900 dark:text-gray-100" x-text="$store.job.jobName"></h1>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1" x-text="`Triggered at: ${truncateDateTime($store.job.jobRun.triggered_at)}`"></p>
+      </div>
+      
+      <!-- Log Output -->
+      <div class="p-4">
+        <div class="bg-gray-50 dark:bg-gray-900 rounded-md p-4 border border-gray-200 dark:border-gray-700">
+          <pre class="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap font-mono overflow-x-auto" x-text="$store.job.jobRun.log"></pre>
         </div>
       </div>
-
-
     </div>
   </div>
 </div>

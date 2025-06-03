@@ -151,7 +151,7 @@ func getJobs(s *Schedule) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		w.Header().Set("Content-Type", "application/json")
 		for _, j := range s.Jobs {
-			j.loadRunsFromDb(10, false)
+			j.loadRunsFromDb(20, false)
 		}
 
 		if err := json.NewEncoder(w).Encode(s.Jobs); err != nil {

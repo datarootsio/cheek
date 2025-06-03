@@ -1,31 +1,40 @@
 {{ define "content"}}
-<div x-data class="pt-2">
-  <div class="w-full" x-data="coreLogs">
-    <div class="bg-slate-200 p-2 h-full rounded">
-      <div class="flex">
-        <p class="font-black text-lg">core logs</p>
-        <div class="grow"></div>
-        <div>
-          <button id="refresh" class="fill-slate-800 hover:fill-slate-500"
-            x-data="{showNotification: false, notification: ''}"
-            @click="init(); showNotification = true; notification = 'refreshing'; setTimeout(() => showNotification = false, 2000)">
-            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12">
-              <title>refresh</title>
-              <g>
-                <path
-                  d="M11.854.036a.25.25,0,0,0-.272.053L10.061,1.594A5.937,5.937,0,0,0,6,0a6,6,0,1,0,4.8,9.6A1,1,0,1,0,9.2,8.4,4,4,0,1,1,6,2,3.954,3.954,0,0,1,8.636,3L6.941,4.681a.251.251,0,0,0-.06.259.248.248,0,0,0,.209.166l4.64.514.028,0a.248.248,0,0,0,.25-.25V.267A.251.251,0,0,0,11.854.036Z">
-                </path>
-              </g>
-            </svg>
-          </button>
-          <div class="grow"></div>
-          <span x-show="showNotification" class="text-lime-200 text-xs" x-text="notification"></span>
-        </div>
+<div x-data="coreLogs">
+  <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+    <!-- Header -->
+    <div class="border-b border-gray-200 dark:border-gray-700 p-4">
+      <div class="flex items-center justify-between">
+        <h1 class="text-xl font-bold text-gray-900 dark:text-gray-100">Core Logs</h1>
+        <button class="p-2 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-800 dark:hover:text-gray-200 transition-colors duration-200"
+                x-data="{showNotification: false, notification: ''}"
+                @click="init(); showNotification = true; notification = 'refreshing'; setTimeout(() => showNotification = false, 2000)"
+                title="Refresh logs">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23,4 23,10 17,10"/>
+            <polyline points="1,20 1,14 7,14"/>
+            <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/>
+          </svg>
+          <span x-show="showNotification" class="absolute top-0 right-0 text-emerald-600 dark:text-emerald-400 text-xs font-medium" x-text="notification"></span>
+        </button>
       </div>
-      <div class="text-xs">
-        <template x-for="entry in logs">
-          <div class="flex py-1">
-            <span class="text-slate-800 whitespace-pre-wrap" x-text="entry.log"></span>
+    </div>
+    
+    <!-- Log Content -->
+    <div class="p-4">
+      <div class="bg-gray-50 dark:bg-gray-900 rounded-md border border-gray-200 dark:border-gray-700 min-h-96">
+        <template x-if="logs && logs.length > 0">
+          <div class="p-4">
+            <div class="text-sm text-gray-600 dark:text-gray-400 font-mono whitespace-pre-wrap" x-html="logs.map(entry => entry.log).join('\n')"></div>
+          </div>
+        </template>
+        <template x-if="!logs || logs.length === 0">
+          <div class="flex items-center justify-center h-96">
+            <div class="text-center">
+              <svg class="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">No logs available</p>
+            </div>
           </div>
         </template>
       </div>
