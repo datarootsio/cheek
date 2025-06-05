@@ -317,9 +317,10 @@ func TestOnRetriesExhausted(t *testing.T) {
 		}
 
 		// Check if this is a retries exhausted webhook (based on the URL path or body content)
-		if r.URL.Path == "/retries-exhausted" {
+		switch r.URL.Path {
+		case "/retries-exhausted":
 			retriesExhaustedTriggered = true
-		} else if r.URL.Path == "/error" {
+		case "/error":
 			errorTriggeredCount++
 		}
 
