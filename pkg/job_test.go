@@ -620,3 +620,85 @@ func TestMarshalSecret(t *testing.T) {
 	}
 	assert.Equal(t, string(jsonResult), `{"foo":"***"}`)
 }
+
+func TestTriggeredByJobRunContext(t *testing.T) {
+	// Test that TriggeredByJobRun context is properly passed to triggered jobs
+	var webhookPayload map[string]interface{}
+
+	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer func() { _ = r.Body.Close() }()
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		if err := json.Unmarshal(body, &webhookPayload); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer testServer.Close()
+
+	// Create a parent job that will trigger a child job
+	parentJob := &JobSpec{
+		Name:    "parent-job",
+		Command: []string{"echo", "parent output"},
+		cfg:     NewConfig(),
+		log:     NewLogger("debug", nil, os.Stdout, os.Stdout),
+	}
+
+	// Create a child job that will be triggered by the parent
+	childJob := &JobSpec{
+		Name:    "child-job", 
+		Command: []string{"echo", "child output"},
+		cfg:     NewConfig(),
+		log:     NewLogger("debug", nil, os.Stdout, os.Stdout),
+		OnSuccess: OnEvent{
+			NotifyWebhook: []string{testServer.URL},
+		},
+	}
+
+	// Set up a mock schedule with both jobs
+	schedule := &Schedule{
+		Jobs: map[string]*JobSpec{
+			"parent-job": parentJob,
+			"child-job":  childJob,
+		},
+		loc: time.UTC,
+	}
+
+	// Link jobs to the schedule
+	parentJob.globalSchedule = schedule
+	childJob.globalSchedule = schedule
+
+	// Configure parent job to trigger child job on success
+	parentJob.OnSuccess = OnEvent{
+		TriggerJob: []string{"child-job"},
+	}
+
+	// Execute the parent job
+	_ = parentJob.execCommandWithRetry("manual")
+
+	// Give time for the triggered job to complete
+	time.Sleep(100 * time.Millisecond)
+
+	// Verify webhook was called with child job data
+	assert.NotNil(t, webhookPayload, "Webhook should have been called")
+	assert.Equal(t, "child-job", webhookPayload["name"], "Child job name should be correct")
+	assert.Equal(t, "job[parent-job]", webhookPayload["triggered_by"], "Child job should be triggered by parent")
+
+	// Verify the parent job context is included
+	triggeredByJobRun, exists := webhookPayload["triggered_by_job_run"]
+	assert.True(t, exists, "triggered_by_job_run should be present")
+	assert.NotNil(t, triggeredByJobRun, "triggered_by_job_run should not be nil")
+
+	// Cast to map to access fields
+	parentContext := triggeredByJobRun.(map[string]interface{})
+	assert.Equal(t, "parent-job", parentContext["name"], "Parent job name should be correct")
+	assert.Equal(t, "manual", parentContext["triggered_by"], "Parent job trigger should be correct")
+	assert.Equal(t, float64(0), parentContext["status"], "Parent job should have succeeded")
+	assert.Contains(t, parentContext["log"], "parent output", "Parent job log should contain expected output")
+}
