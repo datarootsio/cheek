@@ -37,8 +37,9 @@ type JobSpec struct {
 	Cron    string      `yaml:"cron,omitempty" json:"cron,omitempty"`
 	Command stringArray `yaml:"command" json:"command"`
 
-	OnSuccess OnEvent `yaml:"on_success,omitempty" json:"on_success,omitempty"`
-	OnError   OnEvent `yaml:"on_error,omitempty" json:"on_error,omitempty"`
+	OnSuccess         OnEvent `yaml:"on_success,omitempty" json:"on_success,omitempty"`
+	OnError           OnEvent `yaml:"on_error,omitempty" json:"on_error,omitempty"`
+	OnRetriesExhausted OnEvent `yaml:"on_retries_exhausted,omitempty" json:"on_retries_exhausted,omitempty"`
 
 	Name                       string            `json:"name"`
 	Retries                    int               `yaml:"retries,omitempty" json:"retries,omitempty"`
@@ -63,16 +64,18 @@ func (secret) MarshalText() ([]byte, error) {
 
 // JobRun holds information about a job execution.
 type JobRun struct {
-	LogEntryId  int  `json:"id,omitempty" db:"id"`
-	Status      *int `json:"status,omitempty" db:"status,omitempty"`
-	logBuf      bytes.Buffer
-	Log         string        `json:"log" db:"message"`
-	Name        string        `json:"name" db:"job"`
-	TriggeredAt time.Time     `json:"triggered_at" db:"triggered_at"`
-	TriggeredBy string        `json:"triggered_by" db:"triggered_by,omitempty"`
-	Triggered   []string      `json:"triggered,omitempty"`
-	Duration    time.Duration `json:"duration,omitempty" db:"duration"`
-	jobRef      *JobSpec
+	LogEntryId        int  `json:"id,omitempty" db:"id"`
+	Status            *int `json:"status,omitempty" db:"status,omitempty"`
+	logBuf            bytes.Buffer
+	Log               string        `json:"log" db:"message"`
+	Name              string        `json:"name" db:"job"`
+	TriggeredAt       time.Time     `json:"triggered_at" db:"triggered_at"`
+	TriggeredBy       string        `json:"triggered_by" db:"triggered_by,omitempty"`
+	Triggered         []string      `json:"triggered,omitempty"`
+	Duration          time.Duration `json:"duration,omitempty" db:"duration"`
+	RetryAttempt      int           `json:"retry_attempt,omitempty"`
+	RetriesExhausted  bool          `json:"retries_exhausted,omitempty"`
+	jobRef            *JobSpec
 }
 
 func (jr *JobRun) flushLogBuffer() {
@@ -156,6 +159,9 @@ func (j *JobSpec) execCommandWithRetryContext(ctx context.Context, trigger strin
 			return jr
 		}
 
+		// Update retry attempt number
+		jr.RetryAttempt = tries
+
 		switch tries {
 		case 0:
 			// First attempt with the original trigger
@@ -173,22 +179,32 @@ func (j *JobSpec) execCommandWithRetryContext(ctx context.Context, trigger strin
 			break
 		}
 
-		// Log the unsuccessful attempt and retry
-		j.log.Debug().Str("job", j.Name).Int("exitcode", *jr.Status).Msgf("job exited unsuccessfully, launching retry after %v timeout.", timeOut)
-
 		// Increment the attempt counter
 		tries++
 
-		// Sleep with context cancellation check
-		select {
-		case <-time.After(timeOut):
-			// Continue to retry
-		case <-ctx.Done():
-			jr.Log += "\nJob cancelled during retry timeout"
-			exitCode := StatusError
-			jr.Status = &exitCode
-			return jr
+		// Check if we have more retries left before sleeping
+		if tries < j.Retries+1 {
+			// Log the unsuccessful attempt and retry
+			j.log.Debug().Str("job", j.Name).Int("exitcode", *jr.Status).Msgf("job exited unsuccessfully, launching retry after %v timeout.", timeOut)
+
+			// Sleep with context cancellation check
+			select {
+			case <-time.After(timeOut):
+				// Continue to retry
+			case <-ctx.Done():
+				jr.Log += "\nJob cancelled during retry timeout"
+				exitCode := StatusError
+				jr.Status = &exitCode
+				return jr
+			}
 		}
+	}
+
+	// Check if retries were exhausted (retries > 0 and final status is error)
+	if j.Retries > 0 && *jr.Status != StatusOK {
+		jr.RetriesExhausted = true
+		j.log.Debug().Str("job", j.Name).Msg("All retries exhausted, triggering on_retries_exhausted events")
+		j.OnRetriesExhaustedEvent(&jr)
 	}
 
 	return jr
@@ -438,6 +454,64 @@ func (j *JobSpec) OnEvent(jr *JobRun) {
 				j.log.Warn().Str("job", j.Name).Str("on_event", "webhook").Err(err).Msg("webhook notify failed")
 			}
 			j.log.Debug().Str("job", jr.Name).Str("webhook_call", "response").Str("webhook_url", wu.URL()).Msg(string(resp_body))
+		}(&wg, wu)
+	}
+
+	wg.Wait() // this allows to wait for go routines when running just the job exec
+}
+
+func (j *JobSpec) OnRetriesExhaustedEvent(jr *JobRun) {
+	var jobsToTrigger []string
+	var webhooksToCall []webhook
+	var events []OnEvent
+
+	// Add on_retries_exhausted events
+	events = append(events, j.OnRetriesExhausted)
+	if j.globalSchedule != nil {
+		events = append(events, j.globalSchedule.OnRetriesExhausted)
+	}
+
+	for _, e := range events {
+		jobsToTrigger = append(jobsToTrigger, e.TriggerJob...)
+		for _, whURL := range e.NotifyWebhook {
+			webhooksToCall = append(webhooksToCall, NewDefaultWebhook(whURL))
+		}
+		for _, whURL := range e.NotifySlackWebhook {
+			webhooksToCall = append(webhooksToCall, NewSlackWebhook(whURL))
+		}
+		for _, whURL := range e.NotifyDiscordWebhook {
+			webhooksToCall = append(webhooksToCall, NewDiscordWebhook(whURL))
+		}
+	}
+
+	var wg sync.WaitGroup
+
+	for _, tn := range jobsToTrigger {
+		tj := j.globalSchedule.Jobs[tn]
+		j.log.Debug().Str("job", j.Name).Str("on_event", "retries_exhausted_job_trigger").Msg("triggered by retries exhausted")
+		wg.Add(1)
+		go func(wg *sync.WaitGroup, tj *JobSpec) {
+			defer wg.Done()
+			if tj.DisableConcurrentExecution {
+				tj.mutex.Lock()
+				defer tj.mutex.Unlock()
+			}
+			// Use background context for triggered jobs (they should complete independently)
+			tj.execCommandWithRetry(fmt.Sprintf("retries_exhausted[%s]", j.Name))
+		}(&wg, tj)
+	}
+
+	// trigger webhooks
+	for _, wu := range webhooksToCall {
+		j.log.Debug().Str("job", j.Name).Str("on_event", wu.Name()+"_retries_exhausted_webhook_call").Msg("triggered by retries exhausted")
+		wg.Add(1)
+		go func(wg *sync.WaitGroup, wu webhook) {
+			defer wg.Done()
+			resp_body, err := wu.Call(jr)
+			if err != nil {
+				j.log.Warn().Str("job", j.Name).Str("on_event", "retries_exhausted_webhook").Err(err).Msg("retries exhausted webhook notify failed")
+			}
+			j.log.Debug().Str("job", jr.Name).Str("webhook_call", "retries_exhausted_response").Str("webhook_url", wu.URL()).Msg(string(resp_body))
 		}(&wg, wu)
 	}
 

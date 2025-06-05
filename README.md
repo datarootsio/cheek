@@ -106,7 +106,7 @@ Configuration can be passed as flags to the `cheek` CLI directly. All configurat
 
 ## Events & Notifications
 
-There are two types of event you can hook into: `on_success` and `on_error`. Both events materialize after an (attempted) job run. Three types of actions can be taken as a response: `notify_webhook`, `notify_slack_webhook`, `notify_slack_webhook` and `trigger_job`. See the example below. Definition of these event actions can be done on job level or at schedule level, in the latter case it will apply to all jobs.
+There are three types of event you can hook into: `on_success`, `on_error`, and `on_retries_exhausted`. The first two events materialize after an (attempted) job run, while `on_retries_exhausted` fires only once when a job with retries configured fails all attempts. Three types of actions can be taken as a response: `notify_webhook`, `notify_slack_webhook`, `notify_discord_webhook` and `trigger_job`. See the example below. Definition of these event actions can be done on job level or at schedule level, in the latter case it will apply to all jobs.
 
 ```yaml
 on_success:
@@ -116,9 +116,15 @@ jobs:
   coffee:
     command: this fails # this will create on_error event
     cron: "* * * * *"
+    retries: 3 # retry up to 3 times before giving up
     on_error:
-      notify_webhook:
+      notify_webhook: # fires after each failed attempt
         - https://webhook.site/e33464a3-1a4f-4f1a-99d3-743364c6b10f
+    on_retries_exhausted:
+      trigger_job: # only fires once when all retries fail
+        - cleanup_job
+      notify_webhook:
+        - https://webhook.site/critical-alerts
   beans:
     command: echo grind # this will create on_success event
     cron: "* * * * *"
@@ -135,7 +141,9 @@ The `notify_webhook` sends a JSON payload to your webhook url with the following
 	"name": "TeapotTask",
 	"triggered_at": "2023-04-01T12:00:00Z",
 	"triggered_by": "CoffeeRequestButton",
-	"triggered": ["CoffeeMachine"] // this job triggered another one
+	"triggered": ["CoffeeMachine"], // this job triggered another one
+	"retry_attempt": 2, // which retry attempt this was (0 = first attempt)
+	"retries_exhausted": true // true when all retries have been exhausted
 }
 ```
 

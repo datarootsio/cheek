@@ -296,6 +296,201 @@ func TestStandaloneJobRun(t *testing.T) {
 	assert.Contains(t, jr.Log, "bar_foo")
 }
 
+func TestOnRetriesExhausted(t *testing.T) {
+	// Test that on_retries_exhausted fires when all retries fail
+	retriesExhaustedTriggered := false
+	errorTriggeredCount := 0
+
+	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer func() { _ = r.Body.Close() }()
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		// Parse the webhook payload to determine which event triggered it
+		var payload map[string]interface{}
+		if err := json.Unmarshal(body, &payload); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		// Check if this is a retries exhausted webhook (based on the URL path or body content)
+		if r.URL.Path == "/retries-exhausted" {
+			retriesExhaustedTriggered = true
+		} else if r.URL.Path == "/error" {
+			errorTriggeredCount++
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer testServer.Close()
+
+	j := &JobSpec{
+		Name:    "failing-job",
+		Command: []string{"false"}, // command that always fails
+		Retries: 2,                 // will try 3 times total (initial + 2 retries)
+		cfg:     NewConfig(),
+		log:     NewLogger("debug", nil, os.Stdout, os.Stdout),
+		OnError: OnEvent{
+			NotifyWebhook: []string{testServer.URL + "/error"},
+		},
+		OnRetriesExhausted: OnEvent{
+			NotifyWebhook: []string{testServer.URL + "/retries-exhausted"},
+		},
+	}
+
+	// Execute the job with retries
+	jr := j.execCommandWithRetry("test")
+
+	// Verify the job failed after all retries
+	assert.Equal(t, 1, *jr.Status)
+
+	// Give webhooks time to complete
+	time.Sleep(100 * time.Millisecond)
+
+	// Verify on_error was triggered 3 times (once for each failed attempt)
+	assert.Equal(t, 3, errorTriggeredCount, "on_error should fire after each failed attempt")
+
+	// Verify on_retries_exhausted was triggered once
+	assert.True(t, retriesExhaustedTriggered, "on_retries_exhausted should fire once when all retries are exhausted")
+}
+
+func TestOnRetriesExhaustedNoRetries(t *testing.T) {
+	// Test that on_retries_exhausted does NOT fire when retries = 0
+	retriesExhaustedTriggered := false
+
+	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/retries-exhausted" {
+			retriesExhaustedTriggered = true
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer testServer.Close()
+
+	j := &JobSpec{
+		Name:    "failing-job-no-retries",
+		Command: []string{"false"}, // command that always fails
+		Retries: 0,                 // no retries configured
+		cfg:     NewConfig(),
+		log:     NewLogger("debug", nil, os.Stdout, os.Stdout),
+		OnRetriesExhausted: OnEvent{
+			NotifyWebhook: []string{testServer.URL + "/retries-exhausted"},
+		},
+	}
+
+	// Execute the job
+	jr := j.execCommandWithRetry("test")
+
+	// Verify the job failed
+	assert.Equal(t, 1, *jr.Status)
+
+	// Give webhooks time to complete
+	time.Sleep(100 * time.Millisecond)
+
+	// Verify on_retries_exhausted was NOT triggered (since no retries were configured)
+	assert.False(t, retriesExhaustedTriggered, "on_retries_exhausted should NOT fire when retries = 0")
+}
+
+func TestOnRetriesExhaustedSuccess(t *testing.T) {
+	// Test that on_retries_exhausted does NOT fire when job eventually succeeds
+	retriesExhaustedTriggered := false
+
+	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/retries-exhausted" {
+			retriesExhaustedTriggered = true
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer testServer.Close()
+
+	j := &JobSpec{
+		Name:    "succeeding-job",
+		Command: []string{"true"}, // command that always succeeds
+		Retries: 2,
+		cfg:     NewConfig(),
+		log:     NewLogger("debug", nil, os.Stdout, os.Stdout),
+		OnRetriesExhausted: OnEvent{
+			NotifyWebhook: []string{testServer.URL + "/retries-exhausted"},
+		},
+	}
+
+	// Execute the job
+	jr := j.execCommandWithRetry("test")
+
+	// Verify the job succeeded
+	assert.Equal(t, StatusOK, *jr.Status)
+
+	// Give webhooks time to complete
+	time.Sleep(100 * time.Millisecond)
+
+	// Verify on_retries_exhausted was NOT triggered (since job succeeded)
+	assert.False(t, retriesExhaustedTriggered, "on_retries_exhausted should NOT fire when job succeeds")
+}
+
+func TestRetryContextInWebhooks(t *testing.T) {
+	// Test that retry context information is included in webhook payloads
+	var webhookPayloads []map[string]interface{}
+
+	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer func() { _ = r.Body.Close() }()
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		var payload map[string]interface{}
+		if err := json.Unmarshal(body, &payload); err == nil {
+			webhookPayloads = append(webhookPayloads, payload)
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer testServer.Close()
+
+	j := &JobSpec{
+		Name:    "retry-context-job",
+		Command: []string{"false"}, // command that always fails
+		Retries: 1,                 // will try 2 times total
+		cfg:     NewConfig(),
+		log:     NewLogger("debug", nil, os.Stdout, os.Stdout),
+		OnError: OnEvent{
+			NotifyWebhook: []string{testServer.URL},
+		},
+		OnRetriesExhausted: OnEvent{
+			NotifyWebhook: []string{testServer.URL},
+		},
+	}
+
+	// Execute the job with retries
+	_ = j.execCommandWithRetry("test")
+
+	// Give webhooks time to complete
+	time.Sleep(200 * time.Millisecond)
+
+	// Should have 3 webhook calls: 2 on_error + 1 on_retries_exhausted
+	assert.Equal(t, 3, len(webhookPayloads), "Expected 3 webhook calls")
+
+	// Check the final payload (should be the retries exhausted one)
+	finalPayload := webhookPayloads[len(webhookPayloads)-1]
+	
+	// Verify retry context fields are present
+	assert.Equal(t, float64(1), finalPayload["retry_attempt"], "Final retry attempt should be 1")
+	assert.Equal(t, true, finalPayload["retries_exhausted"], "retries_exhausted should be true")
+	assert.Equal(t, "retry-context-job", finalPayload["name"], "Job name should be correct")
+
+	// Check earlier payloads don't have retries_exhausted = true
+	for i := 0; i < len(webhookPayloads)-1; i++ {
+		payload := webhookPayloads[i]
+		retriesExhausted, exists := payload["retries_exhausted"]
+		if exists {
+			assert.False(t, retriesExhausted.(bool), "retries_exhausted should be false for non-final attempts")
+		}
+	}
+}
+
 func TestWorkingDir(t *testing.T) {
 	b := new(tsBuffer)
 	log := NewLogger("debug", nil, b, os.Stdout)
