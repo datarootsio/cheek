@@ -87,10 +87,8 @@ Check out `cheek run --help` for configuration options.
 `cheek` ships with a web UI that by default gets launched on port `8081`. You can define the port on which it is accessible via the `--port` flag.
 
 ![main-screen](/readme_assets/main.png)
- main overview
 
 ![main-screen](/readme_assets/joboverview.png)
-job detail
 
 You can access the UI by navigating to `http://localhost:8081`. When `cheek` is deployed you are recommended to NOT make this port publicly accessible, instead navigate to the UI via an SSH tunnel.
 
@@ -143,9 +141,18 @@ The `notify_webhook` sends a JSON payload to your webhook url with the following
 	"triggered_by": "CoffeeRequestButton",
 	"triggered": ["CoffeeMachine"], // this job triggered another one
 	"retry_attempt": 2, // which retry attempt this was (0 = first attempt)
-	"retries_exhausted": true // true when all retries have been exhausted
+	"retries_exhausted": true, // true when all retries have been exhausted
+	"triggered_by_job_run": { // parent job context when triggered by another job
+		"status": 0,
+		"log": "Parent job completed successfully",
+		"name": "ParentJob",
+		"triggered_at": "2023-04-01T11:59:00Z",
+		"triggered_by": "cron"
+	}
 }
 ```
+
+When a job is triggered by another job via `trigger_job`, the webhook payload includes a `triggered_by_job_run` field containing the complete context of the parent job that triggered it. This provides full visibility into the job execution chain and allows for more sophisticated workflow tracking and debugging.
 
 The `notify_slack_webhook` sends a JSON payload to your Slack webhook url with the following structure (which is Slack app compatible):
 
@@ -163,6 +170,56 @@ The `notify_discord_webhook` sends a JSON payload to your Discord webhook url wi
 }
 ```
 
+## Job Execution Flow
+
+The following diagram illustrates how jobs flow from schedule to execution and how events trigger subsequent actions:
+
+```mermaid
+graph TD
+    A[Schedule YAML] --> B[Job Specs]
+    
+    B --> C[Cron Schedule]
+    
+    C --> D[JobRun Execution]
+    F[Manual Trigger] --> D
+    G[Job Trigger] --> D
+    
+    D --> H{Job Success?}
+    
+    H -->|Yes| I[on_success Events]
+    H -->|No| J{Retries Left?}
+    
+    J -->|Yes| K[Retry After Delay]
+    J -->|No| L[on_retries_exhausted Events]
+    
+    K --> D
+    H -->|No| M[on_error Events]
+    
+    I --> N[Event Actions]
+    M --> N
+    L --> N
+    
+    N --> O[trigger_job]
+    N --> P["notify_{type}_webhook"]
+    
+    O --> Q[New JobRun]
+    Q --> R[Parent Context Added]
+    R --> S[triggered_by_job_run field populated]
+    
+    P --> T[Webhook Payload]
+    T --> U[Includes parent job data if triggered by job]
+    
+    G -.-> Q
+    S -.-> D
+    
+    style A fill:#e1f5fe
+    style B fill:#e3f2fd
+    style D fill:#f3e5f5
+    style Q fill:#f3e5f5
+    style R fill:#e8f5e8
+    style T fill:#fff3e0
+    style U fill:#fff3e0
+```
 
 ## Docker
 
