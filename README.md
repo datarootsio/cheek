@@ -246,7 +246,6 @@ Where:
 
 `cheek` is building on top of many great OSS assets. Noteable thanks goes to:
 
-- [chota](https://jenil.github.io/chota/): for a pico sized css framework
 - [gronx](https://github.com/adhocore/gronx): for allowing me not to worry about CRON strings.
 
 <br/>
