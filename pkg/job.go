@@ -64,13 +64,14 @@ func (secret) MarshalText() ([]byte, error) {
 
 // JobRun holds information about a job execution.
 type JobRun struct {
-	LogEntryId        int  `json:"id,omitempty" db:"id"`
-	Status            *int `json:"status,omitempty" db:"status,omitempty"`
+	LogEntryId        int     `json:"id,omitempty" db:"id"`
+	Status            *int    `json:"status,omitempty" db:"status,omitempty"`
 	logBuf            bytes.Buffer
 	Log               string        `json:"log" db:"message"`
 	Name              string        `json:"name" db:"job"`
 	TriggeredAt       time.Time     `json:"triggered_at" db:"triggered_at"`
 	TriggeredBy       string        `json:"triggered_by" db:"triggered_by,omitempty"`
+	TriggeredByJobRun *JobRun       `json:"triggered_by_job_run,omitempty"`
 	Triggered         []string      `json:"triggered,omitempty"`
 	Duration          time.Duration `json:"duration,omitempty" db:"duration"`
 	RetryAttempt      int           `json:"retry_attempt,omitempty"`
@@ -82,14 +83,15 @@ func (jr *JobRun) flushLogBuffer() {
 	jr.Log = jr.logBuf.String()
 }
 
-func (j *JobSpec) setup(trigger string) JobRun {
+func (j *JobSpec) setup(trigger string, parentJobRun *JobRun) JobRun {
 	// Initialize the JobRun before executing the command
 	jr := JobRun{
-		Name:        j.Name,
-		TriggeredAt: j.now(),
-		TriggeredBy: trigger,
-		Status:      nil,
-		jobRef:      j,
+		Name:              j.Name,
+		TriggeredAt:       j.now(),
+		TriggeredBy:       trigger,
+		TriggeredByJobRun: parentJobRun,
+		Status:            nil,
+		jobRef:            j,
 	}
 
 	// Log the job run immediately to the database to mark the job as started
@@ -137,17 +139,13 @@ func (j *JobSpec) finalize(jr *JobRun) {
 	j.OnEvent(jr)
 }
 
-func (j *JobSpec) execCommandWithRetry(trigger string) JobRun {
-	return j.execCommandWithRetryContext(context.Background(), trigger)
-}
-
-func (j *JobSpec) execCommandWithRetryContext(ctx context.Context, trigger string) JobRun {
+func (j *JobSpec) execCommandWithRetry(ctx context.Context, trigger string, parentJobRun *JobRun) JobRun {
 	tries := 0
 	var jr JobRun
 	const timeOut = 5 * time.Second
 
 	// Initialize the JobRun with the first trigger
-	jr = j.setup(trigger)
+	jr = j.setup(trigger, parentJobRun)
 
 	for tries < j.Retries+1 {
 		// Check if context is cancelled before starting
@@ -165,10 +163,10 @@ func (j *JobSpec) execCommandWithRetryContext(ctx context.Context, trigger strin
 		switch tries {
 		case 0:
 			// First attempt with the original trigger
-			jr = j.execCommandContext(ctx, jr, trigger)
+			jr = j.execCommand(ctx, jr, trigger)
 		default:
 			// On retries, update the trigger with retry count and rerun
-			jr = j.execCommandContext(ctx, jr, fmt.Sprintf("%s[retry=%d]", trigger, tries))
+			jr = j.execCommand(ctx, jr, fmt.Sprintf("%s[retry=%d]", trigger, tries))
 		}
 
 		// Finalize logging, etc.
@@ -210,6 +208,7 @@ func (j *JobSpec) execCommandWithRetryContext(ctx context.Context, trigger strin
 	return jr
 }
 
+
 func (j *JobSpec) now() time.Time {
 	// defer for if schedule doesn't exist, allows for easy testing
 	if j.globalSchedule != nil {
@@ -218,11 +217,7 @@ func (j *JobSpec) now() time.Time {
 	return time.Now()
 }
 
-func (j *JobSpec) execCommand(jr JobRun, trigger string) JobRun {
-	return j.execCommandContext(context.Background(), jr, trigger)
-}
-
-func (j *JobSpec) execCommandContext(ctx context.Context, jr JobRun, trigger string) JobRun {
+func (j *JobSpec) execCommand(ctx context.Context, jr JobRun, trigger string) JobRun {
 	j.log.Info().Str("job", j.Name).Str("trigger", trigger).Msgf("Job triggered")
 	suppressLogs := j.cfg.SuppressLogs
 
@@ -323,6 +318,7 @@ func (j *JobSpec) execCommandContext(ctx context.Context, jr JobRun, trigger str
 
 	return jr
 }
+
 
 func (j *JobSpec) loadLogFromDb(id int) (JobRun, error) {
 	var jr JobRun
@@ -439,7 +435,7 @@ func (j *JobSpec) OnEvent(jr *JobRun) {
 				defer tj.mutex.Unlock()
 			}
 			// Use background context for triggered jobs (they should complete independently)
-			tj.execCommandWithRetry(fmt.Sprintf("job[%s]", j.Name))
+			tj.execCommandWithRetry(context.Background(), fmt.Sprintf("job[%s]", j.Name), jr)
 		}(&wg, tj)
 	}
 
@@ -497,7 +493,7 @@ func (j *JobSpec) OnRetriesExhaustedEvent(jr *JobRun) {
 				defer tj.mutex.Unlock()
 			}
 			// Use background context for triggered jobs (they should complete independently)
-			tj.execCommandWithRetry(fmt.Sprintf("retries_exhausted[%s]", j.Name))
+			tj.execCommandWithRetry(context.Background(), fmt.Sprintf("retries_exhausted[%s]", j.Name), jr)
 		}(&wg, tj)
 	}
 
@@ -541,10 +537,10 @@ func RunJob(log zerolog.Logger, cfg Config, scheduleFn string, jobName string) (
 	for _, job := range s.Jobs {
 		if job.Name == jobName {
 			// Use the setup function to create a JobRun instance
-			jr := job.setup("manual")
+			jr := job.setup("manual", nil)
 
 			// Execute the command with the initialized JobRun and the trigger string
-			jr = job.execCommand(jr, "manual")
+			jr = job.execCommand(context.Background(), jr, "manual")
 			job.finalize(&jr)
 			return jr, nil
 		}

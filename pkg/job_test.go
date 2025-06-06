@@ -2,6 +2,7 @@ package cheek
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -39,7 +40,7 @@ func TestLoadLogs(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_ = j.execCommandWithRetry("test")
+	_ = j.execCommandWithRetry(context.Background(), "test", nil)
 
 	// log loading goes on job name basis
 	// let's recreate and see if we can load logs
@@ -66,7 +67,7 @@ func TestJobRun(t *testing.T) {
 	jobRun := JobRun{}
 
 	// Execute command and get result
-	jr := j.execCommand(jobRun, "test")
+	jr := j.execCommand(context.Background(), jobRun, "test")
 
 	// Dereference the pointer and compare the value
 	assert.Equal(t, *jr.Status, 0)
@@ -85,7 +86,7 @@ func TestSpecialCron(t *testing.T) {
 	}
 
 	jobRun := JobRun{}                  // Create a JobRun instance
-	jr := j.execCommand(jobRun, "test") // Pass JobRun instance and "test"
+	jr := j.execCommand(context.Background(), jobRun, "test") // Pass JobRun instance and "test"
 	assert.Equal(t, *jr.Status, 0)
 }
 
@@ -134,7 +135,7 @@ env:
 	}
 
 	jobRun := JobRun{}                  // Create a JobRun instance
-	jr := j.execCommand(jobRun, "test") // Pass JobRun instance and "test"
+	jr := j.execCommand(context.Background(), jobRun, "test") // Pass JobRun instance and "test"
 
 	jr.flushLogBuffer()
 
@@ -154,7 +155,7 @@ func TestStdErrOut(t *testing.T) {
 	}
 
 	jobRun := JobRun{}                  // Create a JobRun instance
-	jr := j.execCommand(jobRun, "test") // Pass JobRun instance and "test"
+	jr := j.execCommand(context.Background(), jobRun, "test") // Pass JobRun instance and "test"
 	jr.flushLogBuffer()
 	assert.Contains(t, jr.Log, "stdout")
 	assert.Contains(t, jr.Log, "stderr")
@@ -173,7 +174,7 @@ func TestFailingLog(t *testing.T) {
 	}
 
 	jobRun := JobRun{}                  // Create a JobRun instance
-	jr := j.execCommand(jobRun, "test") // Pass JobRun instance and "test"
+	jr := j.execCommand(context.Background(), jobRun, "test") // Pass JobRun instance and "test"
 	jr.flushLogBuffer()
 	assert.Contains(t, jr.Log, "this fails")
 }
@@ -186,7 +187,7 @@ func TestJobRunNoCommand(t *testing.T) {
 	}
 
 	jobRun := JobRun{}                  // Create a JobRun instance
-	jr := j.execCommand(jobRun, "test") // Pass JobRun instance and "test"
+	jr := j.execCommand(context.Background(), jobRun, "test") // Pass JobRun instance and "test"
 	assert.NotEqual(t, jr.Status, 0)
 }
 
@@ -201,7 +202,7 @@ func TestJobNonZero(t *testing.T) {
 	}
 
 	jobRun := JobRun{}                  // Create a JobRun instance
-	jr := j.execCommand(jobRun, "test") // Pass JobRun instance and "test"
+	jr := j.execCommand(context.Background(), jobRun, "test") // Pass JobRun instance and "test"
 	assert.NotEqual(t, jr.Status, 0)
 }
 
@@ -246,7 +247,7 @@ func TestOnEventWebhook(t *testing.T) {
 		},
 	}
 	jobRun := JobRun{}                  // Create a JobRun instance
-	jr := j.execCommand(jobRun, "test") // Pass JobRun instance and "test"
+	jr := j.execCommand(context.Background(), jobRun, "test") // Pass JobRun instance and "test"
 	j.OnEvent(&jr)
 }
 
@@ -277,7 +278,7 @@ func TestStringArray(t *testing.T) {
 
 		j.cfg = NewConfig()
 		jobRun := JobRun{}                  // Create a JobRun instance
-		jr := j.execCommand(jobRun, "test") // Pass JobRun instance and "test"
+		jr := j.execCommand(context.Background(), jobRun, "test") // Pass JobRun instance and "test"
 
 		jr.flushLogBuffer()
 		assert.Equal(t, *jr.Status, scenario.expectedStatus)
@@ -343,7 +344,7 @@ func TestOnRetriesExhausted(t *testing.T) {
 	}
 
 	// Execute the job with retries
-	jr := j.execCommandWithRetry("test")
+	jr := j.execCommandWithRetry(context.Background(), "test", nil)
 
 	// Verify the job failed after all retries
 	assert.Equal(t, 1, *jr.Status)
@@ -382,7 +383,7 @@ func TestOnRetriesExhaustedNoRetries(t *testing.T) {
 	}
 
 	// Execute the job
-	jr := j.execCommandWithRetry("test")
+	jr := j.execCommandWithRetry(context.Background(), "test", nil)
 
 	// Verify the job failed
 	assert.Equal(t, 1, *jr.Status)
@@ -418,7 +419,7 @@ func TestOnRetriesExhaustedSuccess(t *testing.T) {
 	}
 
 	// Execute the job
-	jr := j.execCommandWithRetry("test")
+	jr := j.execCommandWithRetry(context.Background(), "test", nil)
 
 	// Verify the job succeeded
 	assert.Equal(t, StatusOK, *jr.Status)
@@ -466,7 +467,7 @@ func TestRetryContextInWebhooks(t *testing.T) {
 	}
 
 	// Execute the job with retries
-	_ = j.execCommandWithRetry("test")
+	_ = j.execCommandWithRetry(context.Background(), "test", nil)
 
 	// Give webhooks time to complete
 	time.Sleep(200 * time.Millisecond)
@@ -524,7 +525,7 @@ func TestJobWithBashEval(t *testing.T) {
 	j.cfg = cfg
 
 	jobRun := JobRun{}                  // Create a JobRun instance
-	jr := j.execCommand(jobRun, "test") // Pass JobRun instance and "test"
+	jr := j.execCommand(context.Background(), jobRun, "test") // Pass JobRun instance and "test"
 	jr.flushLogBuffer()
 
 	currentYearMonth := time.Now().Format("2006-01")
@@ -558,7 +559,7 @@ func TestExecCommandStartError(t *testing.T) {
 
 	// Run the execCommand method with the JobSpec and JobRun
 	trigger := "manual"
-	result := jobSpec.execCommand(jobRun, trigger)
+	result := jobSpec.execCommand(context.Background(), jobRun, trigger)
 
 	// Assertions
 	assert.NotNil(t, result.Status, "Expected job run status to be set")
@@ -594,7 +595,7 @@ func TestExecCommandExitError(t *testing.T) {
 
 	// Run the execCommand method with the JobSpec and JobRun
 	trigger := "manual"
-	result := jobSpec.execCommand(jobRun, trigger)
+	result := jobSpec.execCommand(context.Background(), jobRun, trigger)
 
 	// Assertions
 	assert.NotNil(t, result.Status, "Expected job run status to be set")
@@ -619,4 +620,86 @@ func TestMarshalSecret(t *testing.T) {
 		t.Fatal(err)
 	}
 	assert.Equal(t, string(jsonResult), `{"foo":"***"}`)
+}
+
+func TestTriggeredByJobRunContext(t *testing.T) {
+	// Test that TriggeredByJobRun context is properly passed to triggered jobs
+	var webhookPayload map[string]interface{}
+
+	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer func() { _ = r.Body.Close() }()
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		if err := json.Unmarshal(body, &webhookPayload); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer testServer.Close()
+
+	// Create a parent job that will trigger a child job
+	parentJob := &JobSpec{
+		Name:    "parent-job",
+		Command: []string{"echo", "parent output"},
+		cfg:     NewConfig(),
+		log:     NewLogger("debug", nil, os.Stdout, os.Stdout),
+	}
+
+	// Create a child job that will be triggered by the parent
+	childJob := &JobSpec{
+		Name:    "child-job", 
+		Command: []string{"echo", "child output"},
+		cfg:     NewConfig(),
+		log:     NewLogger("debug", nil, os.Stdout, os.Stdout),
+		OnSuccess: OnEvent{
+			NotifyWebhook: []string{testServer.URL},
+		},
+	}
+
+	// Set up a mock schedule with both jobs
+	schedule := &Schedule{
+		Jobs: map[string]*JobSpec{
+			"parent-job": parentJob,
+			"child-job":  childJob,
+		},
+		loc: time.UTC,
+	}
+
+	// Link jobs to the schedule
+	parentJob.globalSchedule = schedule
+	childJob.globalSchedule = schedule
+
+	// Configure parent job to trigger child job on success
+	parentJob.OnSuccess = OnEvent{
+		TriggerJob: []string{"child-job"},
+	}
+
+	// Execute the parent job
+	_ = parentJob.execCommandWithRetry(context.Background(), "manual", nil)
+
+	// Give time for the triggered job to complete
+	time.Sleep(100 * time.Millisecond)
+
+	// Verify webhook was called with child job data
+	assert.NotNil(t, webhookPayload, "Webhook should have been called")
+	assert.Equal(t, "child-job", webhookPayload["name"], "Child job name should be correct")
+	assert.Equal(t, "job[parent-job]", webhookPayload["triggered_by"], "Child job should be triggered by parent")
+
+	// Verify the parent job context is included
+	triggeredByJobRun, exists := webhookPayload["triggered_by_job_run"]
+	assert.True(t, exists, "triggered_by_job_run should be present")
+	assert.NotNil(t, triggeredByJobRun, "triggered_by_job_run should not be nil")
+
+	// Cast to map to access fields
+	parentContext := triggeredByJobRun.(map[string]interface{})
+	assert.Equal(t, "parent-job", parentContext["name"], "Parent job name should be correct")
+	assert.Equal(t, "manual", parentContext["triggered_by"], "Parent job trigger should be correct")
+	assert.Equal(t, float64(0), parentContext["status"], "Parent job should have succeeded")
+	assert.Contains(t, parentContext["log"], "parent output", "Parent job log should contain expected output")
 }

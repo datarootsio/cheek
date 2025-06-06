@@ -73,7 +73,7 @@ func (s *Schedule) Run() {
 							j.mutex.Lock()
 							defer j.mutex.Unlock()
 						}
-						j.execCommandWithRetryContext(ctx, "cron")
+						j.execCommandWithRetry(ctx, "cron", nil)
 					}(j)
 				}
 			}

@@ -1,6 +1,7 @@
 package cheek
 
 import (
+	"context"
 	"embed"
 	"encoding/json"
 	"fmt"
@@ -291,7 +292,7 @@ func postTrigger(s *Schedule) httprouter.Handle {
 			return
 		}
 
-		job.execCommandWithRetry("ui") // trigger
+		job.execCommandWithRetry(context.Background(), "ui", nil) // trigger
 
 		status := Response{Job: jobId, Status: "ok", Type: "trigger"}
 		w.Header().Set("Content-Type", "application/json")
