@@ -18,16 +18,16 @@
 
 Fetch the latest version for your system below.
 
-[darwin-arm64](https://storage.googleapis.com/cheek-scheduler/darwin/arm64/cheek) |
-[darwin-amd64](https://storage.googleapis.com/cheek-scheduler/darwin/amd64/cheek) |
-[linux-386](https://storage.googleapis.com/cheek-scheduler/linux/386/cheek) |
-[linux-arm64](https://storage.googleapis.com/cheek-scheduler/linux/arm64/cheek) |
-[linux-amd64](https://storage.googleapis.com/cheek-scheduler/linux/amd64/cheek)
+[darwin-arm64](https://github.com/datarootsio/cheek/releases/latest/download/cheek-darwin-arm64) |
+[darwin-amd64](https://github.com/datarootsio/cheek/releases/latest/download/cheek-darwin-amd64) |
+[linux-386](https://github.com/datarootsio/cheek/releases/latest/download/cheek-linux-386) |
+[linux-arm64](https://github.com/datarootsio/cheek/releases/latest/download/cheek-linux-arm64) |
+[linux-amd64](https://github.com/datarootsio/cheek/releases/latest/download/cheek-linux-amd64)
 
 You can (for example) fetch it like below, make it executable and run it. Optionally put `cheek` on your `PATH`.
 
 ```sh
-curl https://storage.googleapis.com/cheek-scheduler/darwin/amd64/cheek -o cheek
+curl -L https://github.com/datarootsio/cheek/releases/latest/download/cheek-darwin-amd64 -o cheek
 chmod +x cheek
 ./cheek
 ```
@@ -231,16 +231,14 @@ Prebuilt images are available at `ghcr.io/datarootsio/cheek:latest` where `lates
 
 If you want to pin your setup to a specific version of `cheek` you can use the following template to fetch your `cheek` binary:
 
-- latest version: https://storage.googleapis.com/cheek-scheduler/{os}/{arch}/cheek
-- tagged version: https://storage.googleapis.com/cheek-scheduler/{os}/{arch}/cheek-{tag}
-- `main` branch builds: https://storage.googleapis.com/cheek-scheduler/{os}/{arch}/cheek-{shortsha}
+- latest version: https://github.com/datarootsio/cheek/releases/latest/download/cheek-{os}-{arch}
+- tagged version: https://github.com/datarootsio/cheek/releases/download/{tag}/cheek-{os}-{arch}
 
 Where:
 
 - `os` is one of `linux`, `darwin`
 - `arch` is one of `amd64`, `arm64`, `386`
 - `tag` is one the [available tags](https://github.com/datarootsio/cheek/tags)
-- `shortsha` is a 7-char SHA and most commits on `main` will be available
 
 ## Acknowledgements
 
