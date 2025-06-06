@@ -92,28 +92,31 @@ jobs:
         run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
       - run: mkdir -p ${{ matrix.goos }}/${{ matrix.goarch }}
       - run: env GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -ldflags="-X 'github.com/datarootsio/cheek/pkg.version=${{ needs.version_tag.outputs.new_tag }}' -X 'github.com/datarootsio/cheek/pkg.commitSHA=${{ steps.vars.outputs.sha_short }}'" -o ${{ matrix.goos }}/${{ matrix.goarch }}
-      - run: cp ${{ matrix.goos }}/${{ matrix.goarch }}/cheek ${{ matrix.goos }}/${{ matrix.goarch }}/cheek-${{ steps.vars.outputs.sha_short }}
-      - run: cp ${{ matrix.goos }}/${{ matrix.goarch }}/cheek ${{ matrix.goos }}/${{ matrix.goarch }}/cheek-${{ needs.version_tag.outputs.new_tag }}
-      ## upload binary to google storage
-      - id: auth
-        uses: google-github-actions/auth@v2.1.7
+      - run: cp ${{ matrix.goos }}/${{ matrix.goarch }}/cheek ${{ matrix.goos }}/${{ matrix.goarch }}/cheek-${{ matrix.goos }}-${{ matrix.goarch }}
+      ## upload artifacts for release
+      - uses: actions/upload-artifact@v4
         with:
-          credentials_json: ${{ secrets.gcp_credentials_cheek }}
-      - id: upload-files
-        uses: google-github-actions/upload-cloud-storage@v2.2.1
+          name: cheek-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: ${{ matrix.goos }}/${{ matrix.goarch }}/cheek-${{ matrix.goos }}-${{ matrix.goarch }}
+
+  release:
+    if: github.ref == 'refs/heads/main' && needs.version_tag.outputs.new_tag != ''
+    needs: 
+      - build
+      - version_tag
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
         with:
-          path: ${{ matrix.goos }}/${{ matrix.goarch }}/cheek-${{ steps.vars.outputs.sha_short }}
-          destination: cheek-scheduler/${{ matrix.goos }}/${{ matrix.goarch }}/
-      - uses: google-github-actions/upload-cloud-storage@v2.2.1
-        if: github.ref == 'refs/heads/main'
+          path: artifacts
+      - name: Create release
+        uses: softprops/action-gh-release@v2
         with:
-          path: ${{ matrix.goos }}/${{ matrix.goarch }}/cheek-${{ needs.version_tag.outputs.new_tag }}
-          destination: cheek-scheduler/${{ matrix.goos }}/${{ matrix.goarch }}/
-      - uses: google-github-actions/upload-cloud-storage@v2.2.1
-        if: github.ref == 'refs/heads/main'
-        with:
-          path: ${{ matrix.goos }}/${{ matrix.goarch }}/cheek
-          destination: cheek-scheduler/${{ matrix.goos }}/${{ matrix.goarch }}/
+          tag_name: ${{ needs.version_tag.outputs.new_tag }}
+          name: Release ${{ needs.version_tag.outputs.new_tag }}
+          files: artifacts/*/cheek-*
+          generate_release_notes: true
 
   docker-build:
     ## only do this on main
