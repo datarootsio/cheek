@@ -1,4 +1,4 @@
-module github.com/datarootsio/cheek
+module github.com/bart6114/cheek
 
 go 1.22
 

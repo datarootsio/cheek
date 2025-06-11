@@ -91,7 +91,7 @@ jobs:
       - id: vars
         run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
       - run: mkdir -p ${{ matrix.goos }}/${{ matrix.goarch }}
-      - run: env GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -ldflags="-X 'github.com/datarootsio/cheek/pkg.version=${{ needs.version_tag.outputs.new_tag }}' -X 'github.com/datarootsio/cheek/pkg.commitSHA=${{ steps.vars.outputs.sha_short }}'" -o ${{ matrix.goos }}/${{ matrix.goarch }}
+      - run: env GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -ldflags="-X 'github.com/bart6114/cheek/pkg.version=${{ needs.version_tag.outputs.new_tag }}' -X 'github.com/bart6114/cheek/pkg.commitSHA=${{ steps.vars.outputs.sha_short }}'" -o ${{ matrix.goos }}/${{ matrix.goarch }}
       - run: cp ${{ matrix.goos }}/${{ matrix.goarch }}/cheek ${{ matrix.goos }}/${{ matrix.goarch }}/cheek-${{ matrix.goos }}-${{ matrix.goarch }}
       ## upload artifacts for release
       - uses: actions/upload-artifact@v4
@@ -147,8 +147,8 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ghcr.io/datarootsio/cheek:latest
-            ghcr.io/datarootsio/cheek:${{ needs.version_tag.outputs.new_tag }}
+            ghcr.io/bart6114/cheek:latest
+            ghcr.io/bart6114/cheek:${{ needs.version_tag.outputs.new_tag }}
 
   docs:
     needs: 
