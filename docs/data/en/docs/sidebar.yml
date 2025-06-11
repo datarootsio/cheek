@@ -1,0 +1,20 @@
+- title: 🚀 Getting Started
+  pages:
+    - title: Overview
+    - title: Installation
+    - title: Minimal Example
+    - title: Configuration
+
+- title: ⚙️ Core Features
+  pages:
+    - title: Scheduler
+    - title: WebUI
+    - title: Events
+    - title: Job Flow
+
+- title: 📚 Various
+  pages:
+    - title: Docker
+    - title: Versions
+    - title: Acknowledgements
+
