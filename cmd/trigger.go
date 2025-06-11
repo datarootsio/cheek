@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	cheek "github.com/datarootsio/cheek/pkg"
+	cheek "github.com/bart6114/cheek/pkg"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )

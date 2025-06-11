@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/datarootsio/cheek/cmd"
+	"github.com/bart6114/cheek/cmd"
 )
 
 //go:generate npm run build
