@@ -170,18 +170,19 @@ jobs:
           fetch-depth: '0'
       - name: Setup Pages
         uses: actions/configure-pages@v4
-      - name: Setup Go
-        uses: actions/setup-go@v5
+      - name: Setup Hugo
+        uses: peaceiris/actions-hugo@v3
         with:
-          go-version: "^1.22"
-      - name: Generate docs
+          hugo-version: 'latest'
+          extended: true
+      - name: Build Hugo site
         run: |
-          mkdir -p docs
-          go doc -all ./... > docs/index.html
+          cd docs
+          hugo --minify
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: './docs'
+          path: './docs/public'
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
