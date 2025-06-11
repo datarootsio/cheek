@@ -149,3 +149,39 @@ jobs:
           tags: |
             ghcr.io/datarootsio/cheek:latest
             ghcr.io/datarootsio/cheek:${{ needs.version_tag.outputs.new_tag }}
+
+  docs:
+    needs: 
+      - build
+      - version_tag
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: '0'
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "^1.22"
+      - name: Generate docs
+        run: |
+          mkdir -p docs
+          go doc -all ./... > docs/index.html
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './docs'
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
