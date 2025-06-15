@@ -8,11 +8,14 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"runtime"
 	"sync"
 	"time"
 
 	"github.com/adhocore/gronx"
 	"github.com/rs/zerolog"
+	"golang.org/x/text/encoding/simplifiedchinese"
+	"golang.org/x/text/transform"
 	"gopkg.in/yaml.v3"
 )
 
@@ -37,8 +40,8 @@ type JobSpec struct {
 	Cron    string      `yaml:"cron,omitempty" json:"cron,omitempty"`
 	Command stringArray `yaml:"command" json:"command"`
 
-	OnSuccess         OnEvent `yaml:"on_success,omitempty" json:"on_success,omitempty"`
-	OnError           OnEvent `yaml:"on_error,omitempty" json:"on_error,omitempty"`
+	OnSuccess          OnEvent `yaml:"on_success,omitempty" json:"on_success,omitempty"`
+	OnError            OnEvent `yaml:"on_error,omitempty" json:"on_error,omitempty"`
 	OnRetriesExhausted OnEvent `yaml:"on_retries_exhausted,omitempty" json:"on_retries_exhausted,omitempty"`
 
 	Name                       string            `json:"name"`
@@ -64,8 +67,8 @@ func (secret) MarshalText() ([]byte, error) {
 
 // JobRun holds information about a job execution.
 type JobRun struct {
-	LogEntryId        int     `json:"id,omitempty" db:"id"`
-	Status            *int    `json:"status,omitempty" db:"status,omitempty"`
+	LogEntryId        int  `json:"id,omitempty" db:"id"`
+	Status            *int `json:"status,omitempty" db:"status,omitempty"`
 	logBuf            bytes.Buffer
 	Log               string        `json:"log" db:"message"`
 	Name              string        `json:"name" db:"job"`
@@ -208,7 +211,6 @@ func (j *JobSpec) execCommandWithRetry(ctx context.Context, trigger string, pare
 	return jr
 }
 
-
 func (j *JobSpec) now() time.Time {
 	// defer for if schedule doesn't exist, allows for easy testing
 	if j.globalSchedule != nil {
@@ -253,7 +255,11 @@ func (j *JobSpec) execCommand(ctx context.Context, jr JobRun, trigger string) Jo
 	case true:
 		w = &jr.logBuf
 	default:
-		w = io.MultiWriter(os.Stdout, &jr.logBuf)
+		if runtime.GOOS == "windows" {
+			w = transform.NewWriter(io.MultiWriter(os.Stdout, &jr.logBuf), simplifiedchinese.GB18030.NewDecoder().Transformer)
+		} else {
+			w = io.MultiWriter(os.Stdout, &jr.logBuf)
+		}
 	}
 
 	// Merge stdout and stderr to same writer
@@ -318,7 +324,6 @@ func (j *JobSpec) execCommand(ctx context.Context, jr JobRun, trigger string) Jo
 
 	return jr
 }
-
 
 func (j *JobSpec) loadLogFromDb(id int) (JobRun, error) {
 	var jr JobRun
