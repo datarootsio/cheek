@@ -1,0 +1,57 @@
+<footer id="site-footer">
+  <!-- copyright -->
+  <div id="site-footer-copyright">
+    <a href="{{ .Site.Params.author.url }}" target="_blank">
+      <i class="icon icon-copyright"></i> {{ with .Site.Params.years.start }}{{ . }}-{{ end }}{{ .Site.Params.years.present }} {{ .Site.Params.author.name }}
+    </a>
+  </div>
+
+  <!-- social -->
+  <div id="site-footer-social">
+
+    {{with .Site.Params.social.facebook}}
+    <a href="htts://facebook.com/{{.}}" target="_blank" aria-label="facebook url">
+      <i class="icon icon-facebook icon-colored"></i>
+    </a>
+    {{end}}
+
+    {{with .Site.Params.social.x}}
+    <a href="https://twitter.com/{{.}}" target="_blank" aria-label="twitter url">
+      <i class="icon icon-twitter icon-colored"></i>
+    </a>
+    {{end}}
+
+    {{with .Site.Params.social.github}}
+    <a href="https://github.com/{{.}}" target="_blank" aria-label="github url">
+      <i class="icon icon-github icon-colored"></i>
+    </a>
+    {{end}}
+
+    {{with .Site.Params.social.youtube}}
+    <a href="http://youtube.com/{{.}}" target="_blank" aria-label="youtube url">
+      <i class="icon icon-youtube icon-colored"></i>
+    </a>
+    {{end}}
+
+  </div>
+
+  <!-- fund -->
+  <div id="site-footer-fund">
+
+    {{with .Site.Params.donate.githubSponsor}}
+    <a href="https://github.com/sponsors/{{ . }}" class="btn-github" target="_blank" aria-label="github sponsor url">
+      <i class="icon icon-github icon-colored"></i> Sponsor
+    </a>
+    {{end}}
+
+    {{with .Site.Params.donate.buyMeACoffee}}
+    <a href="https://www.buymeacoffee.com/{{ . }}" class="btn-buymeacoffee" target="_blank" aria-label="buy me a coffee url"></a>
+    {{end}}
+
+  </div>
+
+  <!-- love -->
+  <div id="site-footer-love">
+    Made with <i class="icon icon-love icon-colored"></i> &nbsp;</a>
+  </div>
+</footer>

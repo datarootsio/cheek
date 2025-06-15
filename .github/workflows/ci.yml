@@ -91,7 +91,7 @@ jobs:
       - id: vars
         run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
       - run: mkdir -p ${{ matrix.goos }}/${{ matrix.goarch }}
-      - run: env GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -ldflags="-X 'github.com/datarootsio/cheek/pkg.version=${{ needs.version_tag.outputs.new_tag }}' -X 'github.com/datarootsio/cheek/pkg.commitSHA=${{ steps.vars.outputs.sha_short }}'" -o ${{ matrix.goos }}/${{ matrix.goarch }}
+      - run: env GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -ldflags="-X 'github.com/bart6114/cheek/pkg.version=${{ needs.version_tag.outputs.new_tag }}' -X 'github.com/bart6114/cheek/pkg.commitSHA=${{ steps.vars.outputs.sha_short }}'" -o ${{ matrix.goos }}/${{ matrix.goarch }}
       - run: cp ${{ matrix.goos }}/${{ matrix.goarch }}/cheek ${{ matrix.goos }}/${{ matrix.goarch }}/cheek-${{ matrix.goos }}-${{ matrix.goarch }}
       ## upload artifacts for release
       - uses: actions/upload-artifact@v4
@@ -147,5 +147,43 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ghcr.io/datarootsio/cheek:latest
-            ghcr.io/datarootsio/cheek:${{ needs.version_tag.outputs.new_tag }}
+            ghcr.io/bart6114/cheek:latest
+            ghcr.io/bart6114/cheek:${{ needs.version_tag.outputs.new_tag }}
+
+  docs:
+    needs: 
+      - build
+      - version_tag
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: '0'
+          submodules: true
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+      - name: Setup Hugo
+        uses: peaceiris/actions-hugo@v3
+        with:
+          hugo-version: 'latest'
+          extended: true
+      - name: Build Hugo site
+        run: |
+          cd docs
+          hugo --minify
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './docs/public'
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,3 @@
+[submodule "docs/themes/docura"]
+	path = docs/themes/docura
+	url = https://github.com/docura/docura.git

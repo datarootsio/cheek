@@ -1,0 +1,78 @@
+theme: docura
+
+enableGitInfo: true
+defaultContentLanguage: en
+
+languages:
+  en:
+    weight: 1
+    languageName: English
+    languageCode: en-US
+    contentDir: content/en
+    title: cheek
+    params:
+      description: a pico-sized declarative job scheduler
+
+services:
+  googleAnalytics:
+    ID: G-XXXXXXXXXX
+
+markup:
+  highlight:
+    noClasses: false
+  goldmark:
+    renderer:
+      unsafe: true
+  mermaid:
+    enable: true
+
+params:
+
+  author:
+    name: cheek
+    url: https://github.com/bart6114/cheek
+
+  themeColors:
+    light: '#ffffff'
+    dark: '#121212'
+
+  years:
+    start: ''
+    present: 2025
+
+  social:
+    github: 'bart6114/cheek'
+    youtube: ''
+    facebook: ''
+    x: ''
+
+  ads:
+    googleAdSense: ''
+
+  donate:
+    buyMeACoffee: ''
+    githubSponsor: ''
+
+  algolia:
+    en:
+      container: '#site-header-search'
+      appId: ''
+      indexName: ''
+      apiKey: ''
+
+  home:
+    repository: 'bart6114/cheek'
+
+menu:
+  main:
+    - url: /
+      name: Home
+      identifier: home
+      pre: "<i class='icon icon-home'></i>"
+      weight: 1
+
+    - url: /docs/overview
+      name: Documentation
+      identifier: docs
+      pre: "<i class='icon icon-book'></i>"
+      weight: 2

@@ -1,0 +1,64 @@
+{{ $lastMod := .Lastmod.Format "2006-01-02" }}
+
+{{ $prevPageTitle := "" }}
+{{ $nextPageTitle := "" }}
+{{ $prevPageHref := "" }}
+{{ $nextPageHref := "" }}
+
+{{ $dataLocale := index .Site.Data .Site.Language.Lang }}
+{{ if isset $dataLocale .Section }}
+  {{ $data := index .Site.Data .Site.Language.Lang .Section "sidebar"}}
+  {{- $url := split .Permalink "/" -}}
+  {{- $urlPageSlug := index $url (sub (len $url) 2) -}}
+
+  {{ $isSectionIndex := eq $urlPageSlug .Section }}
+  {{ $isActivePagePassed := false }}
+  {{ $isNextPagePassed := false }}
+
+  {{- range $group := $data -}}
+    {{ if $isNextPagePassed }}
+      {{break}}
+    {{ end }}
+
+    {{- range $page := $group.pages -}}
+      {{- $pageSlug := $page.title | urlize -}}
+      {{- $isActivePage := or $isSectionIndex (eq $urlPageSlug $pageSlug) -}}
+
+      {{ if $isActivePagePassed }}
+        {{ $nextPageTitle = $page.title }}
+
+        {{ if eq .Site.Language.Lang .Site.DefaultContentLanguage }}
+          {{ $nextPageHref = printf "/%s/%s/" $.Section $pageSlug }}
+        {{ else }}
+          {{ $nextPageHref = printf "/%s/%s/%s/" $.Site.Language.Lang $.Section $pageSlug }}
+        {{ end}}
+
+        {{ $isNextPagePassed = true }}
+        {{break}}
+
+      {{ else if $isActivePage }}
+        {{ $isActivePagePassed = true }}
+
+      {{ else }}
+        {{ $prevPageTitle = $page.title }}
+
+        {{ if eq .Site.Language.Lang .Site.DefaultContentLanguage }}
+          {{ $prevPageHref = printf "/%s/%s/" $.Section $pageSlug }}
+        {{ else }}
+          {{ $prevPageHref = printf "/%s/%s/%s/" $.Site.Language.Lang $.Section $pageSlug }}
+        {{ end}}
+
+      {{ end }}
+    {{ end}}
+  {{- end }}
+{{ end }}
+
+<footer id="article-footer">
+  {{ if ne $prevPageHref "" }}
+    <a id="article-prev-link" href="{{ $prevPageHref }}"><i class="icon icon-prev icon-colored"></i> Prev</a>
+  {{ end }}
+
+  {{ if ne $nextPageHref "" }}
+    <a id="article-next-link" {{ if eq $prevPageHref "" }} data-first-page=true {{ end }} href="{{ $nextPageHref }}">Next <i class="icon icon-next icon-colored"></i></a>
+  {{ end }}
+</footer>

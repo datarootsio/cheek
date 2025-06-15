@@ -1,4 +1,4 @@
-FROM ghcr.io/datarootsio/cheek:latest
+FROM ghcr.io/bart6114/cheek:latest
 EXPOSE 8081
 WORKDIR /schedule
 # ADD your application files here

@@ -1,0 +1,42 @@
+{{ $dropdown := resources.Get "js/component/dropdown.js" }}
+{{ $colorPreference := resources.Get "js/component/color-preference.js" }}
+{{ $articleNav := resources.Get "js/component/article-nav.js" }}
+{{ $sidebar := resources.Get "js/component/sidebar.js" }}
+{{ $toc := resources.Get "js/component/toc.js" }}
+{{ $baseJs := slice $dropdown $colorPreference $articleNav $sidebar $toc | resources.Concat "js/base.js" | minify }}
+
+<script type="text/javascript" src="{{ $baseJs.RelPermalink }}"></script>
+
+{{ $algolia := index .Site.Params.algolia .Site.Language.Lang }}
+{{ if $algolia }}
+  {{ $docsearch := resources.Get "js/component/docsearch.min.js" }}
+  <script src="{{ $docsearch.RelPermalink }}"></script>
+  <script type="application/javascript">
+      docsearch({
+          container: '{{ $algolia.container }}',
+          appId: '{{ $algolia.appId }}',
+          indexName: '{{ $algolia.indexName }}',
+          apiKey: '{{ $algolia.apiKey }}',
+      });
+  </script>
+{{ end }}
+
+<script data-goatcounter="https://cheek.goatcounter.com/count"
+        async src="//gc.zgo.at/count.js"></script>
+
+<script type="application/javascript">
+    if('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js?{{ now.Format "2006-01-02" }}')
+            .catch(function(err) {console.error('ServiceWorker registration failed: ', err);});
+    }
+</script>
+
+{{ if .Page.Store.Get "hasMermaid" }}
+<script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+<script>
+  mermaid.initialize({
+    theme: 'default',
+    startOnLoad: true
+  });
+</script>
+{{ end }}
